@@ -1,0 +1,23 @@
+name = "crystal-builder"
+type = "javascript"
+main = "worker/index.ts"
+compatibility_date = "2024-12-19"
+
+[env.production]
+name = "crystal-builder-prod"
+route = "https://crystal.omacrystal.com/*"
+zone_id = ""  # Add your Cloudflare zone ID
+
+# Optional D1 Database binding for saving designs
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "crystal_designs"
+# database_id = "your-database-id"
+
+# Optional R2 bucket binding for image storage
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "crystal-designs"
+
+# Build configuration
+build = { command = "npm run build", cwd = ".", watch_paths = ["app/**/*.ts", "app/**/*.tsx", "app/**/*.css"] }
