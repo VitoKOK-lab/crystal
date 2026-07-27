@@ -77,18 +77,21 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
 
     // ---- soft cord: damped harmonic deformation modes ----
     type Mode = { m: number; ac: number; as: number; vc: number; vs: number; k: number; c: number; g: number };
+    // "2x softer" tuning: half the spring stiffness, double the excitation
+    // and double the allowed deformation, with lighter damping so the cord
+    // wobbles visibly longer before settling back into a circle.
     const radialModes: Mode[] = [
-      { m: 2, ac: 0, as: 0, vc: 0, vs: 0, k: 150, c: 5, g: 0.016 },
-      { m: 3, ac: 0, as: 0, vc: 0, vs: 0, k: 380, c: 7, g: 0.009 },
+      { m: 2, ac: 0, as: 0, vc: 0, vs: 0, k: 75, c: 4, g: 0.032 },
+      { m: 3, ac: 0, as: 0, vc: 0, vs: 0, k: 190, c: 5.5, g: 0.018 },
     ];
     const planeModes: Mode[] = [
-      { m: 2, ac: 0, as: 0, vc: 0, vs: 0, k: 120, c: 4.6, g: 0.014 },
-      { m: 1, ac: 0, as: 0, vc: 0, vs: 0, k: 240, c: 6, g: 0.006 },
+      { m: 2, ac: 0, as: 0, vc: 0, vs: 0, k: 60, c: 3.8, g: 0.028 },
+      { m: 1, ac: 0, as: 0, vc: 0, vs: 0, k: 120, c: 4.8, g: 0.012 },
     ];
     const allModes = [...radialModes, ...planeModes];
-    const clampAmp = (x: number) => Math.max(-0.11, Math.min(0.11, x));
-    const ropeRadial = (phi: number) => { let d = 0; for (const md of radialModes) d += md.ac * Math.cos(md.m * phi) + md.as * Math.sin(md.m * phi); return Rmm * (1 + Math.max(-0.16, Math.min(0.16, d))); };
-    const ropePlane = (phi: number) => { let d = 0; for (const md of planeModes) d += md.ac * Math.cos(md.m * phi) + md.as * Math.sin(md.m * phi); return Rmm * Math.max(-0.2, Math.min(0.2, d)); };
+    const clampAmp = (x: number) => Math.max(-0.22, Math.min(0.22, x));
+    const ropeRadial = (phi: number) => { let d = 0; for (const md of radialModes) d += md.ac * Math.cos(md.m * phi) + md.as * Math.sin(md.m * phi); return Rmm * (1 + Math.max(-0.3, Math.min(0.3, d))); };
+    const ropePlane = (phi: number) => { let d = 0; for (const md of planeModes) d += md.ac * Math.cos(md.m * phi) + md.as * Math.sin(md.m * phi); return Rmm * Math.max(-0.38, Math.min(0.38, d)); };
 
     // ---- view state: free trackball, unlimited on both axes ----
     let yaw = 0.6, yawVel = 0.45, prevYawVel = yawVel;
@@ -111,8 +114,8 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
       const speed = Math.abs(yawVel) + Math.abs(pitchVel);
       for (let i = 0; i < n; i++) v[i] += (hash(i + 3) - 0.5) * speed * Rmm * 0.5;
       for (let m = 0; m < allModes.length; m++) {
-        allModes[m].vc += (hash(m + 11) - 0.5) * speed * 0.55;
-        allModes[m].vs += (hash(m + 23) - 0.5) * speed * 0.55;
+        allModes[m].vc += (hash(m + 11) - 0.5) * speed * 1.1;
+        allModes[m].vs += (hash(m + 23) - 0.5) * speed * 1.1;
       }
     };
     canvas.addEventListener("pointerdown", onDown);
@@ -168,8 +171,8 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
               v[j] = avg - (v[j] - avg) * e;
               clack(rv, Math.max(widths[i], widths[j]));
               // impacts make the soft cord shiver
-              radialModes[0].vc += rv * 0.0006 * (hash(i) - 0.5);
-              planeModes[0].vs += rv * 0.0005 * (hash(i + 7) - 0.5);
+              radialModes[0].vc += rv * 0.0012 * (hash(i) - 0.5);
+              planeModes[0].vs += rv * 0.001 * (hash(i + 7) - 0.5);
             }
           }
         }
