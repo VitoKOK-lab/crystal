@@ -97,9 +97,12 @@ const accessoryPhotos: Record<string, string> = {
   key: "/materials/key.png",
   "silver-heart": "/materials/silver-heart.png",
 };
-const initial: DesignItem[] = ["rose","rose","rose","rose","clear","rose","rose","silver-round","rose","rose","rose","rose","rose","rose","rose","gold-rondelle","rose","rose","rose","rose","rose","rose","rose","rose","rose","lotus"].map((id, index) => accessories.some((a) => a.id === id)
+// Starter design sums to ~16.3 cm: one 20mm focal bead, 10mm rounds, 8mm
+// accents, two spacers and a charm.
+const initialSpec: [string, BeadSize?][] = [["rose","xlarge"],["rose","large"],["rose","large"],["clear","small"],["rose","large"],["silver-round"],["rose","small"],["rose","large"],["rose","large"],["rose","small"],["gold-rondelle"],["rose","large"],["clear","small"],["rose","large"],["rose","large"],["rose","small"],["rose","large"],["lotus"]];
+const initial: DesignItem[] = initialSpec.map(([id, size]) => accessories.some((a) => a.id === id)
   ? ({ kind: "accessory", id, uid: nextUid() })
-  : ({ kind: "stone", id, size: [4, 8, 17, 21].includes(index) ? "small" : [12, 20].includes(index) ? "large" : "xlarge", uid: nextUid() }));
+  : ({ kind: "stone", id, size: size ?? "large", uid: nextUid() }));
 
 // draggable={false}: the browser's native image drag hijacks the pointer
 // stream (firing pointercancel) and kills bead drag-reordering.
@@ -118,8 +121,13 @@ function ItemVisual({ item, small = false }: { item: DesignItem; small?: boolean
   return item.kind === "stone" ? <Crystal stone={byStone[item.id] as Stone} size={stoneSize} /> : <Hardware a={byAccessory[item.id] as Accessory} small={small || (byAccessory[item.id] as Accessory).type === "spacer"} />;
 }
 function label(item: DesignItem) { return item.kind === "stone" ? (byStone[item.id] as Stone).zh : (byAccessory[item.id] as Accessory).zh; }
-function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "10mm 大主珠" : size === "large" ? "8mm 中珠" : "6mm 小珠"; }
-function itemPrice(item: DesignItem) { if (item.kind === "accessory") return (byAccessory[item.id] as Accessory).price; const base = (byStone[item.id] as Stone).price; return base + (item.size === "xlarge" ? 100 : item.size === "small" ? -50 : 0); }
+function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "20mm 特大主珠" : size === "large" ? "10mm 大珠" : "8mm 中珠"; }
+function itemPrice(item: DesignItem) { if (item.kind === "accessory") return (byAccessory[item.id] as Accessory).price; const base = (byStone[item.id] as Stone).price; return base + (item.size === "xlarge" ? 320 : item.size === "small" ? 0 : 80); }
+// Physical width each piece occupies on the strand, in millimetres — the
+// wrist size is the honest sum of these, capped at MAX_STRAND_MM.
+const BEAD_MM: Record<BeadSize, number> = { xlarge: 20, large: 10, small: 8 };
+const MAX_STRAND_MM = 220;
+function itemMM(item: DesignItem) { if (item.kind === "stone") return BEAD_MM[item.size ?? "large"]; return (byAccessory[item.id] as Accessory).type === "spacer" ? 5 : 3; }
 
 const ENERGY_META = [
   { key: "wealth", zh: "豐盛", en: "WEALTH", color: "#e3b04b" },
@@ -132,7 +140,7 @@ const ENERGY_META = [
 
 // Bigger beads carry more of the stone's energy into the design.
 function energyScores(items: DesignItem[]) {
-  const sizeWeight = (s?: BeadSize) => (s === "xlarge" ? 1.3 : s === "small" ? 0.7 : 1);
+  const sizeWeight = (s?: BeadSize) => (s === "xlarge" ? 1.6 : s === "small" ? 0.8 : 1);
   const scores = { wealth: 0, love: 0, health: 0, protection: 0, clarity: 0, energy: 0 } as Record<EnergyType, number>;
   items.forEach((item) => {
     if (item.kind !== "stone") return;
@@ -209,7 +217,7 @@ export default function Home() {
   const [tab, setTab] = useState<"crystal" | "spacer" | "charm">("crystal");
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("已為你準備一條粉水晶基底手鍊");
-  const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "rose", size: "xlarge" });
+  const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "rose", size: "large" });
   // Drag logic lives in a ref so pointerup always sees the freshest state —
   // reading it from React state raced the render loop and made quick drags
   // register as taps (deleting the bead). dragView only drives rendering.
@@ -222,7 +230,12 @@ export default function Home() {
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
-  const add = (item: DesignItem) => { if (items.length >= 42) { setNotice("手鍊最多 42 個素材，請先點手鍊上的素材移除。"); return; } const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed); setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}`); };
+  const strandMM = useMemo(() => items.reduce((sum, it) => sum + itemMM(it), 0), [items]);
+  const add = (item: DesignItem) => {
+    if (strandMM + itemMM(item) > MAX_STRAND_MM) { setNotice(`加入${label(item)}會超過 ${MAX_STRAND_MM / 10} cm 手圍上限，請先移除部分素材。`); return; }
+    if (items.length >= 42) { setNotice("手鍊最多 42 個素材，請先點手鍊上的素材移除。"); return; }
+    const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed); setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・目前手圍 ${((strandMM + itemMM(item)) / 10).toFixed(1)} cm`);
+  };
   const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); setNotice(`已移除 ${label(item)}`); } };
   const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
   // Live reorder while dragging: shift the bead to the slot nearest the
@@ -258,8 +271,9 @@ export default function Home() {
   }, [items]);
   const beads = items.filter((x) => x.kind === "stone").length;
   const charms = items.filter((x) => x.kind === "accessory" && (byAccessory[x.id] as Accessory).type === "charm").length;
-  const wrist = Math.min(26, 12.8 + items.length * .31).toFixed(1);
-  const r = Math.min(38, 26 + Math.max(0, items.length - 14) * .42);
+  const wrist = (strandMM / 10).toFixed(1);
+  const wristRatio = strandMM / MAX_STRAND_MM;
+  const r = Math.min(38, 24 + strandMM * 0.055);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
   return <main className="studio">
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
@@ -267,7 +281,7 @@ export default function Home() {
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
-        <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / 26 cm</i></b></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / {MAX_STRAND_MM / 10} cm</i></b><span className={`wrist-bar ${wristRatio > 0.95 ? "full" : wristRatio > 0.8 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={MAX_STRAND_MM / 10} aria-valuenow={Number(wrist)} aria-label="手圍長度"><i style={{ width: `${Math.min(100, wristRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
@@ -287,8 +301,8 @@ export default function Home() {
         <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "crystal" ? "搜尋水晶名稱…" : "搜尋配件名稱…"} /></label>
         <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>
         <div className="material-grid" key={`${tab}-${query}`}>{visible.length ? visible.map((x: Stone | Accessory) => {
-          const item: DesignItem = tab === "crystal" ? { kind: "stone", id: x.id, size: "xlarge" } : { kind: "accessory", id: x.id };
-          if (tab === "crystal") return <article className={`material-card crystal-card ${selected.id === item.id ? "selected" : ""}`} key={x.id}><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} 10mm 大主珠`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {itemPrice(item)}</em></button><div className="size-actions"><button onClick={() => add({ kind: "stone", id: x.id, size: "xlarge" })}>10mm 大主珠</button><button onClick={() => add({ kind: "stone", id: x.id, size: "large" })}>8mm 中珠</button><button onClick={() => add({ kind: "stone", id: x.id, size: "small" })}>6mm 小珠</button></div></article>;
+          const item: DesignItem = tab === "crystal" ? { kind: "stone", id: x.id, size: "large" } : { kind: "accessory", id: x.id };
+          if (tab === "crystal") return <article className={`material-card crystal-card ${selected.id === item.id ? "selected" : ""}`} key={x.id}><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} 10mm 大珠`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {itemPrice(item)}</em></button><div className="size-actions"><button onClick={() => add({ kind: "stone", id: x.id, size: "xlarge" })}>20mm 特大</button><button onClick={() => add({ kind: "stone", id: x.id, size: "large" })}>10mm 大珠</button><button onClick={() => add({ kind: "stone", id: x.id, size: "small" })}>8mm 中珠</button></div></article>;
           return <button className={`material-card ${selected.id === item.id ? "selected" : ""}`} key={x.id} onClick={() => add(item)}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {x.price}</em><i>{(x as Accessory).type === "spacer" ? "精緻小隔珠" : "垂墜吊飾"}</i></button>;
         }) : <div className="empty-library"><b>這個分類暫時沒有符合的素材</b><span>請清除搜尋文字，或切換其他分類。</span></div>}</div>
         <div className="selected-detail"><div className="detail-visual"><ItemVisual item={selected} /></div><div><p>{selected.kind === "stone" ? "NATURAL STONE" : "JEWELRY DETAIL"}</p><b>{selectedInfo.zh}</b><span>{selectedInfo.note}</span></div><button onClick={() => add(selected)}>加入 <strong>＋</strong></button></div>
