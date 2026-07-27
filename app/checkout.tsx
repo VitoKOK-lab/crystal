@@ -13,17 +13,18 @@ const PAYMENTS = [
   { id: "cod", icon: "📦", name: "貨到付款", note: "宅配到府，取貨付款" },
 ] as const;
 
-export default function Checkout({ lines, baseFee, dominant, totalEnergy, onBack }: {
+export default function Checkout({ lines, baseFee, dominant, totalEnergy, initialWrist, onBack }: {
   lines: OrderLine[];
   baseFee: number;
   dominant: EnergyInfo;
   totalEnergy: number;
+  initialWrist?: number;
   onBack: () => void;
 }) {
   const [step, setStep] = useState<"form" | "done">("form");
   const [orderId, setOrderId] = useState("");
   const [payment, setPayment] = useState<string>("card");
-  const [form, setForm] = useState({ name: "", phone: "", email: "", wrist: "16", address: "", note: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", wrist: initialWrist ? String(initialWrist % 1 ? initialWrist.toFixed(1) : initialWrist) : "16", address: "", note: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
 

@@ -97,9 +97,9 @@ const accessoryPhotos: Record<string, string> = {
   key: "/materials/key.png",
   "silver-heart": "/materials/silver-heart.png",
 };
-// Starter design sums to ~16.3 cm: one 20mm focal bead, 10mm rounds, 8mm
-// accents, two spacers and a charm.
-const initialSpec: [string, BeadSize?][] = [["rose","xlarge"],["rose","large"],["rose","large"],["clear","small"],["rose","large"],["silver-round"],["rose","small"],["rose","large"],["rose","large"],["rose","small"],["gold-rondelle"],["rose","large"],["clear","small"],["rose","large"],["rose","large"],["rose","small"],["rose","large"],["lotus"]];
+// Starter design sums to ~14.3 cm — comfortably inside the default 16 cm
+// wrist: one 20mm focal bead, 10mm rounds, 8mm accents, spacers and a charm.
+const initialSpec: [string, BeadSize?][] = [["rose","xlarge"],["rose","large"],["rose","large"],["clear","small"],["rose","large"],["silver-round"],["rose","small"],["rose","large"],["rose","small"],["gold-rondelle"],["rose","large"],["clear","small"],["rose","large"],["rose","small"],["rose","large"],["lotus"]];
 const initial: DesignItem[] = initialSpec.map(([id, size]) => accessories.some((a) => a.id === id)
   ? ({ kind: "accessory", id, uid: nextUid() })
   : ({ kind: "stone", id, size: size ?? "large", uid: nextUid() }));
@@ -123,11 +123,15 @@ function ItemVisual({ item, small = false }: { item: DesignItem; small?: boolean
 function label(item: DesignItem) { return item.kind === "stone" ? (byStone[item.id] as Stone).zh : (byAccessory[item.id] as Accessory).zh; }
 function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "20mm 特大主珠" : size === "large" ? "10mm 大珠" : "8mm 中珠"; }
 function itemPrice(item: DesignItem) { if (item.kind === "accessory") return (byAccessory[item.id] as Accessory).price; const base = (byStone[item.id] as Stone).price; return base + (item.size === "xlarge" ? 320 : item.size === "small" ? 0 : 80); }
-// Physical width each piece occupies on the strand, in millimetres — the
-// wrist size is the honest sum of these, capped at MAX_STRAND_MM.
+// Physical width each piece occupies on the strand, in millimetres. The user
+// picks a wrist size first; its circumference (cm × 10) is the fixed capacity
+// that beads fill up — adding stones never grows the wrist.
 const BEAD_MM: Record<BeadSize, number> = { xlarge: 20, large: 10, small: 8 };
-const MIN_STRAND_MM = 130;
-const MAX_STRAND_MM = 220;
+const WRIST_CHOICES = Array.from({ length: 19 }, (_, i) => 13 + i * 0.5);
+// Rendering scale: stage percent per physical millimetre. Ring radius and
+// bead diameters share it, so beads sit tangent along the cord — a 20mm bead
+// truly draws twice as wide as a 10mm one and neighbours never overlap.
+const PCT_PER_MM = 0.95;
 function itemMM(item: DesignItem) { if (item.kind === "stone") return BEAD_MM[item.size ?? "large"]; return (byAccessory[item.id] as Accessory).type === "spacer" ? 5 : 3; }
 
 const ENERGY_META = [
@@ -227,32 +231,40 @@ export default function Home() {
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
   const [view, setView] = useState<"studio" | "checkout">("studio");
+  const [wristCm, setWristCm] = useState(16);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
   const strandMM = useMemo(() => items.reduce((sum, it) => sum + itemMM(it), 0), [items]);
+  const capacityMM = wristCm * 10;
   const add = (item: DesignItem) => {
-    if (strandMM + itemMM(item) > MAX_STRAND_MM) { setNotice(`加入${label(item)}會超過 ${MAX_STRAND_MM / 10} cm 手圍上限，請先移除部分素材。`); return; }
-    if (items.length >= 42) { setNotice("手鍊最多 42 個素材，請先點手鍊上的素材移除。"); return; }
-    const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed); setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・目前手圍 ${((strandMM + itemMM(item)) / 10).toFixed(1)} cm`);
+    if (strandMM + itemMM(item) > capacityMM) { setNotice(`手圍 ${wristCm} cm 已滿，放不下${label(item)}了 — 移除部分素材，或選更大的手圍。`); return; }
+    const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed); setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${((strandMM + itemMM(item)) / 10).toFixed(1)} / ${wristCm} cm`);
+  };
+  const changeWrist = (cm: number) => {
+    if (strandMM > cm * 10) { setNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
+    setWristCm(cm); setNotice(`手圍已設定為 ${cm} cm`);
   };
   const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); setNotice(`已移除 ${label(item)}`); } };
   const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
-  // Live reorder while dragging: shift the bead to the slot nearest the
-  // pointer. The 0.38 dead zone keeps neighbours from oscillating when the
-  // pointer hovers right on a slot boundary.
+  // Live reorder while dragging: map the pointer angle to a millimetre
+  // position along the strand and insert the bead between the pieces whose
+  // widths bracket it. Excluding the dragged bead keeps boundaries stable, so
+  // neighbours don't oscillate.
   const moveToAngle = (uid: number, angle: number) => setItems((current) => {
     const from = current.findIndex((x) => x.uid === uid);
     if (from < 0 || current.length < 2) return current;
+    const moving = current[from];
+    const rest = current.filter((x) => x.uid !== uid);
     const TAU = Math.PI * 2;
-    const exact = ((((angle + Math.PI / 2) % TAU) + TAU) % TAU) / TAU * current.length;
-    const target = Math.round(exact) % current.length;
-    if (target === from || Math.abs(exact - Math.round(exact)) > 0.38) return current;
-    const next = [...current];
-    const [moving] = next.splice(from, 1);
+    const frac = ((((angle + Math.PI / 2) % TAU) + TAU) % TAU) / TAU;
+    const p = frac * capacityMM;
+    let cum = 0, target = rest.length;
+    for (let i = 0; i < rest.length; i++) { const w = itemMM(rest[i]); if (p < cum + w / 2) { target = i; break; } cum += w; }
+    const next = [...rest];
     next.splice(target, 0, moving);
-    return next;
+    return next.every((x, i) => x === current[i]) ? current : next;
   });
   const total = useMemo(() => items.reduce((sum, item) => sum + itemPrice(item), 680), [items]);
   const scores = useMemo(() => energyScores(items), [items]);
@@ -272,28 +284,29 @@ export default function Home() {
   }, [items]);
   const beads = items.filter((x) => x.kind === "stone").length;
   const charms = items.filter((x) => x.kind === "accessory" && (byAccessory[x.id] as Accessory).type === "charm").length;
-  const wrist = (strandMM / 10).toFixed(1);
-  const wristRatio = strandMM / MAX_STRAND_MM;
-  const r = Math.min(38, 24 + strandMM * 0.055);
+  const strung = (strandMM / 10).toFixed(1);
+  const fillRatio = strandMM / capacityMM;
+  const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
+  const arcs = useMemo(() => { let cum = 0; return items.map((it) => { const w = itemMM(it); const centerMM = cum + w / 2; cum += w; return { w, angle: -Math.PI / 2 + (centerMM / capacityMM) * Math.PI * 2 }; }); }, [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
   return <main className="studio">
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     <header className="studio-head"><a className="wordmark" href="#top">OMA <span>CRYSTAL</span></a><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
-    {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} onBack={() => setView("studio")} /> : <>
+    {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
-        <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / {MAX_STRAND_MM / 10} cm</i></b><span className={`wrist-bar ${wristRatio > 0.95 ? "full" : wristRatio > 0.8 ? "warn" : strandMM < MIN_STRAND_MM ? "low" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={MAX_STRAND_MM / 10} aria-valuenow={Number(wrist)} aria-label="手圍長度（建議 13 至 22 公分）"><i style={{ width: `${Math.min(100, wristRatio * 100)}%` }} /><em style={{ left: `${(MIN_STRAND_MM / MAX_STRAND_MM) * 100}%` }} title="最短 13 cm" /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        <div className="canvas-top"><div className="stats"><span><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
-          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const baseAngle = -Math.PI / 2 + i * ((Math.PI * 2) / items.length); const a = isDragging ? (dragView as { angle: number }).angle : baseAngle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const charmOffset = isCharm ? 4.2 : 0; const xRadius = r + charmOffset; const yRadius = r + charmOffset; const charmRotation = (a * 180 / Math.PI) - 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) setNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * xRadius}%`, top: `${50 + Math.sin(a) * yRadius}%`, transform: `translate(-50%,-50%)${isCharm ? ` rotate(${charmRotation}deg)` : ""}` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
+          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const sizePct = isCharm ? 10.5 : arcs[i].w * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) setNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%)${isCharm ? ` rotate(${charmRotation}deg)` : ""}` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
           {beads > 0
             ? <div className="center-intention"><small>DOMINANT ENERGY</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
             : <div className="center-intention"><small>OMA CRYSTAL</small><b>START YOUR STORY</b><span className="ci-note">從右側挑選第一顆水晶</span></div>}
           <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (strandMM < MIN_STRAND_MM) { setNotice(`手鍊目前 ${wrist} cm，最短需 ${MIN_STRAND_MM / 10} cm 才能配戴，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { setNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <aside className="materials-panel">
