@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Checkout, { type OrderLine } from "./checkout";
 import DesignGuide from "./design-guide";
 
 type EnergyType = "wealth" | "love" | "health" | "protection" | "clarity" | "energy";
@@ -216,6 +217,7 @@ export default function Home() {
   const [dragView, setDragView] = useState<{ uid: number; angle: number } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
+  const [view, setView] = useState<"studio" | "checkout">("studio");
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
@@ -243,6 +245,17 @@ export default function Home() {
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
   const dominant = ENERGY_META.reduce((best, m) => (scores[m.key] > scores[best.key] ? m : best), ENERGY_META[0]);
   const dominantDisplay = useCountUp(scores[dominant.key]);
+  const orderLines = useMemo<OrderLine[]>(() => {
+    const grouped = new Map<string, { item: DesignItem; qty: number }>();
+    items.forEach((item) => { const key = `${item.kind}-${item.id}-${item.size ?? ""}`; const entry = grouped.get(key); if (entry) entry.qty += 1; else grouped.set(key, { item, qty: 1 }); });
+    return [...grouped.entries()].map(([key, { item, qty }]) => ({
+      key, qty,
+      unit: itemPrice(item),
+      name: label(item),
+      sub: item.kind === "stone" ? sizeLabel(item.size) : (byAccessory[item.id] as Accessory).type === "spacer" ? "精緻隔珠" : "垂墜吊飾",
+      visual: <ItemVisual item={item} small />,
+    }));
+  }, [items]);
   const beads = items.filter((x) => x.kind === "stone").length;
   const charms = items.filter((x) => x.kind === "accessory" && (byAccessory[x.id] as Accessory).type === "charm").length;
   const wrist = Math.min(26, 12.8 + items.length * .31).toFixed(1);
@@ -251,6 +264,7 @@ export default function Home() {
   return <main className="studio">
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     <header className="studio-head"><a className="wordmark" href="#top">OMA <span>CRYSTAL</span></a><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
+    {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / 26 cm</i></b></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
@@ -264,7 +278,7 @@ export default function Home() {
           <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="primary" onClick={() => setNotice("設計已保存，珠寶顧問將為你確認細節。")}>保存並預覽 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <aside className="materials-panel">
@@ -281,5 +295,6 @@ export default function Home() {
       </aside>
     </section>
     <section className="atelier-note"><p>THE OMA ATELIER</p><h2>把此刻的心願，串成每天看得見的光。</h2><span>所有晶石、隔珠與吊飾都可自由重排；完成後由專人確認手圍與配件細節。</span></section>
+    </>}
   </main>;
 }
