@@ -7,5 +7,6 @@
 # be deleted and this script retired.
 set -euo pipefail
 npm run build:pages
+rm -rf assets
 cp -r dist-pages/* .
 echo "Synced dist-pages/ to repo root."
