@@ -264,6 +264,7 @@ export default function Home() {
   const [view, setView] = useState<"studio" | "checkout">("studio");
   const [wristCm, setWristCm] = useState(16);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(true);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("d");
@@ -383,11 +384,19 @@ export default function Home() {
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
   const arcs = useMemo(() => { let cum = 0; return items.map((it) => { const w = itemMM(it); const centerMM = cum + w / 2; cum += w; return { w, angle: -Math.PI / 2 + (centerMM / capacityMM) * Math.PI * 2 }; }); }, [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
-  return <main className="studio">
+  return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     {previewOpen && <Preview pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />}
     <header className="studio-head"><a className="wordmark" href="#top">OMA <span>CRYSTAL</span></a><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
+    <section className="hero-banner">
+      <img src="/hero-banner.png" alt="OMA CRYSTAL 水晶手鍊配戴示意" />
+      <div className="hero-banner-copy">
+        <p>THE OMA ATELIER</p>
+        <h1>把此刻的心願<br />戴在手上</h1>
+        <a href="#top" className="hero-cta">開始設計 <span>↓</span></a>
+      </div>
+    </section>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
@@ -404,7 +413,9 @@ export default function Home() {
         <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={shareDesign}>📸 分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { setNotice("先加入素材，再看立體預覽！"); return; } setPreviewOpen(true); }}>✨ 360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { setNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
-      <aside className="materials-panel">
+      <aside className={`materials-panel ${drawerOpen ? "" : "collapsed"}`}>
+        <button className="drawer-handle" onClick={() => setDrawerOpen((v) => !v)} aria-expanded={drawerOpen} aria-label={drawerOpen ? "收起素材選擇區" : "展開素材選擇區"}><i /><span>{drawerOpen ? "收起選項" : "選擇水晶與配件"}</span></button>
+        <div className="drawer-body">
         <div className="materials-head"><p>01 — CHOOSE MATERIAL</p><h1>打造專屬<br /><em>Crystal Story</em></h1><span>點選素材加入手鍊；每一顆天然晶石皆有獨一無二的紋理。</span></div>
         <div className="preset-row" aria-label="一鍵能量搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].icon} {PRESETS[key].name}</button>)}</div>
         <div className="tabs" aria-label="素材分類">{([["crystal","天然水晶"],["spacer","精緻隔珠"],["charm","專屬吊飾"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => { setTab(id); setQuery(""); }}>{name}</button>)}</div>
@@ -416,6 +427,7 @@ export default function Home() {
           return <button className={`material-card ${selected.id === item.id ? "selected" : ""}`} key={x.id} onClick={() => add(item)}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {x.price}</em><i>{(x as Accessory).type === "spacer" ? "精緻小隔珠" : "垂墜吊飾"}</i></button>;
         }) : <div className="empty-library"><b>這個分類暫時沒有符合的素材</b><span>請清除搜尋文字，或切換其他分類。</span></div>}</div>
         <div className="selected-detail"><div className="detail-visual"><ItemVisual item={selected} /></div><div><p>{selected.kind === "stone" ? "NATURAL STONE" : "JEWELRY DETAIL"}</p><b>{selectedInfo.zh}</b><span>{selectedInfo.note}</span></div><button onClick={() => add(selected)}>加入 <strong>＋</strong></button></div>
+        </div>
       </aside>
     </section>
     <section className="atelier-note"><p>THE OMA ATELIER</p><h2>把此刻的心願，串成每天看得見的光。</h2><span>所有晶石、隔珠與吊飾都可自由重排；完成後由專人確認手圍與配件細節。</span></section>

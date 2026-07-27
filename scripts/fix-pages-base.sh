@@ -11,6 +11,8 @@ DIST="dist-pages"
 BASE="/crystal"
 
 find "$DIST" -type f -name '*.js' -print0 |
-  xargs -0 sed -i "s|/materials/|$BASE/materials/|g"
+  xargs -0 sed -i \
+    -e "s|/materials/|$BASE/materials/|g" \
+    -e "s|\`/hero-banner.png\`|\`$BASE/hero-banner.png\`|g"
 
-echo "Rewrote /materials/ asset paths under $DIST to $BASE/materials/"
+echo "Rewrote root-absolute asset paths under $DIST to $BASE/…"
