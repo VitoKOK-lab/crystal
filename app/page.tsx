@@ -2,29 +2,30 @@
 
 import { useMemo, useRef, useState } from "react";
 
-type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string };
-type Accessory = { id: string; zh: string; en: string; type: "spacer" | "charm"; shape: string; metal: "gold" | "silver"; price: number; note: string };
+type EnergyType = "wealth" | "love" | "health" | "protection" | "clarity" | "energy";
+type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
+type Accessory = { id: string; zh: string; en: string; type: "spacer" | "charm"; shape: string; metal: "gold" | "silver"; price: number; note: string; energy?: Record<EnergyType, number> };
 type BeadSize = "xlarge" | "large" | "small";
 type DesignItem = { kind: "stone" | "accessory"; id: string; size?: BeadSize };
 
 const stones: Stone[] = [
-  ["rose","粉水晶","Rose Quartz","愛與關係","#df9baa","#fff3f4","#a65364",260,"溫柔、親密與自我接納"],
-  ["clear","白水晶","Clear Quartz","淨化","#d4e2e4","#ffffff","#8ba3a7",230,"清晰思緒，放大你的意圖"],
-  ["amethyst","紫水晶","Amethyst","守護","#8868b3","#eee5ff","#4e2c80",280,"安定心緒，保持內在平衡"],
-  ["citrine","黃水晶","Citrine","豐盛","#e1b254","#fff7c5","#9d6a11",300,"邀請豐盛與自信前來"],
-  ["aqua","海藍寶","Aquamarine","療癒","#7fc6d4","#efffff","#337b8c",360,"像海一樣清澈、自在"],
-  ["tourmaline","黑碧璽","Black Tourmaline","守護","#282a2c","#74777a","#060708",290,"穩定界線，沉靜守護"],
-  ["sunstone","太陽石","Sunstone","行動","#ce7b4f","#ffd4ad","#813820",330,"把勇氣帶到每一步"],
-  ["moon","月光石","Moonstone","療癒","#bbc6e1","#ffffff","#6d78a3",320,"柔和直覺，照亮新開始"],
-  ["moss","苔蘚瑪瑙","Moss Agate","療癒","#779b78","#e5f3d8","#31563a",290,"穩定生長，回到自己的節奏"],
-  ["lapis","青金石","Lapis Lazuli","守護","#315b94","#a7d9f3","#122654",330,"誠實表達，連結內在智慧"],
-  ["garnet","石榴石","Garnet","行動","#9d3753","#ffc2cb","#4d1025",310,"熱情與持續前進的力量"],
-  ["tiger","虎眼石","Tiger’s Eye","豐盛","#ae7927","#ffdf84","#55340c",270,"專注、果斷與行動力"],
-  ["smoky","茶晶","Smoky Quartz","守護","#7b604d","#edd7bc","#38241c",300,"沉穩落地，釋放雜訊"],
-  ["fluorite","螢石","Fluorite","淨化","#79b69f","#e3ffe7","#3d7461",320,"整理思緒，溫柔淨化"],
-  ["rhodonite","薔薇輝石","Rhodonite","愛與關係","#b96f82","#ffd8e0","#6e3445",350,"修復關係與勇敢去愛"],
-  ["labradorite","拉長石","Labradorite","守護","#557883","#bfeef2","#263e55",380,"低調光芒，守護你的能量"],
-].map(([id,zh,en,group,color,light,deep,price,note]) => ({ id,zh,en,group,color,light,deep,price,note } as Stone));
+  ["rose","粉水晶","Rose Quartz","愛與關係","#df9baa","#fff3f4","#a65364",260,"溫柔、親密與自我接納",{wealth:2,love:9,health:7,protection:3,clarity:4,energy:6}],
+  ["clear","白水晶","Clear Quartz","淨化","#d4e2e4","#ffffff","#8ba3a7",230,"清晰思緒，放大你的意圖",{wealth:7,love:5,health:6,protection:8,clarity:10,energy:9}],
+  ["amethyst","紫水晶","Amethyst","守護","#8868b3","#eee5ff","#4e2c80",280,"安定心緒，保持內在平衡",{wealth:4,love:6,health:8,protection:9,clarity:9,energy:8}],
+  ["citrine","黃水晶","Citrine","豐盛","#e1b254","#fff7c5","#9d6a11",300,"邀請豐盛與自信前來",{wealth:10,love:4,health:5,protection:4,clarity:7,energy:9}],
+  ["aqua","海藍寶","Aquamarine","療癒","#7fc6d4","#efffff","#337b8c",360,"像海一樣清澈、自在",{wealth:3,love:8,health:9,protection:5,clarity:8,energy:7}],
+  ["tourmaline","黑碧璽","Black Tourmaline","守護","#282a2c","#74777a","#060708",290,"穩定界線，沉靜守護",{wealth:2,love:3,health:6,protection:10,clarity:5,energy:4}],
+  ["sunstone","太陽石","Sunstone","行動","#ce7b4f","#ffd4ad","#813820",330,"把勇氣帶到每一步",{wealth:7,love:5,health:8,protection:4,clarity:6,energy:9}],
+  ["moon","月光石","Moonstone","療癒","#bbc6e1","#ffffff","#6d78a3",320,"柔和直覺，照亮新開始",{wealth:3,love:7,health:8,protection:6,clarity:7,energy:6}],
+  ["moss","苔蘚瑪瑙","Moss Agate","療癒","#779b78","#e5f3d8","#31563a",290,"穩定生長，回到自己的節奏",{wealth:6,love:4,health:9,protection:7,clarity:5,energy:5}],
+  ["lapis","青金石","Lapis Lazuli","守護","#315b94","#a7d9f3","#122654",330,"誠實表達，連結內在智慧",{wealth:5,love:6,health:7,protection:8,clarity:9,energy:7}],
+  ["garnet","石榴石","Garnet","行動","#9d3753","#ffc2cb","#4d1025",310,"熱情與持續前進的力量",{wealth:8,love:7,health:6,protection:5,clarity:4,energy:10}],
+  ["tiger","虎眼石","Tiger’s Eye","豐盛","#ae7927","#ffdf84","#55340c",270,"專注、果斷與行動力",{wealth:9,love:3,health:7,protection:6,clarity:8,energy:8}],
+  ["smoky","茶晶","Smoky Quartz","守護","#7b604d","#edd7bc","#38241c",300,"沉穩落地，釋放雜訊",{wealth:4,love:4,health:6,protection:9,clarity:6,energy:5}],
+  ["fluorite","螢石","Fluorite","淨化","#79b69f","#e3ffe7","#3d7461",320,"整理思緒，溫柔淨化",{wealth:3,love:5,health:8,protection:7,clarity:9,energy:7}],
+  ["rhodonite","薔薇輝石","Rhodonite","愛與關係","#b96f82","#ffd8e0","#6e3445",350,"修復關係與勇敢去愛",{wealth:2,love:10,health:7,protection:4,clarity:5,energy:6}],
+  ["labradorite","拉長石","Labradorite","守護","#557883","#bfeef2","#263e55",380,"低調光芒，守護你的能量",{wealth:4,love:5,health:6,protection:10,clarity:7,energy:8}],
+].map(([id,zh,en,group,color,light,deep,price,note,energy]) => ({ id,zh,en,group,color,light,deep,price,note,energy } as Stone));
 
 const accessories: Accessory[] = [
   ["silver-round","925銀圓隔珠","Sterling Silver Round","spacer","round","silver",90,"鏡面拋光的細緻間隔"],
@@ -111,6 +112,67 @@ function label(item: DesignItem) { return item.kind === "stone" ? (byStone[item.
 function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "10mm 大主珠" : size === "large" ? "8mm 中珠" : "6mm 小珠"; }
 function itemPrice(item: DesignItem) { if (item.kind === "accessory") return (byAccessory[item.id] as Accessory).price; const base = (byStone[item.id] as Stone).price; return base + (item.size === "xlarge" ? 100 : item.size === "small" ? -50 : 0); }
 
+function EnergyMatrix({ items }: { items: DesignItem[] }) {
+  const energyTypes: EnergyType[] = ["wealth", "love", "health", "protection", "clarity", "energy"];
+  const energyLabels: Record<EnergyType, string> = {
+    wealth: "豐盛", love: "愛情", health: "療癒", protection: "守護", clarity: "清晰", energy: "能量"
+  };
+  const energyColors: Record<EnergyType, string> = {
+    wealth: "#FFD700", love: "#FF69B4", health: "#90EE90", protection: "#4169E1", clarity: "#87CEEB", energy: "#FF8C00"
+  };
+
+  const energyScores = energyTypes.map(type => {
+    let total = 0;
+    items.forEach(item => {
+      if (item.kind === "stone") {
+        const stone = byStone[item.id] as Stone;
+        total += (stone.energy[type] || 0);
+      }
+    });
+    return Math.round(total / Math.max(1, items.filter(i => i.kind === "stone").length));
+  });
+
+  const maxEnergy = Math.max(...energyScores, 1);
+  const points = energyTypes.map((type, i) => {
+    const angle = (i / energyTypes.length) * Math.PI * 2 - Math.PI / 2;
+    const radius = (energyScores[i] / maxEnergy) * 40;
+    const x = 50 + Math.cos(angle) * radius;
+    const y = 50 + Math.sin(angle) * radius;
+    return { x, y, score: energyScores[i], type };
+  });
+
+  return <div className="energy-matrix-container">
+    <div className="energy-matrix">
+      <svg viewBox="0 0 100 100" className="energy-chart">
+        {[1,2,3,4,5].map(i => <circle key={`ring-${i}`} cx="50" cy="50" r={i * 8} fill="none" stroke="#e0e0e0" strokeWidth="0.5" />)}
+        <polyline points={points.map(p => `${p.x},${p.y}`).join(" ")} fill="rgba(255,200,0,0.1)" stroke="#FFD700" strokeWidth="1.5" />
+        {points.map((p, i) => (
+          <g key={`point-${i}`}>
+            <circle cx={p.x} cy={p.y} r="2" fill={energyColors[energyTypes[i]]} />
+            <text x={p.x} y={p.y - 6} fontSize="8" textAnchor="middle" fill="#333">{p.score}</text>
+          </g>
+        ))}
+        {energyTypes.map((type, i) => {
+          const angle = (i / energyTypes.length) * Math.PI * 2 - Math.PI / 2;
+          const labelRadius = 55;
+          const x = 50 + Math.cos(angle) * labelRadius;
+          const y = 50 + Math.sin(angle) * labelRadius;
+          return <text key={`label-${type}`} x={x} y={y} fontSize="9" textAnchor="middle" fill="#666">{energyLabels[type]}</text>;
+        })}
+      </svg>
+    </div>
+    <div className="energy-legend">
+      {points.map((p, i) => (
+        <div key={`legend-${i}`} className="legend-item">
+          <span className="color-dot" style={{ backgroundColor: energyColors[energyTypes[i]] }} />
+          <span className="label">{energyLabels[energyTypes[i]]}</span>
+          <span className="value">{p.score}/10</span>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
 export default function Home() {
   const [items, setItems] = useState<DesignItem[]>(initial);
   const [tab, setTab] = useState<"crystal" | "spacer" | "charm">("crystal");
@@ -136,6 +198,7 @@ export default function Home() {
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / 26 cm</i></b></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        {items.filter(x => x.kind === "stone").length > 0 && <div className="energy-display"><EnergyMatrix items={items} /></div>}
         <div className="bracelet-stage" ref={stageRef}>
           <div className="craft-caption"><span>OMA CRYSTAL</span><b>YOUR INTENTION<br />IN EVERY DETAIL</b></div>
           <div className="table-shadow" />
