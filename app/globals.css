@@ -6,7 +6,10 @@ button,input { font:inherit; } button { cursor:pointer; }
 .studio { min-height:100vh; background:#fff; }
 .studio-head { height:78px; display:flex; align-items:center; justify-content:space-between; padding:0 clamp(24px,5vw,76px); border-bottom:1px solid var(--line); background:#fff; }
 .wordmark { color:#172929; text-decoration:none; font:500 21px Georgia,serif; letter-spacing:.28em; } .wordmark span { display:inline-block; margin-left:4px; color:var(--blue-deep); font:10px Arial,sans-serif; letter-spacing:.2em; vertical-align:middle; }
-.head-note { color:#7e9693; font-size:9px; letter-spacing:.25em; }.quiet { padding:10px 0; border:0; background:transparent; color:#52716f; font-size:11px; letter-spacing:.08em; }
+.head-note { color:#7e9693; font-size:9px; letter-spacing:.25em; }
+.head-actions { display:flex; gap:16px; }
+.quiet { padding:10px 0; border:0; background:transparent; color:#52716f; font-size:11px; letter-spacing:.08em; transition:color 0.2s; }
+.quiet:hover { color:#1a3c3a; }
 .studio-shell { display:grid; grid-template-columns:minmax(650px,1.55fr) minmax(420px,.8fr); min-height:820px; max-width:1580px; margin:auto; background:#fff; }
 .canvas-panel { position:relative; overflow:hidden; padding:28px 34px 26px; background:radial-gradient(circle at 47% 44%,#fff 0 32%,#fcfcfa 63%,#f2f5f3 100%); }
 .canvas-panel:before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.32; background:url('/crystal-hero.png') center/cover; mix-blend-mode:soft-light; }
@@ -57,3 +60,27 @@ button,input { font:inherit; } button { cursor:pointer; }
 .color-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .legend-item .label { flex:1; color:#666; }
 .legend-item .value { color:#FFD700; font-weight:bold; }
+
+/* Design Guide Modal */
+.guide-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:100; animation:fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.guide-modal { position:relative; width:min(600px,90%); max-height:90vh; background:white; border-radius:16px; padding:40px 32px; box-shadow:0 25px 50px rgba(0,0,0,0.3); animation:slideUp 0.4s ease; overflow-y:auto; }
+@keyframes slideUp { from { transform:translateY(40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.guide-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border:0; background:transparent; font-size:20px; cursor:pointer; color:#999; transition:color 0.2s; }
+.guide-close:hover { color:#333; }
+.guide-content { text-align:center; margin-bottom:32px; }
+.guide-icon { font-size:64px; margin-bottom:16px; }
+.guide-content h1 { margin:0 0 8px; color:#1a3c3a; font:600 28px Georgia,serif; }
+.guide-content h2 { margin:0 0 16px; color:#48bbb5; font:400 16px; }
+.guide-content p { margin:0; color:#666; font-size:14px; line-height:1.6; max-width:400px; margin:auto; }
+.guide-progress { display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:24px; }
+.progress-dots { display:flex; gap:8px; }
+.progress-dots .dot { width:8px; height:8px; border:0; border-radius:50%; background:#ddd; cursor:pointer; transition:all 0.2s; }
+.progress-dots .dot.active { background:#48bbb5; transform:scale(1.3); }
+.progress-text { font-size:12px; color:#999; min-width:40px; }
+.guide-actions { display:flex; gap:12px; justify-content:center; }
+.btn-primary,.btn-secondary { padding:12px 20px; border:0; border-radius:6px; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.2s; }
+.btn-primary { background:#48bbb5; color:white; }
+.btn-primary:hover { background:#2d9a91; transform:translateY(-2px); box-shadow:0 4px 12px rgba(72,187,181,0.3); }
+.btn-secondary { background:#f0f0f0; color:#333; }
+.btn-secondary:hover { background:#e0e0e0; }

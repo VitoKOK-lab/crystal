@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import DesignGuide from "./design-guide";
 
 type EnergyType = "wealth" | "love" | "health" | "protection" | "clarity" | "energy";
 type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
@@ -180,6 +181,7 @@ export default function Home() {
   const [notice, setNotice] = useState("已為你準備一條粉水晶基底手鍊");
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "rose", size: "xlarge" });
   const [drag, setDrag] = useState<{ index: number; angle: number } | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
@@ -194,7 +196,8 @@ export default function Home() {
   const r = Math.min(38, 26 + Math.max(0, items.length - 14) * .42);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
   return <main className="studio">
-    <header className="studio-head"><a className="wordmark" href="#top">OMA <span>CRYSTAL</span></a><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></header>
+    <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
+    <header className="studio-head"><a className="wordmark" href="#top">OMA <span>CRYSTAL</span></a><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / 26 cm</i></b></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
