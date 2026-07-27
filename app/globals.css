@@ -100,6 +100,48 @@ button,input { font:inherit; } button { cursor:pointer; }
 .wrist-select { border:0; background:transparent; color:#2a3f3e; font:500 15px Georgia,serif; padding:0 2px 0 0; cursor:pointer; outline:none; }
 .wrist-select:hover { color:#0d7f7c; }
 
+/* ── 360° physics preview ────────────────────────────────────────── */
+.canvas-actions .pv-open { border-color:#c9a355; color:#8a6d1f; background:#fffdf5; }
+.canvas-actions .pv-open:hover { background:#fdf6e3; }
+.preview-overlay { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; background:radial-gradient(circle at 50% 38%, #17403d 0%, #0b2422 52%, #061514 100%); animation:fadeIn .3s ease; }
+.pv-head { display:flex; align-items:baseline; gap:10px; padding:18px 22px 8px; }
+.pv-head b { color:#ffd76a; font-size:13px; letter-spacing:.2em; }
+.pv-head span { color:#8fc0ba; font-size:10px; letter-spacing:.24em; }
+.pv-close { margin-left:auto; width:34px; height:34px; border:1px solid #ffffff2c; border-radius:50%; background:#ffffff10; color:#d9efec; font-size:14px; transition:.15s; }
+.pv-close:hover { background:#ffffff24; }
+.pv-canvas { flex:1; width:100%; touch-action:none; cursor:grab; }
+.pv-canvas:active { cursor:grabbing; }
+.pv-hint { padding:0 18px calc(18px + env(safe-area-inset-bottom)); text-align:center; color:#7fa8a2; font-size:10px; letter-spacing:.12em; }
+
+/* ── Phone layout: split screen — bracelet pinned on top, material library
+   as a fixed bottom drawer with horizontal swiping, so picking beads never
+   requires scrolling away from the bracelet. ─────────────────────── */
+@media (max-width:560px) {
+  .studio-shell { min-height:0; }
+  .canvas-panel { min-height:0; padding-bottom:8px; }
+  .bracelet-stage { width:min(78%, 36vh); margin-top:4px; }
+  .atelier-note { display:none; }
+  .materials-panel { position:fixed; left:0; right:0; bottom:0; z-index:40; min-height:0; height:auto; border-left:0; border-top:1px solid var(--line); border-radius:18px 18px 0 0; box-shadow:0 -14px 34px #1a3c3a1f; background:#fff; padding-bottom:env(safe-area-inset-bottom); }
+  .materials-head { display:none; }
+  .materials-panel .tabs { padding-inline:12px; }
+  .materials-panel .tabs button { padding:11px 5px 9px; }
+  .materials-panel .search { margin:8px 14px 2px; padding:8px 11px; }
+  .library-label { margin:4px 16px 0; }
+  .material-grid { grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:112px; grid-template-rows:1fr; gap:8px; overflow-x:auto; overflow-y:hidden; max-height:none; min-height:0; height:176px; flex:none; padding:6px 14px 10px; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+  .material-card { min-height:0; scroll-snap-align:start; }
+  .crystal-card { min-height:0; display:flex; flex-direction:column; }
+  .crystal-card .card-main { flex:1; padding-top:5px; }
+  .crystal-card .visual-wrap { height:52px; }
+  .size-actions button { min-height:28px; font-size:8px; }
+  .selected-detail { display:none; }
+  .empty-library { min-height:130px; }
+  /* keep the bracelet area clear of the drawer */
+  .studio-shell { padding-bottom:300px; }
+  .canvas-actions { flex-wrap:wrap; }
+  .notice { bottom:auto; top:8px; width:max-content; max-width:92%; }
+  .energy-panel { z-index:60; }
+}
+
 /* ── Checkout ────────────────────────────────────────────────────── */
 .checkout { max-width:1180px; margin:0 auto; padding:26px clamp(18px,4vw,48px) 80px; animation:co-in .3s ease; }
 @keyframes co-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
