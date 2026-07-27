@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DesignGuide from "./design-guide";
 
 type EnergyType = "wealth" | "love" | "health" | "protection" | "clarity" | "energy";
@@ -113,64 +113,86 @@ function label(item: DesignItem) { return item.kind === "stone" ? (byStone[item.
 function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "10mm 大主珠" : size === "large" ? "8mm 中珠" : "6mm 小珠"; }
 function itemPrice(item: DesignItem) { if (item.kind === "accessory") return (byAccessory[item.id] as Accessory).price; const base = (byStone[item.id] as Stone).price; return base + (item.size === "xlarge" ? 100 : item.size === "small" ? -50 : 0); }
 
-function EnergyMatrix({ items }: { items: DesignItem[] }) {
-  const energyTypes: EnergyType[] = ["wealth", "love", "health", "protection", "clarity", "energy"];
-  const energyLabels: Record<EnergyType, string> = {
-    wealth: "豐盛", love: "愛情", health: "療癒", protection: "守護", clarity: "清晰", energy: "能量"
-  };
-  const energyColors: Record<EnergyType, string> = {
-    wealth: "#FFD700", love: "#FF69B4", health: "#90EE90", protection: "#4169E1", clarity: "#87CEEB", energy: "#FF8C00"
-  };
+const ENERGY_META = [
+  { key: "wealth", zh: "豐盛", en: "WEALTH", color: "#e3b04b" },
+  { key: "love", zh: "愛情", en: "LOVE", color: "#e88aa8" },
+  { key: "health", zh: "療癒", en: "HEALING", color: "#7ec8a5" },
+  { key: "protection", zh: "守護", en: "PROTECTION", color: "#7593d8" },
+  { key: "clarity", zh: "清晰", en: "CLARITY", color: "#72c7d6" },
+  { key: "energy", zh: "活力", en: "VITALITY", color: "#e0885a" },
+] as const satisfies readonly { key: EnergyType; zh: string; en: string; color: string }[];
 
-  const energyScores = energyTypes.map(type => {
-    let total = 0;
-    items.forEach(item => {
-      if (item.kind === "stone") {
-        const stone = byStone[item.id] as Stone;
-        total += (stone.energy[type] || 0);
-      }
-    });
-    return Math.round(total / Math.max(1, items.filter(i => i.kind === "stone").length));
+// Bigger beads carry more of the stone's energy into the design.
+function energyScores(items: DesignItem[]) {
+  const sizeWeight = (s?: BeadSize) => (s === "xlarge" ? 1.3 : s === "small" ? 0.7 : 1);
+  const scores = { wealth: 0, love: 0, health: 0, protection: 0, clarity: 0, energy: 0 } as Record<EnergyType, number>;
+  items.forEach((item) => {
+    if (item.kind !== "stone") return;
+    const stone = byStone[item.id] as Stone;
+    const w = sizeWeight(item.size);
+    ENERGY_META.forEach((m) => { scores[m.key] += stone.energy[m.key] * w * 36; });
   });
+  ENERGY_META.forEach((m) => { scores[m.key] = Math.round(scores[m.key]); });
+  return scores;
+}
 
-  const maxEnergy = Math.max(...energyScores, 1);
-  const points = energyTypes.map((type, i) => {
-    const angle = (i / energyTypes.length) * Math.PI * 2 - Math.PI / 2;
-    const radius = (energyScores[i] / maxEnergy) * 40;
-    const x = 50 + Math.cos(angle) * radius;
-    const y = 50 + Math.sin(angle) * radius;
-    return { x, y, score: energyScores[i], type };
-  });
+// Animates a number toward its target so energy totals count up smoothly.
+function useCountUp(value: number) {
+  const [display, setDisplay] = useState(value);
+  const prev = useRef(value);
+  useEffect(() => {
+    const from = prev.current, to = value;
+    prev.current = value;
+    if (from === to) return;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 450);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return display;
+}
 
-  return <div className="energy-matrix-container">
-    <div className="energy-matrix">
-      <svg viewBox="0 0 100 100" className="energy-chart">
-        {[1,2,3,4,5].map(i => <circle key={`ring-${i}`} cx="50" cy="50" r={i * 8} fill="none" stroke="#e0e0e0" strokeWidth="0.5" />)}
-        <polyline points={points.map(p => `${p.x},${p.y}`).join(" ")} fill="rgba(255,200,0,0.1)" stroke="#FFD700" strokeWidth="1.5" />
-        {points.map((p, i) => (
-          <g key={`point-${i}`}>
-            <circle cx={p.x} cy={p.y} r="2" fill={energyColors[energyTypes[i]]} />
-            <text x={p.x} y={p.y - 6} fontSize="8" textAnchor="middle" fill="#333">{p.score}</text>
-          </g>
-        ))}
-        {energyTypes.map((type, i) => {
-          const angle = (i / energyTypes.length) * Math.PI * 2 - Math.PI / 2;
-          const labelRadius = 55;
-          const x = 50 + Math.cos(angle) * labelRadius;
-          const y = 50 + Math.sin(angle) * labelRadius;
-          return <text key={`label-${type}`} x={x} y={y} fontSize="9" textAnchor="middle" fill="#666">{energyLabels[type]}</text>;
-        })}
-      </svg>
-    </div>
-    <div className="energy-legend">
-      {points.map((p, i) => (
-        <div key={`legend-${i}`} className="legend-item">
-          <span className="color-dot" style={{ backgroundColor: energyColors[energyTypes[i]] }} />
-          <span className="label">{energyLabels[energyTypes[i]]}</span>
-          <span className="value">{p.score}/10</span>
-        </div>
-      ))}
-    </div>
+function EnergyPanel({ scores, total, dominant, open, onToggle }: { scores: Record<EnergyType, number>; total: number; dominant: (typeof ENERGY_META)[number]; open: boolean; onToggle: () => void }) {
+  const displayTotal = useCountUp(total);
+  const max = Math.max(...ENERGY_META.map((m) => scores[m.key]), 1);
+  const cx = 110, cy = 92, R = 62;
+  const point = (i: number, r: number) => {
+    const a = -Math.PI / 2 + (i / ENERGY_META.length) * Math.PI * 2;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as const;
+  };
+  const ringPoints = (r: number) => ENERGY_META.map((_, i) => point(i, r).join(",")).join(" ");
+  const valuePoints = ENERGY_META.map((m, i) => point(i, 8 + (scores[m.key] / max) * (R - 8)));
+  if (!open) return <button className="energy-fab" onClick={onToggle} aria-label="展開能量矩陣">⚡<span>能量</span></button>;
+  return <div className="energy-panel">
+    <div className="ep-head"><b>⚡ ENERGY MATRIX</b><span>能量矩陣</span><button onClick={onToggle} aria-label="收合能量矩陣">▾</button></div>
+    <svg viewBox="0 0 220 186" className="ep-chart" role="img" aria-label="六維能量雷達圖">
+      <defs>
+        <linearGradient id="epFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffd76a" stopOpacity=".5" />
+          <stop offset="100%" stopColor="#5ad6cd" stopOpacity=".28" />
+        </linearGradient>
+      </defs>
+      {[0.25, 0.5, 0.75, 1].map((f) => <polygon key={f} points={ringPoints(R * f)} fill="none" stroke="#ffffff21" strokeWidth="1" />)}
+      {ENERGY_META.map((m, i) => { const [x, y] = point(i, R); return <line key={m.key} x1={cx} y1={cy} x2={x} y2={y} stroke="#ffffff12" />; })}
+      <polygon key={total} className="ep-value" points={valuePoints.map((p) => p.join(",")).join(" ")} fill="url(#epFill)" stroke="#ffd76a" strokeWidth="1.6" strokeLinejoin="round" />
+      {valuePoints.map((p, i) => <circle key={ENERGY_META[i].key} cx={p[0]} cy={p[1]} r="2.6" fill={ENERGY_META[i].color} stroke="#0d1e1d" strokeWidth="1" />)}
+      {ENERGY_META.map((m, i) => {
+        const [x, y] = point(i, R + 16);
+        const anchor = Math.abs(x - cx) < 8 ? "middle" : x > cx ? "start" : "end";
+        return <g key={m.key} textAnchor={anchor}>
+          <text x={x} y={y - 1} fontSize="9" fill={m.color} fontWeight="700" letterSpacing=".08em">{m.zh}</text>
+          <text x={x} y={y + 9.5} fontSize="8" fill="#cfe4e0">{scores[m.key].toLocaleString()}</text>
+        </g>;
+      })}
+    </svg>
+    <div className="ep-dominant">主能量 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b></div>
+    <div className="ep-total"><span>TOTAL ENERGY</span><b>{displayTotal.toLocaleString()}</b></div>
   </div>;
 }
 
@@ -180,16 +202,22 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("已為你準備一條粉水晶基底手鍊");
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "rose", size: "xlarge" });
-  const [drag, setDrag] = useState<{ index: number; angle: number } | null>(null);
+  const [drag, setDrag] = useState<{ index: number; angle: number; startX: number; startY: number; moved: boolean } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
+  const [energyOpen, setEnergyOpen] = useState(false);
+  useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
   const add = (item: DesignItem) => { if (items.length >= 42) { setNotice("手鍊最多 42 個素材，請先點手鍊上的素材移除。"); return; } setItems((v) => [...v, item]); setSelected(item); setNotice(`已加入 ${label(item)}${item.kind === "stone" ? `・${sizeLabel(item.size)}` : ""}`); };
   const remove = (index: number) => { const item = items[index]; setItems((v) => v.filter((_, i) => i !== index)); setSelected(item); setNotice(`已移除 ${label(item)}`); };
-  const angleForPointer = (event: React.PointerEvent<HTMLButtonElement>) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (event.clientX - box.left) / box.width - .5; const y = (event.clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
-  const reorderAtAngle = (from: number, angle: number) => { const start = -Math.PI / 2; const normalized = ((angle - start + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2); const target = Math.min(items.length - 1, Math.max(0, Math.round(normalized * (items.length - 1)))); if (target === from) return; setItems((current) => { const next = [...current]; const [moving] = next.splice(from, 1); next.splice(target, 0, moving); return next; }); setNotice("已調整素材位置"); };
+  const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
+  const reorderAtAngle = (from: number, angle: number) => { const start = -Math.PI / 2; const normalized = (((angle - start) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2); const target = Math.round(normalized * items.length) % items.length; if (target === from) return; setItems((current) => { const next = [...current]; const [moving] = next.splice(from, 1); next.splice(target, 0, moving); return next; }); setNotice("已調整素材位置"); };
   const total = useMemo(() => items.reduce((sum, item) => sum + itemPrice(item), 680), [items]);
+  const scores = useMemo(() => energyScores(items), [items]);
+  const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
+  const dominant = ENERGY_META.reduce((best, m) => (scores[m.key] > scores[best.key] ? m : best), ENERGY_META[0]);
+  const dominantDisplay = useCountUp(scores[dominant.key]);
   const beads = items.filter((x) => x.kind === "stone").length;
   const charms = items.filter((x) => x.kind === "accessory" && (byAccessory[x.id] as Accessory).type === "charm").length;
   const wrist = Math.min(26, 12.8 + items.length * .31).toFixed(1);
@@ -201,15 +229,16 @@ export default function Home() {
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / 26 cm</i></b></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
-        {items.filter(x => x.kind === "stone").length > 0 && <div className="energy-display"><EnergyMatrix items={items} /></div>}
         <div className="bracelet-stage" ref={stageRef}>
-          <div className="craft-caption"><span>OMA CRYSTAL</span><b>YOUR INTENTION<br />IN EVERY DETAIL</b></div>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
-          {items.map((item, i) => { const baseAngle = -Math.PI / 2 + i * ((Math.PI * 2) / items.length); const a = drag?.index === i ? drag.angle : baseAngle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const charmOffset = isCharm ? 4.2 : 0; const xRadius = r + charmOffset; const yRadius = r + charmOffset; const charmRotation = (a * 180 / Math.PI) - 90; return <button key={`${item.id}-${i}`} className={`design-item ${isCharm ? "is-charm" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setDrag({ index: i, angle: angleForPointer(event) }); }} onPointerMove={(event) => { if (drag?.index === i) setDrag({ index: i, angle: angleForPointer(event) }); }} onPointerUp={(event) => { if (!drag || drag.index !== i) return; const angle = angleForPointer(event); const moved = Math.abs(angle - baseAngle) > .08; setDrag(null); if (moved) reorderAtAngle(i, angle); else remove(i); }} onPointerCancel={() => setDrag(null)} aria-label={isCharm ? "拖拉吊飾調整位置，輕點移除此吊飾" : "拖拉調整位置，輕點移除此素材"} title={isCharm ? "拖拉吊飾調整位置 · 輕點移除" : "拖拉調整位置 · 輕點移除"} style={{ left: `${50 + Math.cos(a) * xRadius}%`, top: `${50 + Math.sin(a) * yRadius}%`, transform: `translate(-50%,-50%)${isCharm ? ` rotate(${charmRotation}deg)` : ""}` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
-          <div className="center-intention"><small>DESIGNED FOR</small><b>LOVE &amp; HARMONY</b><span>{beads} NATURAL STONES</span></div>
-          <div className="stage-tip">拖曳重新編排・輕點單顆移除</div>
+          {items.map((item, i) => { const baseAngle = -Math.PI / 2 + i * ((Math.PI * 2) / items.length); const a = drag?.index === i && drag.moved ? drag.angle : baseAngle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const charmOffset = isCharm ? 4.2 : 0; const xRadius = r + charmOffset; const yRadius = r + charmOffset; const charmRotation = (a * 180 / Math.PI) - 90; return <button key={`${item.id}-${i}`} className={`design-item ${isCharm ? "is-charm" : ""} ${drag?.index === i && drag.moved ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setDrag({ index: i, angle: baseAngle, startX: event.clientX, startY: event.clientY, moved: false }); }} onPointerMove={(event) => { const { clientX, clientY } = event; setDrag((d) => { if (!d || d.index !== i) return d; const moved = d.moved || Math.hypot(clientX - d.startX, clientY - d.startY) > 8; return { ...d, moved, angle: moved ? angleForPointer(clientX, clientY) : d.angle }; }); }} onPointerUp={() => { if (!drag || drag.index !== i) return; const { moved, angle } = drag; setDrag(null); if (moved) reorderAtAngle(i, angle); else remove(i); }} onPointerCancel={() => setDrag(null)} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title={isCharm ? "輕點移除 · 按住拖曳調整位置" : "輕點移除 · 按住拖曳調整位置"} style={{ left: `${50 + Math.cos(a) * xRadius}%`, top: `${50 + Math.sin(a) * yRadius}%`, transform: `translate(-50%,-50%)${isCharm ? ` rotate(${charmRotation}deg)` : ""}` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
+          {beads > 0
+            ? <div className="center-intention"><small>DOMINANT ENERGY</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
+            : <div className="center-intention"><small>OMA CRYSTAL</small><b>START YOUR STORY</b><span className="ci-note">從右側挑選第一顆水晶</span></div>}
+          <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
+        <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} />
         <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="primary" onClick={() => setNotice("設計已保存，珠寶顧問將為你確認細節。")}>保存並預覽 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
