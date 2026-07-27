@@ -161,22 +161,22 @@ button,input { font:inherit; } button { cursor:pointer; }
   .size-actions button { min-height:28px; font-size:8px; }
   .selected-detail { display:none; }
   .empty-library { min-height:130px; }
-  /* Action bar (清空全部/分享設計/360°預覽/前往結帳) pinned as its own fixed
-     toolbar directly above the drawer, instead of living in normal document
-     flow — the drawer's height grew once the preset row was added, and the
-     old "just reserve enough scroll padding" approach silently drifted out
-     of sync, letting the drawer bury this row (worst case, the primary CTA)
-     on first paint with no scrolling. A fixed bar can't be buried: its
-     offset is driven by the same open/collapsed state as the drawer, so it
-     always sits flush above it. */
-  .canvas-actions { position:fixed; left:0; right:0; z-index:45; margin:0; padding:9px 14px calc(9px + env(safe-area-inset-bottom)); flex-wrap:nowrap; gap:8px; background:#fffffff2; backdrop-filter:blur(6px); border-top:1px solid var(--line); box-shadow:0 -6px 16px #1a3c3a12; bottom:calc(392px + env(safe-area-inset-bottom)); transition:bottom .32s ease; }
-  .canvas-actions button { flex:1; padding:11px 6px; font-size:10px; white-space:nowrap; }
-  .canvas-actions .primary { flex:1.15; padding-inline:10px; }
-  .studio.drawer-collapsed .canvas-actions { bottom:calc(54px + env(safe-area-inset-bottom)); }
-  /* enough scroll room for the notice toast / any tall content to clear
-     the fixed drawer + action bar stack at the very bottom of the page */
-  .studio-shell { padding-bottom:calc(456px + env(safe-area-inset-bottom)); transition:padding-bottom .32s ease; }
-  .studio.drawer-collapsed .studio-shell { padding-bottom:calc(118px + env(safe-area-inset-bottom)); }
+  /* Action bar (清空全部/分享設計/360°預覽/前往結帳) stays in normal document
+     flow, right after the bracelet — a `position:fixed` toolbar was tried
+     here, but on a real phone (Safari's address bar shrinks the actual
+     visible viewport well below what a headless browser reports) a fixed
+     element permanently occupies its own strip of screen space at every
+     scroll position, which ironically leaves *less* room to see the
+     bracelet while scrolling, and reads as an odd floating bar. Back to
+     plain flow: studio-shell reserves enough bottom padding (matched to
+     the fixed drawer's real height) so scrolling to the end of the page
+     naturally clears the row above the drawer, exactly like any normal
+     "content below the fold" pattern — no overlay, nothing floats. */
+  .canvas-actions { flex-wrap:wrap; gap:8px; }
+  .canvas-actions button { flex:1; min-width:80px; padding:11px 6px; font-size:10px; white-space:nowrap; }
+  .canvas-actions .primary { flex:1.6; padding-inline:10px; }
+  .studio-shell { padding-bottom:calc(410px + env(safe-area-inset-bottom)); transition:padding-bottom .32s ease; }
+  .studio.drawer-collapsed .studio-shell { padding-bottom:calc(80px + env(safe-area-inset-bottom)); }
   .notice { bottom:auto; top:8px; width:max-content; max-width:92%; }
   .energy-panel { z-index:60; }
 
