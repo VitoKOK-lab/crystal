@@ -14,8 +14,10 @@ button,input { font:inherit; } button { cursor:pointer; }
 .canvas-panel { position:relative; overflow:hidden; padding:28px 34px 26px; background:radial-gradient(circle at 47% 44%,#fff 0 32%,#fcfcfa 63%,#f2f5f3 100%); }
 .canvas-panel:before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.32; background:url('/crystal-hero.png') center/cover; mix-blend-mode:soft-light; }
 .canvas-top,.bracelet-stage,.canvas-actions { position:relative; z-index:1; }.canvas-top { display:flex; align-items:flex-start; justify-content:space-between; }.stats { display:flex; gap:24px; }.stats span,.price { display:flex; flex-direction:column; gap:6px; }.stats small,.price small { color:#91a4a1; font-size:9px; letter-spacing:.17em; }.stats b { color:#2a3f3e; font:500 15px Georgia,serif; }.stats i { font:normal 10px Arial; color:#8ca09d; }
-.wrist-bar { display:block; width:92px; height:4px; margin-top:2px; border-radius:99px; background:#e4edeb; overflow:hidden; }
+.wrist-bar { position:relative; display:block; width:92px; height:4px; margin-top:2px; border-radius:99px; background:#e4edeb; }
 .wrist-bar i { display:block; height:100%; border-radius:99px; background:#48bbb5; transition:width .3s ease,background .3s; }
+.wrist-bar em { position:absolute; top:-2px; width:1.5px; height:8px; border-radius:1px; background:#9db8b3; }
+.wrist-bar.low i { background:#b7cfca; }
 .wrist-bar.warn i { background:#e3b04b; }
 .wrist-bar.full i { background:#d67878; }.price { text-align:right; }.price b { color:#0d7f7c; font:500 20px Georgia,serif; letter-spacing:.04em; }
 .bracelet-stage { width:min(650px,92%); aspect-ratio:1 / 1; height:auto; margin:10px auto 0; }.table-shadow { position:absolute; left:16%; right:16%; bottom:54px; height:105px; background:radial-gradient(ellipse,#1e6e6920,transparent 68%); filter:blur(8px); }

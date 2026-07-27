@@ -5,7 +5,8 @@ import { useState } from "react";
 export type OrderLine = { key: string; visual: React.ReactNode; name: string; sub: string; qty: number; unit: number };
 type EnergyInfo = { zh: string; en: string; color: string };
 
-const WRIST_SIZES = ["13.5", "14", "14.5", "15", "15.5", "16", "16.5", "17", "17.5", "18", "19", "20"];
+// Wrist sizes offered at checkout: 13–22 cm in half-centimetre steps.
+const WRIST_SIZES = Array.from({ length: 19 }, (_, i) => (13 + i * 0.5).toFixed(1).replace(/\.0$/, ""));
 const PAYMENTS = [
   { id: "card", icon: "💳", name: "信用卡", note: "VISA / Master / JCB" },
   { id: "linepay", icon: "💚", name: "LINE Pay", note: "行動支付快速結帳" },

@@ -126,6 +126,7 @@ function itemPrice(item: DesignItem) { if (item.kind === "accessory") return (by
 // Physical width each piece occupies on the strand, in millimetres — the
 // wrist size is the honest sum of these, capped at MAX_STRAND_MM.
 const BEAD_MM: Record<BeadSize, number> = { xlarge: 20, large: 10, small: 8 };
+const MIN_STRAND_MM = 130;
 const MAX_STRAND_MM = 220;
 function itemMM(item: DesignItem) { if (item.kind === "stone") return BEAD_MM[item.size ?? "large"]; return (byAccessory[item.id] as Accessory).type === "spacer" ? 5 : 3; }
 
@@ -281,7 +282,7 @@ export default function Home() {
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
-        <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / {MAX_STRAND_MM / 10} cm</i></b><span className={`wrist-bar ${wristRatio > 0.95 ? "full" : wristRatio > 0.8 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={MAX_STRAND_MM / 10} aria-valuenow={Number(wrist)} aria-label="手圍長度"><i style={{ width: `${Math.min(100, wristRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        <div className="canvas-top"><div className="stats"><span><small>COMPONENTS</small><b>{items.length}</b></span><span><small>WRIST SIZE</small><b>{wrist}<i> / {MAX_STRAND_MM / 10} cm</i></b><span className={`wrist-bar ${wristRatio > 0.95 ? "full" : wristRatio > 0.8 ? "warn" : strandMM < MIN_STRAND_MM ? "low" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={MAX_STRAND_MM / 10} aria-valuenow={Number(wrist)} aria-label="手圍長度（建議 13 至 22 公分）"><i style={{ width: `${Math.min(100, wristRatio * 100)}%` }} /><em style={{ left: `${(MIN_STRAND_MM / MAX_STRAND_MM) * 100}%` }} title="最短 13 cm" /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
@@ -292,7 +293,7 @@ export default function Home() {
           <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (strandMM < MIN_STRAND_MM) { setNotice(`手鍊目前 ${wrist} cm，最短需 ${MIN_STRAND_MM / 10} cm 才能配戴，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <aside className="materials-panel">
