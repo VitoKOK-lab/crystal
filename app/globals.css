@@ -103,15 +103,17 @@ button,input { font:inherit; } button { cursor:pointer; }
 /* ── 360° physics preview ────────────────────────────────────────── */
 .canvas-actions .pv-open { border-color:#c9a355; color:#8a6d1f; background:#fffdf5; }
 .canvas-actions .pv-open:hover { background:#fdf6e3; }
-.preview-overlay { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; background:radial-gradient(circle at 50% 38%, #17403d 0%, #0b2422 52%, #061514 100%); animation:fadeIn .3s ease; }
-.pv-head { display:flex; align-items:baseline; gap:10px; padding:18px 22px 8px; }
-.pv-head b { color:#ffd76a; font-size:13px; letter-spacing:.2em; }
-.pv-head span { color:#8fc0ba; font-size:10px; letter-spacing:.24em; }
-.pv-close { margin-left:auto; width:34px; height:34px; border:1px solid #ffffff2c; border-radius:50%; background:#ffffff10; color:#d9efec; font-size:14px; transition:.15s; }
-.pv-close:hover { background:#ffffff24; }
+.preview-overlay { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; background:radial-gradient(circle at 50% 40%, #ffffff 0%, #fbfdfc 55%, #eef4f2 100%); animation:fadeIn .3s ease; }
+.pv-head { display:flex; align-items:center; gap:10px; padding:18px 22px 8px; }
+.pv-head b { color:#b9891e; font-size:13px; letter-spacing:.2em; }
+.pv-head span { color:#7d9995; font-size:10px; letter-spacing:.24em; }
+.pv-sound { margin-left:auto; width:34px; height:34px; border:1px solid #dbe7e4; border-radius:50%; background:#fff; font-size:13px; transition:.15s; }
+.pv-sound:hover { border-color:#48bbb5; }
+.pv-close { width:34px; height:34px; border:1px solid #dbe7e4; border-radius:50%; background:#fff; color:#4e6a66; font-size:14px; transition:.15s; }
+.pv-close:hover { border-color:#48bbb5; color:#1a3c3a; }
 .pv-canvas { flex:1; width:100%; touch-action:none; cursor:grab; }
 .pv-canvas:active { cursor:grabbing; }
-.pv-hint { padding:0 18px calc(18px + env(safe-area-inset-bottom)); text-align:center; color:#7fa8a2; font-size:10px; letter-spacing:.12em; }
+.pv-hint { padding:0 18px calc(18px + env(safe-area-inset-bottom)); text-align:center; color:#8ba39f; font-size:10px; letter-spacing:.12em; }
 
 /* ── Phone layout: split screen — bracelet pinned on top, material library
    as a fixed bottom drawer with horizontal swiping, so picking beads never
