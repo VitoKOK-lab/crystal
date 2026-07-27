@@ -100,6 +100,12 @@ button,input { font:inherit; } button { cursor:pointer; }
 .wrist-select { border:0; background:transparent; color:#2a3f3e; font:500 15px Georgia,serif; padding:0 2px 0 0; cursor:pointer; outline:none; }
 .wrist-select:hover { color:#0d7f7c; }
 
+/* One-tap energy presets */
+.preset-row { display:flex; align-items:center; gap:8px; padding:12px 24px 10px; border-bottom:1px solid var(--line); }
+.preset-row > span { color:#8a9c99; font-size:9px; letter-spacing:.14em; line-height:1.5; white-space:nowrap; }
+.preset-row button { flex:1; padding:9px 4px; border:1px solid #e6dcc2; border-radius:999px; background:linear-gradient(150deg,#fffdf4,#faf3df); color:#7a5e1c; font-size:11px; white-space:nowrap; transition:.15s; }
+.preset-row button:hover { border-color:#c9a355; transform:translateY(-1px); box-shadow:0 6px 14px #c9a35526; }
+
 /* ── 360° physics preview ────────────────────────────────────────── */
 .canvas-actions .pv-open { border-color:#c9a355; color:#8a6d1f; background:#fffdf5; }
 .canvas-actions .pv-open:hover { background:#fdf6e3; }
@@ -125,6 +131,9 @@ button,input { font:inherit; } button { cursor:pointer; }
   .atelier-note { display:none; }
   .materials-panel { position:fixed; left:0; right:0; bottom:0; z-index:40; min-height:0; height:auto; border-left:0; border-top:1px solid var(--line); border-radius:18px 18px 0 0; box-shadow:0 -14px 34px #1a3c3a1f; background:#fff; padding-bottom:env(safe-area-inset-bottom); }
   .materials-head { display:none; }
+  .preset-row { padding:9px 12px 8px; gap:6px; }
+  .preset-row > span { font-size:8px; }
+  .preset-row button { padding:8px 3px; font-size:10px; }
   .materials-panel .tabs { padding-inline:12px; }
   .materials-panel .tabs button { padding:11px 5px 9px; }
   .materials-panel .search { margin:8px 14px 2px; padding:8px 11px; }
@@ -138,7 +147,7 @@ button,input { font:inherit; } button { cursor:pointer; }
   .selected-detail { display:none; }
   .empty-library { min-height:130px; }
   /* keep the bracelet area clear of the drawer */
-  .studio-shell { padding-bottom:300px; }
+  .studio-shell { padding-bottom:344px; }
   .canvas-actions { flex-wrap:wrap; }
   .notice { bottom:auto; top:8px; width:max-content; max-width:92%; }
   .energy-panel { z-index:60; }

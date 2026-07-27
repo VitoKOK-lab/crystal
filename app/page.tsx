@@ -101,9 +101,18 @@ const accessoryPhotos: Record<string, string> = {
 // Starter design sums to ~14.3 cm — comfortably inside the default 16 cm
 // wrist: one 20mm focal bead, 10mm rounds, 8mm accents, spacers and a charm.
 const initialSpec: [string, BeadSize?][] = [["rose","xlarge"],["rose","large"],["rose","large"],["clear","small"],["rose","large"],["silver-round"],["rose","small"],["rose","large"],["rose","small"],["gold-rondelle"],["rose","large"],["clear","small"],["rose","large"],["rose","small"],["rose","large"],["lotus"]];
-const initial: DesignItem[] = initialSpec.map(([id, size]) => accessories.some((a) => a.id === id)
+const buildSpec = (spec: [string, BeadSize?][]): DesignItem[] => spec.map(([id, size]) => accessories.some((a) => a.id === id)
   ? ({ kind: "accessory", id, uid: nextUid() })
   : ({ kind: "stone", id, size: size ?? "large", uid: nextUid() }));
+const initial: DesignItem[] = buildSpec(initialSpec);
+
+// One-tap energy recipes: stones weighted toward each intention's energy
+// profile, padded with the theme stone to fill the wearer's wrist.
+const PRESETS = {
+  wealth: { name: "金錢豐盛", icon: "💰", pad: "citrine", spec: [["citrine","xlarge"],["tiger","large"],["citrine","large"],["tiger","large"],["clear","small"],["gold-rondelle"],["citrine","large"],["tiger","large"],["tiger","small"],["gold-knot"],["citrine","large"],["clear","small"],["tiger","large"],["tiger","small"],["leaf"]] as [string, BeadSize?][] },
+  love: { name: "愛情桃花", icon: "💗", pad: "rose", spec: [["rose","xlarge"],["rose","large"],["rhodonite","large"],["rose","large"],["moon","small"],["silver-heart"],["rose","large"],["rhodonite","large"],["rose","small"],["silver-round"],["rose","large"],["moon","small"],["rhodonite","large"],["rose","small"],["heart"]] as [string, BeadSize?][] },
+  career: { name: "事業衝勁", icon: "🚀", pad: "tiger", spec: [["sunstone","xlarge"],["tiger","large"],["lapis","large"],["garnet","large"],["clear","small"],["gold-crown"],["tiger","large"],["lapis","large"],["smoky","small"],["gold-rondelle"],["garnet","large"],["tiger","large"],["clear","small"],["lapis","large"],["key"]] as [string, BeadSize?][] },
+} as const;
 
 // draggable={false}: the browser's native image drag hijacks the pointer
 // stream (firing pointercancel) and kills bead drag-reordering.
@@ -222,7 +231,7 @@ export default function Home() {
   const [items, setItems] = useState<DesignItem[]>(initial);
   const [tab, setTab] = useState<"crystal" | "spacer" | "charm">("crystal");
   const [query, setQuery] = useState("");
-  const [notice, setNotice] = useState("已為你準備一條粉水晶基底手鍊");
+  const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "rose", size: "large" });
   // Drag logic lives in a ref so pointerup always sees the freshest state —
   // reading it from React state raced the render loop and made quick drags
@@ -240,9 +249,29 @@ export default function Home() {
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
   const strandMM = useMemo(() => items.reduce((sum, it) => sum + itemMM(it), 0), [items]);
   const capacityMM = wristCm * 10;
+  // Adding always succeeds while the max wrist can hold it: the wrist grows
+  // automatically to fit. Shrinking is only ever done by hand via the selector.
   const add = (item: DesignItem) => {
-    if (strandMM + itemMM(item) > capacityMM) { setNotice(`手圍 ${wristCm} cm 已滿，放不下${label(item)}了 — 移除部分素材，或選更大的手圍。`); return; }
-    const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed); setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${((strandMM + itemMM(item)) / 10).toFixed(1)} / ${wristCm} cm`);
+    const needMM = strandMM + itemMM(item);
+    let cm = wristCm;
+    if (needMM > cm * 10) {
+      const grown = WRIST_CHOICES.find((c) => c * 10 >= needMM);
+      if (!grown) { setNotice(`已達最大手圍 ${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm，放不下${label(item)}了，請先移除部分素材。`); return; }
+      cm = grown; setWristCm(grown);
+    }
+    const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
+    setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}${cm !== wristCm ? `・手圍自動放大為 ${cm} cm` : `・已串 ${(needMM / 10).toFixed(1)} / ${cm} cm`}`);
+  };
+  const applyPreset = (key: keyof typeof PRESETS) => {
+    const preset = PRESETS[key];
+    const built = buildSpec([...preset.spec]);
+    let mm = built.reduce((sum, it) => sum + itemMM(it), 0);
+    let cm = wristCm;
+    if (mm > cm * 10) cm = WRIST_CHOICES.find((c) => c * 10 >= mm) ?? WRIST_CHOICES[WRIST_CHOICES.length - 1];
+    while (mm + 8 <= cm * 10 && mm < cm * 10 * 0.85) { built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() }); mm += 8; }
+    if (cm !== wristCm) setWristCm(cm);
+    setItems(built);
+    setNotice(`已為你搭配「${preset.icon} ${preset.name}」能量手鍊，可再自由調整`);
   };
   const changeWrist = (cm: number) => {
     if (strandMM > cm * 10) { setNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
@@ -317,6 +346,7 @@ export default function Home() {
       </section>
       <aside className="materials-panel">
         <div className="materials-head"><p>01 — CHOOSE MATERIAL</p><h1>打造專屬<br /><em>Crystal Story</em></h1><span>點選素材加入手鍊；每一顆天然晶石皆有獨一無二的紋理。</span></div>
+        <div className="preset-row" aria-label="一鍵能量搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].icon} {PRESETS[key].name}</button>)}</div>
         <div className="tabs" aria-label="素材分類">{([["crystal","天然水晶"],["spacer","精緻隔珠"],["charm","專屬吊飾"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => { setTab(id); setQuery(""); }}>{name}</button>)}</div>
         <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "crystal" ? "搜尋水晶名稱…" : "搜尋配件名稱…"} /></label>
         <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>
