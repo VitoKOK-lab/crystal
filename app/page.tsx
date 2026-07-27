@@ -7,7 +7,12 @@ type EnergyType = "wealth" | "love" | "health" | "protection" | "clarity" | "ene
 type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
 type Accessory = { id: string; zh: string; en: string; type: "spacer" | "charm"; shape: string; metal: "gold" | "silver"; price: number; note: string; energy?: Record<EnergyType, number> };
 type BeadSize = "xlarge" | "large" | "small";
-type DesignItem = { kind: "stone" | "accessory"; id: string; size?: BeadSize };
+type DesignItem = { kind: "stone" | "accessory"; id: string; size?: BeadSize; uid?: number };
+
+// Stable per-placement identity so live drag-reordering keeps DOM nodes (and
+// their pointer capture) alive while the array order changes underneath.
+let uidSeq = 0;
+const nextUid = () => ++uidSeq;
 
 const stones: Stone[] = [
   ["rose","粉水晶","Rose Quartz","愛與關係","#df9baa","#fff3f4","#a65364",260,"溫柔、親密與自我接納",{wealth:2,love:9,health:7,protection:3,clarity:4,energy:6}],
@@ -92,17 +97,19 @@ const accessoryPhotos: Record<string, string> = {
   "silver-heart": "/materials/silver-heart.png",
 };
 const initial: DesignItem[] = ["rose","rose","rose","rose","clear","rose","rose","silver-round","rose","rose","rose","rose","rose","rose","rose","gold-rondelle","rose","rose","rose","rose","rose","rose","rose","rose","rose","lotus"].map((id, index) => accessories.some((a) => a.id === id)
-  ? ({ kind: "accessory", id })
-  : ({ kind: "stone", id, size: [4, 8, 17, 21].includes(index) ? "small" : [12, 20].includes(index) ? "large" : "xlarge" }));
+  ? ({ kind: "accessory", id, uid: nextUid() })
+  : ({ kind: "stone", id, size: [4, 8, 17, 21].includes(index) ? "small" : [12, 20].includes(index) ? "large" : "xlarge", uid: nextUid() }));
 
+// draggable={false}: the browser's native image drag hijacks the pointer
+// stream (firing pointercancel) and kills bead drag-reordering.
 function Crystal({ stone, size = "large" }: { stone: Stone; size?: BeadSize }) {
   const photo = stonePhotos[stone.id];
-  if (photo) return <span className={`crystal photo ${size}`}><img src={photo} alt={`${stone.zh} 正面實物圖`} /></span>;
+  if (photo) return <span className={`crystal photo ${size}`}><img src={photo} alt={`${stone.zh} 正面實物圖`} draggable={false} /></span>;
   return <span className={`crystal ${size}`} style={{ "--c": stone.color, "--l": stone.light, "--d": stone.deep } as React.CSSProperties}><i /><b /><em /></span>;
 }
 function Hardware({ a, small = false }: { a: Accessory; small?: boolean }) {
   const photo = accessoryPhotos[a.id];
-  if (photo) return <span className={`hardware photo ${a.type} ${small ? "small" : ""}`}><img src={photo} alt={`${a.zh} 正面實物圖`} /></span>;
+  if (photo) return <span className={`hardware photo ${a.type} ${small ? "small" : ""}`}><img src={photo} alt={`${a.zh} 正面實物圖`} draggable={false} /></span>;
   return <span className={`hardware ${a.metal} ${a.type} shape-${a.shape} ${small ? "small" : ""}`}><i /><b /></span>;
 }
 function ItemVisual({ item, small = false }: { item: DesignItem; small?: boolean }) {
@@ -202,17 +209,35 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("已為你準備一條粉水晶基底手鍊");
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "rose", size: "xlarge" });
-  const [drag, setDrag] = useState<{ index: number; angle: number; startX: number; startY: number; moved: boolean } | null>(null);
+  // Drag logic lives in a ref so pointerup always sees the freshest state —
+  // reading it from React state raced the render loop and made quick drags
+  // register as taps (deleting the bead). dragView only drives rendering.
+  const dragRef = useRef<{ uid: number; startX: number; startY: number; moved: boolean } | null>(null);
+  const [dragView, setDragView] = useState<{ uid: number; angle: number } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
-  const add = (item: DesignItem) => { if (items.length >= 42) { setNotice("手鍊最多 42 個素材，請先點手鍊上的素材移除。"); return; } setItems((v) => [...v, item]); setSelected(item); setNotice(`已加入 ${label(item)}${item.kind === "stone" ? `・${sizeLabel(item.size)}` : ""}`); };
-  const remove = (index: number) => { const item = items[index]; setItems((v) => v.filter((_, i) => i !== index)); setSelected(item); setNotice(`已移除 ${label(item)}`); };
+  const add = (item: DesignItem) => { if (items.length >= 42) { setNotice("手鍊最多 42 個素材，請先點手鍊上的素材移除。"); return; } const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed); setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}`); };
+  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); setNotice(`已移除 ${label(item)}`); } };
   const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
-  const reorderAtAngle = (from: number, angle: number) => { const start = -Math.PI / 2; const normalized = (((angle - start) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2); const target = Math.round(normalized * items.length) % items.length; if (target === from) return; setItems((current) => { const next = [...current]; const [moving] = next.splice(from, 1); next.splice(target, 0, moving); return next; }); setNotice("已調整素材位置"); };
+  // Live reorder while dragging: shift the bead to the slot nearest the
+  // pointer. The 0.38 dead zone keeps neighbours from oscillating when the
+  // pointer hovers right on a slot boundary.
+  const moveToAngle = (uid: number, angle: number) => setItems((current) => {
+    const from = current.findIndex((x) => x.uid === uid);
+    if (from < 0 || current.length < 2) return current;
+    const TAU = Math.PI * 2;
+    const exact = ((((angle + Math.PI / 2) % TAU) + TAU) % TAU) / TAU * current.length;
+    const target = Math.round(exact) % current.length;
+    if (target === from || Math.abs(exact - Math.round(exact)) > 0.38) return current;
+    const next = [...current];
+    const [moving] = next.splice(from, 1);
+    next.splice(target, 0, moving);
+    return next;
+  });
   const total = useMemo(() => items.reduce((sum, item) => sum + itemPrice(item), 680), [items]);
   const scores = useMemo(() => energyScores(items), [items]);
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
@@ -232,7 +257,7 @@ export default function Home() {
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
-          {items.map((item, i) => { const baseAngle = -Math.PI / 2 + i * ((Math.PI * 2) / items.length); const a = drag?.index === i && drag.moved ? drag.angle : baseAngle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const charmOffset = isCharm ? 4.2 : 0; const xRadius = r + charmOffset; const yRadius = r + charmOffset; const charmRotation = (a * 180 / Math.PI) - 90; return <button key={`${item.id}-${i}`} className={`design-item ${isCharm ? "is-charm" : ""} ${drag?.index === i && drag.moved ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); setDrag({ index: i, angle: baseAngle, startX: event.clientX, startY: event.clientY, moved: false }); }} onPointerMove={(event) => { const { clientX, clientY } = event; setDrag((d) => { if (!d || d.index !== i) return d; const moved = d.moved || Math.hypot(clientX - d.startX, clientY - d.startY) > 8; return { ...d, moved, angle: moved ? angleForPointer(clientX, clientY) : d.angle }; }); }} onPointerUp={() => { if (!drag || drag.index !== i) return; const { moved, angle } = drag; setDrag(null); if (moved) reorderAtAngle(i, angle); else remove(i); }} onPointerCancel={() => setDrag(null)} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title={isCharm ? "輕點移除 · 按住拖曳調整位置" : "輕點移除 · 按住拖曳調整位置"} style={{ left: `${50 + Math.cos(a) * xRadius}%`, top: `${50 + Math.sin(a) * yRadius}%`, transform: `translate(-50%,-50%)${isCharm ? ` rotate(${charmRotation}deg)` : ""}` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
+          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const baseAngle = -Math.PI / 2 + i * ((Math.PI * 2) / items.length); const a = isDragging ? (dragView as { angle: number }).angle : baseAngle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const charmOffset = isCharm ? 4.2 : 0; const xRadius = r + charmOffset; const yRadius = r + charmOffset; const charmRotation = (a * 180 / Math.PI) - 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) setNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * xRadius}%`, top: `${50 + Math.sin(a) * yRadius}%`, transform: `translate(-50%,-50%)${isCharm ? ` rotate(${charmRotation}deg)` : ""}` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
           {beads > 0
             ? <div className="center-intention"><small>DOMINANT ENERGY</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
             : <div className="center-intention"><small>OMA CRYSTAL</small><b>START YOUR STORY</b><span className="ci-note">從右側挑選第一顆水晶</span></div>}
