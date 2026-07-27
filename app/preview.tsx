@@ -4,10 +4,14 @@ import { useEffect, useRef, useState } from "react";
 
 export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean };
 
-// 360° showcase preview. No gravity: the tilt stays where you drag it and
-// nothing sways or settles. Instead the beads themselves are simulated as a
-// 1D chain sliding on the cord — spin changes make them drift, knock into
-// their neighbours, and clack (Web Audio synthesised, pitch by bead size).
+// 360° showcase preview.
+// - Trackball rotation: yaw AND pitch are unlimited with inertia — the piece
+//   tumbles freely in any direction and never hits a stop.
+// - Soft cord: the loop is deformed by damped harmonic modes (radial and
+//   out-of-plane), excited by spins, flicks and bead impacts, so the strand
+//   flexes like elastic string instead of staying a rigid circle.
+// - Bead chain: beads slide on the cord, collide with neighbours and clack
+//   (Web Audio synthesised, pitch by bead size).
 export default function Preview({ pieces, capacityMM, onClose }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [muted, setMuted] = useState(false);
@@ -71,9 +75,24 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
 
     const Rmm = capacityMM / (Math.PI * 2);
 
-    // ---- view state (no gravity: pitch stays where dragged) ----
+    // ---- soft cord: damped harmonic deformation modes ----
+    type Mode = { m: number; ac: number; as: number; vc: number; vs: number; k: number; c: number; g: number };
+    const radialModes: Mode[] = [
+      { m: 2, ac: 0, as: 0, vc: 0, vs: 0, k: 150, c: 5, g: 0.016 },
+      { m: 3, ac: 0, as: 0, vc: 0, vs: 0, k: 380, c: 7, g: 0.009 },
+    ];
+    const planeModes: Mode[] = [
+      { m: 2, ac: 0, as: 0, vc: 0, vs: 0, k: 120, c: 4.6, g: 0.014 },
+      { m: 1, ac: 0, as: 0, vc: 0, vs: 0, k: 240, c: 6, g: 0.006 },
+    ];
+    const allModes = [...radialModes, ...planeModes];
+    const clampAmp = (x: number) => Math.max(-0.11, Math.min(0.11, x));
+    const ropeRadial = (phi: number) => { let d = 0; for (const md of radialModes) d += md.ac * Math.cos(md.m * phi) + md.as * Math.sin(md.m * phi); return Rmm * (1 + Math.max(-0.16, Math.min(0.16, d))); };
+    const ropePlane = (phi: number) => { let d = 0; for (const md of planeModes) d += md.ac * Math.cos(md.m * phi) + md.as * Math.sin(md.m * phi); return Rmm * Math.max(-0.2, Math.min(0.2, d)); };
+
+    // ---- view state: free trackball, unlimited on both axes ----
     let yaw = 0.6, yawVel = 0.45, prevYawVel = yawVel;
-    let pitch = 0.42;
+    let pitch = 0.42, pitchVel = 0, prevPitchVel = 0;
     let dragging = false, lastX = 0, lastY = 0, idleT = 0;
 
     const onDown = (e: PointerEvent) => { ensureAudio(); dragging = true; lastX = e.clientX; lastY = e.clientY; idleT = 0; canvas.setPointerCapture(e.pointerId); };
@@ -83,13 +102,18 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
       lastX = e.clientX; lastY = e.clientY;
       yaw += dx * 0.011;
       yawVel = dx * 0.011 * 60;
-      pitch = Math.max(0.08, Math.min(1.35, pitch + dy * 0.007));
+      pitch += dy * 0.009;
+      pitchVel = dy * 0.009 * 60;
       idleT = 0;
     };
     const onUp = () => {
       dragging = false;
-      // a flick jolts the beads so they audibly knock around
-      for (let i = 0; i < n; i++) v[i] += (hash(i + 3) - 0.5) * Math.abs(yawVel) * Rmm * 0.55;
+      const speed = Math.abs(yawVel) + Math.abs(pitchVel);
+      for (let i = 0; i < n; i++) v[i] += (hash(i + 3) - 0.5) * speed * Rmm * 0.5;
+      for (let m = 0; m < allModes.length; m++) {
+        allModes[m].vc += (hash(m + 11) - 0.5) * speed * 0.55;
+        allModes[m].vs += (hash(m + 23) - 0.5) * speed * 0.55;
+      }
     };
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);
@@ -104,14 +128,27 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
 
       if (!dragging) {
         yaw += yawVel * dt;
+        pitch += pitchVel * dt;
         yawVel *= Math.pow(0.34, dt);
+        pitchVel *= Math.pow(0.3, dt);
         idleT += dt;
         if (idleT > 1.8) yawVel += (0.26 - yawVel) * Math.min(1, dt * 0.9);
       }
       const yawAcc = (yawVel - prevYawVel) / Math.max(dt, 1e-4);
+      const pitchAcc = (pitchVel - prevPitchVel) / Math.max(dt, 1e-4);
       prevYawVel = yawVel;
+      prevPitchVel = pitchVel;
+      const stir = yawAcc + pitchAcc * 0.8;
 
-      // ---- chain physics: inertia lag + differential friction → collisions ----
+      // soft cord integration, driven by rotation changes
+      for (const md of allModes) {
+        md.vc += (-md.k * md.ac - md.c * md.vc + stir * md.g) * dt;
+        md.vs += (-md.k * md.as - md.c * md.vs - stir * md.g * 0.7) * dt;
+        md.ac = clampAmp(md.ac + md.vc * dt);
+        md.as = clampAmp(md.as + md.vs * dt);
+      }
+
+      // bead chain physics: inertia lag + differential friction → collisions
       for (let i = 0; i < n; i++) {
         const acc = -yawAcc * Rmm * 0.16 * (0.7 + hash(i) * 0.6) - v[i] * frict[i] + (home[i] - u[i]) * 6;
         v[i] += acc * dt;
@@ -130,12 +167,15 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
               v[i] = avg - (v[i] - avg) * e;
               v[j] = avg - (v[j] - avg) * e;
               clack(rv, Math.max(widths[i], widths[j]));
+              // impacts make the soft cord shiver
+              radialModes[0].vc += rv * 0.0006 * (hash(i) - 0.5);
+              planeModes[0].vs += rv * 0.0005 * (hash(i + 7) - 0.5);
             }
           }
         }
       }
 
-      // ---- draw (white studio backdrop lives in CSS; canvas is clear) ----
+      // ---- draw ----
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0, 0, W, H);
       const minDim = Math.min(W, H);
@@ -144,10 +184,12 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
       const cx = W / 2, cy = H / 2 - minDim * 0.02;
 
       const sy = Math.sin(yaw), cyw = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);
-      const project = (phi: number, radius = Rmm) => {
-        const x = Math.cos(phi) * radius, z = Math.sin(phi) * radius;
+      const project = (phi: number, radiusScale = 1) => {
+        const rad = ropeRadial(phi) * radiusScale;
+        const x = Math.cos(phi) * rad, z = Math.sin(phi) * rad;
+        const y0 = ropePlane(phi) * radiusScale;
         const x1 = x * cyw + z * sy, z1 = -x * sy + z * cyw;
-        const y2 = -z1 * sp, z2 = z1 * cp;
+        const y2 = y0 * cp - z1 * sp, z2 = y0 * sp + z1 * cp;
         const persp = f / (f - z2 * s);
         return { x: cx + x1 * s * persp, y: cy + y2 * s * persp, z: z2, persp };
       };
@@ -163,10 +205,10 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
       ctx.fill();
       ctx.restore();
 
-      // cord
+      // cord (drawn along the deformed soft shape)
       ctx.beginPath();
-      for (let i = 0; i <= 110; i++) {
-        const p = project((i / 110) * Math.PI * 2);
+      for (let i = 0; i <= 130; i++) {
+        const p = project((i / 130) * Math.PI * 2);
         if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
       }
       ctx.closePath();
@@ -179,8 +221,7 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
         const img = images[i];
         const shade = 0.72 + 0.28 * ((proj.z / Rmm) + 1) / 2;
         if (p.isCharm) {
-          // no gravity: the charm points radially outward and turns with the ring
-          const inner = project(phiOf(u[i]), Rmm * 0.86);
+          const inner = project(phiOf(u[i]), 0.86);
           const dx = proj.x - inner.x, dy = proj.y - inner.y;
           const len = Math.hypot(dx, dy) || 1;
           const rot = Math.atan2(dy, dx) - Math.PI / 2;
@@ -233,6 +274,6 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
   return <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽">
     <div className="pv-head"><b>✨ 360° PREVIEW</b><span>立體預覽</span><button className="pv-sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? "開啟碰撞音效" : "關閉碰撞音效"}>{muted ? "🔇" : "🔊"}</button><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
     <canvas ref={canvasRef} className="pv-canvas" />
-    <div className="pv-hint">拖曳旋轉 · 甩動讓珠子碰撞出聲 · 上下改變視角</div>
+    <div className="pv-hint">任意方向拖曳自由翻轉 · 無限旋轉 · 甩動讓軟繩晃動、珠子碰撞出聲</div>
   </div>;
 }
