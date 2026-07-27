@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Checkout, { type OrderLine } from "./checkout";
 import DesignGuide from "./design-guide";
 import Preview, { type PreviewPiece } from "./preview";
+import { generateShareCard } from "./share-card";
 
 type EnergyType = "wealth" | "love" | "health" | "protection" | "clarity" | "energy";
 type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
@@ -113,6 +114,26 @@ const PRESETS = {
   love: { name: "愛情桃花", icon: "💗", pad: "rose", spec: [["rose","xlarge"],["rose","large"],["rhodonite","large"],["rose","large"],["moon","small"],["silver-heart"],["rose","large"],["rhodonite","large"],["rose","small"],["silver-round"],["rose","large"],["moon","small"],["rhodonite","large"],["rose","small"],["heart"]] as [string, BeadSize?][] },
   career: { name: "事業衝勁", icon: "🚀", pad: "tiger", spec: [["sunstone","xlarge"],["tiger","large"],["lapis","large"],["garnet","large"],["clear","small"],["gold-crown"],["tiger","large"],["lapis","large"],["smoky","small"],["gold-rondelle"],["garnet","large"],["tiger","large"],["clear","small"],["lapis","large"],["key"]] as [string, BeadSize?][] },
 } as const;
+
+// Shareable design links: ?d=<wrist>|<id>.<size>,<id>,…
+const encodeDesign = (items: DesignItem[], wristCm: number) => `${wristCm}|` + items.map((it) => it.kind === "stone" ? `${it.id}.${it.size === "xlarge" ? "x" : it.size === "small" ? "s" : "l"}` : it.id).join(",");
+function decodeDesign(code: string): { wrist: number; items: DesignItem[] } | null {
+  try {
+    const [w, list] = code.split("|");
+    const wrist = Number(w);
+    if (!WRIST_CHOICES.includes(wrist) || !list) return null;
+    const items: DesignItem[] = [];
+    for (const token of list.split(",")) {
+      const [id, sz] = token.split(".");
+      if (byStone[id]) items.push({ kind: "stone", id, size: sz === "x" ? "xlarge" : sz === "s" ? "small" : "large", uid: nextUid() });
+      else if (byAccessory[id]) items.push({ kind: "accessory", id, uid: nextUid() });
+      else return null;
+    }
+    if (!items.length || items.length > 42) return null;
+    if (items.reduce((sum, it) => sum + itemMM(it), 0) > wrist * 10) return null;
+    return { wrist, items };
+  } catch { return null; }
+}
 
 // draggable={false}: the browser's native image drag hijacks the pointer
 // stream (firing pointercancel) and kills bead drag-reordering.
@@ -244,6 +265,15 @@ export default function Home() {
   const [wristCm, setWristCm] = useState(16);
   const [previewOpen, setPreviewOpen] = useState(false);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("d");
+    if (!code) return;
+    const decoded = decodeDesign(code);
+    if (!decoded) return;
+    setItems(decoded.items);
+    setWristCm(decoded.wrist);
+    setNotice("已載入分享的設計 ✨ 可以直接調整或結帳");
+  }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
@@ -261,6 +291,36 @@ export default function Home() {
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
     setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}${cm !== wristCm ? `・手圍自動放大為 ${cm} cm` : `・已串 ${(needMM / 10).toFixed(1)} / ${cm} cm`}`);
+  };
+  const shareDesign = async () => {
+    if (!items.length) { setNotice("先加入素材，再分享你的設計！"); return; }
+    setNotice("正在產生分享卡…");
+    const url = `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(encodeDesign(items, wristCm))}`;
+    try {
+      const blob = await generateShareCard({
+        pieces: previewPieces, capacityMM,
+        energies: ENERGY_META.map((m) => ({ zh: m.zh, en: m.en, color: m.color, score: scores[m.key] })),
+        dominant: { zh: dominant.zh, en: dominant.en, color: dominant.color, score: scores[dominant.key] },
+        totalEnergy, priceNTD: total, wristCm, beads, url,
+      });
+      const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ✨ ${url}`, url });
+        setNotice("已開啟分享面板 ✨");
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "oma-crystal-design.png";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        await navigator.clipboard?.writeText(url);
+        setNotice("分享卡已下載，設計連結已複製 — 貼給朋友就能看到同款 ✨");
+      }
+    } catch (error) {
+      if ((error as Error).name === "AbortError") { setNotice(""); return; }
+      await navigator.clipboard?.writeText(url).catch(() => {});
+      setNotice("分享卡產生失敗，已改為複製設計連結");
+    }
   };
   const applyPreset = (key: keyof typeof PRESETS) => {
     const preset = PRESETS[key];
@@ -341,7 +401,7 @@ export default function Home() {
           <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={() => navigator.clipboard?.writeText(`OMA CRYSTAL｜${items.length} 個素材｜NT$ ${total.toLocaleString()}`).then(() => setNotice("設計摘要已複製"))}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { setNotice("先加入素材，再看立體預覽！"); return; } setPreviewOpen(true); }}>✨ 360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { setNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={shareDesign}>📸 分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { setNotice("先加入素材，再看立體預覽！"); return; } setPreviewOpen(true); }}>✨ 360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { setNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <aside className="materials-panel">
