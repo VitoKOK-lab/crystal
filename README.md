@@ -141,7 +141,9 @@ crystal/
 
 ## 🌐 在線演示
 
-[即將上線] 🚀 Cloudflare Pages 部署
+**立即體驗：https://vitokok-lab.github.io/crystal/**
+
+每次推送到 `main` 分支都會透過 GitHub Actions 自動重新部署。
 
 ## 📝 功能路線圖
 
