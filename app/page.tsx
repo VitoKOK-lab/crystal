@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Checkout, { type OrderLine } from "./checkout";
 import DesignGuide from "./design-guide";
+// Aliased: this file's own default export below is also named `Home` (the
+// long-standing name of the whole builder component) — importing the
+// landing page under the same identifier let the bundler's scope
+// resolution collapse the JSX reference back onto this very component,
+// so `<Home>` silently rendered itself recursively (infinite mount depth,
+// hard browser-tab crash) instead of the intended landing page.
+import LandingHome from "./home";
 import Preview, { type PreviewPiece } from "./preview";
 import { generateShareCard } from "./share-card";
 
@@ -261,7 +268,7 @@ export default function Home() {
   const [dragView, setDragView] = useState<{ uid: number; angle: number } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
-  const [view, setView] = useState<"studio" | "checkout">("studio");
+  const [view, setView] = useState<"home" | "studio" | "checkout">("home");
   const [wristCm, setWristCm] = useState(16);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -274,6 +281,7 @@ export default function Home() {
     setItems(decoded.items);
     setWristCm(decoded.wrist);
     setNotice("已載入分享的設計 ✨ 可以直接調整或結帳");
+    setView("studio");
   }, []);
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
@@ -384,19 +392,12 @@ export default function Home() {
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
   const arcs = useMemo(() => { let cum = 0; return items.map((it) => { const w = itemMM(it); const centerMM = cum + w / 2; cum += w; return { w, angle: -Math.PI / 2 + (centerMM / capacityMM) * Math.PI * 2 }; }); }, [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
+  if (view === "home") return <LandingHome onStart={() => { setView("studio"); window.scrollTo({ top: 0 }); }} />;
   return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     {previewOpen && <Preview pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />}
-    <header className="studio-head"><a className="wordmark" href="#top">OMA <span>CRYSTAL</span></a><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
+    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
-    <section className="hero-banner">
-      <img src="/hero-banner.png" alt="OMA CRYSTAL 水晶手鍊配戴示意" />
-      <div className="hero-banner-copy">
-        <p>THE OMA ATELIER</p>
-        <h1>把此刻的心願<br />戴在手上</h1>
-        <a href="#top" className="hero-cta">開始設計 <span>↓</span></a>
-      </div>
-    </section>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>

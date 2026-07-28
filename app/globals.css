@@ -5,21 +5,11 @@ body { margin:0; color:var(--ink); background:var(--paper); font-family:Arial,"N
 button,input { font:inherit; } button { cursor:pointer; }
 .studio { min-height:100vh; background:#fff; }
 .studio-head { height:78px; display:flex; align-items:center; justify-content:space-between; padding:0 clamp(24px,5vw,76px); border-bottom:1px solid var(--line); background:#fff; }
-.wordmark { color:#172929; text-decoration:none; font:500 21px Georgia,serif; letter-spacing:.28em; } .wordmark span { display:inline-block; margin-left:4px; color:var(--blue-deep); font:10px Arial,sans-serif; letter-spacing:.2em; vertical-align:middle; }
+.wordmark { border:0; background:transparent; padding:0; color:#172929; text-decoration:none; font:500 21px Georgia,serif; letter-spacing:.28em; } .wordmark span { display:inline-block; margin-left:4px; color:var(--blue-deep); font:10px Arial,sans-serif; letter-spacing:.2em; vertical-align:middle; }
 .head-note { color:#7e9693; font-size:9px; letter-spacing:.25em; }
 .head-actions { display:flex; gap:16px; }
 .quiet { padding:10px 0; border:0; background:transparent; color:#52716f; font-size:11px; letter-spacing:.08em; transition:color 0.2s; }
 .quiet:hover { color:#1a3c3a; }
-.hero-banner { position:relative; overflow:hidden; height:min(46vw,460px); min-height:260px; background:#0d2a28; }
-.hero-banner img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 28%; }
-.hero-banner:after { content:""; position:absolute; inset:0; background:linear-gradient(100deg,#0b201e 0%,#0b201e88 32%,transparent 62%); }
-.hero-banner-copy { position:relative; z-index:1; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; height:100%; max-width:560px; padding:0 clamp(24px,6vw,88px); }
-.hero-banner-copy p { margin:0; color:#8fe0d8; font-size:10px; letter-spacing:.32em; }
-.hero-banner-copy h1 { margin:16px 0 26px; color:#fff; font:44px/1.28 Georgia,"Noto Serif TC",serif; letter-spacing:.02em; text-shadow:0 6px 24px #00000030; }
-.hero-cta { display:inline-flex; align-items:center; gap:10px; padding:13px 22px; border:1px solid #ffffff55; border-radius:999px; color:#fff; text-decoration:none; font-size:12px; letter-spacing:.1em; transition:.2s; backdrop-filter:blur(2px); }
-.hero-cta:hover { background:#ffffff18; border-color:#fff; transform:translateY(-2px); }
-.hero-cta span { color:#ffd76a; }
-@media (max-width:768px) { .hero-banner { height:auto; aspect-ratio:16/11; } .hero-banner img { object-position:72% 22%; } .hero-banner:after { background:linear-gradient(190deg,#0b201e00 30%,#0b201ee6 82%); } .hero-banner-copy { align-items:flex-start; justify-content:flex-end; padding:0 22px 26px; max-width:100%; } .hero-banner-copy h1 { font-size:28px; margin:10px 0 18px; } }
 .studio-shell { display:grid; grid-template-columns:minmax(650px,1.55fr) minmax(420px,.8fr); min-height:820px; max-width:1580px; margin:auto; background:#fff; }
 .canvas-panel { position:relative; overflow:hidden; padding:28px 34px 26px; background:radial-gradient(circle at 47% 44%,#fff 0 32%,#fcfcfa 63%,#f2f5f3 100%); }
 .canvas-panel:before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.32; background:url('/crystal-hero.png') center/cover; mix-blend-mode:soft-light; }
@@ -311,3 +301,86 @@ button,input { font:inherit; } button { cursor:pointer; }
 .btn-primary:hover { background:#2d9a91; transform:translateY(-2px); box-shadow:0 4px 12px rgba(72,187,181,0.3); }
 .btn-secondary { background:#f0f0f0; color:#333; }
 .btn-secondary:hover { background:#e0e0e0; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Landing page — brand home shown before the DIY studio; a single CTA
+   is the only way into the builder.
+   ═══════════════════════════════════════════════════════════════════ */
+.landing { background:#fff; color:var(--ink); overflow-x:clip; }
+.landing-nav { position:fixed; top:0; left:0; right:0; z-index:30; display:flex; align-items:center; justify-content:space-between; height:74px; padding:0 clamp(20px,5vw,64px); background:#ffffffee; border-bottom:1px solid #ffffff00; transition:background .25s,border-color .25s; }
+.landing-nav-cta { padding:10px 20px; border:1px solid #1a3736; border-radius:999px; background:#1a3736; color:#fff; font-size:12px; letter-spacing:.06em; transition:.2s; }
+.landing-nav-cta:hover { background:#0f2a29; transform:translateY(-1px); }
+
+.landing-hero { position:relative; height:100svh; min-height:560px; overflow:hidden; }
+.landing-hero img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:70% 24%; }
+.landing-hero:before { content:""; position:absolute; inset:0; background:linear-gradient(200deg,#0b201e05 10%,#0b201ec2 68%,#0b201ee8); }
+.landing-hero-copy { position:relative; z-index:1; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; height:100%; max-width:640px; padding:0 clamp(22px,6vw,88px) clamp(70px,12vh,140px); }
+.landing-hero-copy p { margin:0 0 18px; color:#8fe0d8; font-size:11px; letter-spacing:.34em; }
+.landing-hero-copy h1 { margin:0 0 22px; color:#fff; font:600 clamp(40px,7.2vw,74px)/1.08 Georgia,serif; letter-spacing:.03em; text-shadow:0 10px 34px #00000040; }
+.landing-hero-copy > span { display:block; max-width:420px; margin-bottom:34px; color:#dcefec; font-size:14px; line-height:1.85; }
+.landing-cta { display:inline-flex; align-items:center; gap:12px; padding:16px 28px; border:0; border-radius:999px; background:#ffd76a; color:#1a3c3a; font:600 13px/1 Arial,"Noto Sans TC",sans-serif; letter-spacing:.06em; box-shadow:0 14px 30px #ffd76a3d; transition:.22s; }
+.landing-cta:hover { background:#ffe08a; transform:translateY(-2px); box-shadow:0 18px 36px #ffd76a55; }
+.landing-cta i { font-style:normal; }
+.landing-cta.light { background:#1a3736; color:#fff; box-shadow:0 14px 30px #1a373633; }
+.landing-cta.light:hover { background:#0f2a29; }
+.landing-scroll-hint { position:absolute; left:50%; bottom:28px; z-index:1; transform:translateX(-50%); }
+.landing-scroll-hint i { display:block; width:1px; height:44px; background:linear-gradient(#ffffffb0,transparent); animation:scrollhint 1.8s ease-in-out infinite; }
+@keyframes scrollhint { 0%,100% { opacity:.35; transform:scaleY(.7); transform-origin:top; } 50% { opacity:1; transform:scaleY(1); transform-origin:top; } }
+
+[data-reveal] { opacity:0; transform:translateY(28px); transition:opacity .7s ease,transform .7s cubic-bezier(.16,.8,.3,1); }
+[data-reveal].in { opacity:1; transform:none; }
+
+.landing-eyebrow { margin:0 0 12px; color:#38aaa6; font-size:10px; letter-spacing:.3em; text-align:center; }
+.landing-features,.landing-presets,.landing-showcase { padding:clamp(64px,9vw,120px) clamp(20px,6vw,64px); text-align:center; }
+.landing-features h2,.landing-presets h2,.landing-showcase h2 { margin:0 auto 52px; max-width:560px; color:#1c3532; font:38px/1.35 Georgia,"Noto Serif TC",serif; }
+
+.landing-feature-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; max-width:1080px; margin:0 auto; }
+.landing-feature { padding:38px 26px; border:1px solid #e6ecea; border-radius:18px; background:linear-gradient(160deg,#fff,#f7fbfa); text-align:left; transition:.25s; }
+.landing-feature:hover { border-color:#9ed8d3; transform:translateY(-4px); box-shadow:0 18px 34px #159d9b14; }
+.lf-icon { display:block; margin-bottom:18px; font-size:30px; }
+.landing-feature b { display:block; margin-bottom:10px; color:#1c3532; font:600 17px Georgia,"Noto Serif TC",serif; }
+.landing-feature p { margin:0; color:#6d827e; font-size:12.5px; line-height:1.85; }
+
+.landing-presets { background:linear-gradient(180deg,#fbfdfc,#f0f8f7); }
+.landing-preset-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; max-width:1080px; margin:0 auto; }
+.landing-preset { padding:30px 24px 26px; border:1.5px solid #e6dcc2; border-radius:16px; background:linear-gradient(155deg,#fffdf6,#fbf4e0); text-align:left; transition:.22s; }
+.landing-preset:hover { border-color:#c9a355; transform:translateY(-3px); box-shadow:0 16px 30px #c9a35524; }
+.lp-icon { display:block; margin-bottom:14px; font-size:26px; }
+.landing-preset b { display:block; margin-bottom:8px; color:#6b4f16; font:600 16px Georgia,"Noto Serif TC",serif; }
+.landing-preset p { margin:0 0 16px; color:#8a734a; font-size:12px; line-height:1.7; }
+.landing-preset i { color:#b9891e; font-size:11px; font-style:normal; letter-spacing:.04em; }
+
+.landing-showcase-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; max-width:960px; margin:0 auto; }
+.ls-item { display:flex; flex-direction:column; align-items:center; gap:10px; padding:22px 10px; border-radius:16px; transition:.2s; }
+.ls-item:hover { background:#f5fbfa; transform:translateY(-3px); }
+.ls-item img { width:76px; height:76px; object-fit:contain; filter:drop-shadow(0 8px 14px #1a2c2b22); }
+.ls-item b { color:#243b38; font-size:12.5px; }
+.ls-item span { color:#93a8a4; font-size:10px; letter-spacing:.04em; }
+
+.landing-quote { padding:clamp(70px,12vw,150px) 22px; text-align:center; color:#fff; background:radial-gradient(circle at 30% 20%,#1c4744,transparent 60%),linear-gradient(165deg,#123331,#0a201e); }
+.landing-quote p { margin:0; color:#8fe0d8; font-size:11px; letter-spacing:.3em; }
+.landing-quote h2 { margin:20px auto 40px; max-width:560px; color:#fff; font:36px/1.55 Georgia,"Noto Serif TC",serif; }
+
+.landing-footer { display:flex; flex-direction:column; align-items:center; gap:12px; padding:40px 22px 56px; text-align:center; background:#fff; }
+.landing-footer .wordmark { pointer-events:none; }
+.landing-footer span { color:#9db2ae; font-size:10px; letter-spacing:.08em; }
+
+@media (max-width:860px) {
+  .landing-feature-grid,.landing-preset-grid { grid-template-columns:1fr; }
+  .landing-showcase-grid { grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:560px) {
+  .landing-nav { height:60px; padding:0 16px; }
+  .landing-nav .wordmark { font-size:16px; }
+  .landing-nav-cta { padding:8px 14px; font-size:11px; }
+  .landing-hero { min-height:520px; }
+  .landing-hero img { object-position:76% 20%; }
+  .landing-hero-copy { padding:0 20px 64px; }
+  .landing-hero-copy h1 { font-size:40px; }
+  .landing-hero-copy > span { font-size:12.5px; }
+  .landing-cta { padding:14px 22px; font-size:12px; }
+  .landing-features,.landing-presets,.landing-showcase { padding:52px 18px; }
+  .landing-features h2,.landing-presets h2,.landing-showcase h2 { font-size:27px; margin-bottom:34px; }
+  .landing-showcase-grid { grid-template-columns:repeat(2,1fr); }
+  .landing-quote h2 { font-size:25px; }
+}
