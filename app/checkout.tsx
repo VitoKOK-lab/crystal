@@ -8,9 +8,9 @@ type EnergyInfo = { zh: string; en: string; color: string };
 // Wrist sizes offered at checkout: 13–22 cm in half-centimetre steps.
 const WRIST_SIZES = Array.from({ length: 19 }, (_, i) => (13 + i * 0.5).toFixed(1).replace(/\.0$/, ""));
 const PAYMENTS = [
-  { id: "card", icon: "💳", name: "信用卡", note: "VISA / Master / JCB" },
-  { id: "linepay", icon: "💚", name: "LINE Pay", note: "行動支付快速結帳" },
-  { id: "cod", icon: "📦", name: "貨到付款", note: "宅配到府，取貨付款" },
+  { id: "card", name: "信用卡", note: "VISA / Master / JCB" },
+  { id: "linepay", name: "LINE Pay", note: "行動支付快速結帳" },
+  { id: "cod", name: "貨到付款", note: "宅配到府，取貨付款" },
 ] as const;
 
 export default function Checkout({ lines, baseFee, dominant, totalEnergy, initialWrist, onBack }: {
@@ -115,7 +115,7 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
         <h2 className="co-pay-title">付款方式</h2>
         <div className="co-payments">
           {PAYMENTS.map((p) => <button key={p.id} type="button" className={`co-pay ${payment === p.id ? "active" : ""}`} onClick={() => setPayment(p.id)}>
-            <span className="cp-icon">{p.icon}</span><b>{p.name}</b><i>{p.note}</i>
+            <b>{p.name}</b><i>{p.note}</i>
           </button>)}
         </div>
         <button className="co-primary co-submit" onClick={submit}>確認下單 · NT$ {grand.toLocaleString()} <span>→</span></button>

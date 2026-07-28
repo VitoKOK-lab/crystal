@@ -117,9 +117,9 @@ const initial: DesignItem[] = buildSpec(initialSpec);
 // One-tap energy recipes: stones weighted toward each intention's energy
 // profile, padded with the theme stone to fill the wearer's wrist.
 const PRESETS = {
-  wealth: { name: "金錢豐盛", icon: "💰", pad: "citrine", spec: [["citrine","xlarge"],["tiger","large"],["citrine","large"],["tiger","large"],["clear","small"],["gold-rondelle"],["citrine","large"],["tiger","large"],["tiger","small"],["gold-knot"],["citrine","large"],["clear","small"],["tiger","large"],["tiger","small"],["leaf"]] as [string, BeadSize?][] },
-  love: { name: "愛情桃花", icon: "💗", pad: "rose", spec: [["rose","xlarge"],["rose","large"],["rhodonite","large"],["rose","large"],["moon","small"],["silver-heart"],["rose","large"],["rhodonite","large"],["rose","small"],["silver-round"],["rose","large"],["moon","small"],["rhodonite","large"],["rose","small"],["heart"]] as [string, BeadSize?][] },
-  career: { name: "事業衝勁", icon: "🚀", pad: "tiger", spec: [["sunstone","xlarge"],["tiger","large"],["lapis","large"],["garnet","large"],["clear","small"],["gold-crown"],["tiger","large"],["lapis","large"],["smoky","small"],["gold-rondelle"],["garnet","large"],["tiger","large"],["clear","small"],["lapis","large"],["key"]] as [string, BeadSize?][] },
+  wealth: { name: "金錢豐盛", pad: "citrine", spec: [["citrine","xlarge"],["tiger","large"],["citrine","large"],["tiger","large"],["clear","small"],["gold-rondelle"],["citrine","large"],["tiger","large"],["tiger","small"],["gold-knot"],["citrine","large"],["clear","small"],["tiger","large"],["tiger","small"],["leaf"]] as [string, BeadSize?][] },
+  love: { name: "愛情桃花", pad: "rose", spec: [["rose","xlarge"],["rose","large"],["rhodonite","large"],["rose","large"],["moon","small"],["silver-heart"],["rose","large"],["rhodonite","large"],["rose","small"],["silver-round"],["rose","large"],["moon","small"],["rhodonite","large"],["rose","small"],["heart"]] as [string, BeadSize?][] },
+  career: { name: "事業衝勁", pad: "tiger", spec: [["sunstone","xlarge"],["tiger","large"],["lapis","large"],["garnet","large"],["clear","small"],["gold-crown"],["tiger","large"],["lapis","large"],["smoky","small"],["gold-rondelle"],["garnet","large"],["tiger","large"],["clear","small"],["lapis","large"],["key"]] as [string, BeadSize?][] },
 } as const;
 
 // Shareable design links: ?d=<wrist>|<id>.<size>,<id>,…
@@ -227,9 +227,9 @@ function EnergyPanel({ scores, total, dominant, open, onToggle }: { scores: Reco
   };
   const ringPoints = (r: number) => ENERGY_META.map((_, i) => point(i, r).join(",")).join(" ");
   const valuePoints = ENERGY_META.map((m, i) => point(i, 8 + (scores[m.key] / max) * (R - 8)));
-  if (!open) return <button className="energy-fab" onClick={onToggle} aria-label="展開能量矩陣">⚡<span>能量</span></button>;
+  if (!open) return <button className="energy-fab" onClick={onToggle} aria-label="展開能量矩陣"><span>能量</span></button>;
   return <div className="energy-panel">
-    <div className="ep-head"><b>⚡ ENERGY MATRIX</b><span>能量矩陣</span><button onClick={onToggle} aria-label="收合能量矩陣">▾</button></div>
+    <div className="ep-head"><b>ENERGY MATRIX</b><span>能量矩陣</span><button onClick={onToggle} aria-label="收合能量矩陣">▾</button></div>
     <svg viewBox="0 0 220 186" className="ep-chart" role="img" aria-label="六維能量雷達圖">
       <defs>
         <linearGradient id="epFill" x1="0" y1="0" x2="0" y2="1">
@@ -280,7 +280,7 @@ export default function Home() {
     if (!decoded) return;
     setItems(decoded.items);
     setWristCm(decoded.wrist);
-    setNotice("已載入分享的設計 ✨ 可以直接調整或結帳");
+    setNotice("已載入分享的設計，可以直接調整或結帳");
     setView("studio");
   }, []);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -314,8 +314,8 @@ export default function Home() {
       });
       const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ✨ ${url}`, url });
-        setNotice("已開啟分享面板 ✨");
+        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ${url}`, url });
+        setNotice("已開啟分享面板");
       } else {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -323,7 +323,7 @@ export default function Home() {
         a.click();
         URL.revokeObjectURL(a.href);
         await navigator.clipboard?.writeText(url);
-        setNotice("分享卡已下載，設計連結已複製 — 貼給朋友就能看到同款 ✨");
+        setNotice("分享卡已下載，設計連結已複製 — 貼給朋友就能看到同款");
       }
     } catch (error) {
       if ((error as Error).name === "AbortError") { setNotice(""); return; }
@@ -340,7 +340,7 @@ export default function Home() {
     while (mm + 8 <= cm * 10 && mm < cm * 10 * 0.85) { built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() }); mm += 8; }
     if (cm !== wristCm) setWristCm(cm);
     setItems(built);
-    setNotice(`已為你搭配「${preset.icon} ${preset.name}」能量手鍊，可再自由調整`);
+    setNotice(`已為你搭配「${preset.name}」能量手鍊，可再自由調整`);
   };
   const changeWrist = (cm: number) => {
     if (strandMM > cm * 10) { setNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
@@ -411,14 +411,14 @@ export default function Home() {
           <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={shareDesign}>📸 分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { setNotice("先加入素材，再看立體預覽！"); return; } setPreviewOpen(true); }}>✨ 360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { setNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { setNotice("先加入素材，再看立體預覽！"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { setNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <aside className={`materials-panel ${drawerOpen ? "" : "collapsed"}`}>
         <button className="drawer-handle" onClick={() => setDrawerOpen((v) => !v)} aria-expanded={drawerOpen} aria-label={drawerOpen ? "收起素材選擇區" : "展開素材選擇區"}><i /><span>{drawerOpen ? "收起選項" : "選擇水晶與配件"}</span></button>
         <div className="drawer-body">
         <div className="materials-head"><p>01 — CHOOSE MATERIAL</p><h1>打造專屬<br /><em>Crystal Story</em></h1><span>點選素材加入手鍊；每一顆天然晶石皆有獨一無二的紋理。</span></div>
-        <div className="preset-row" aria-label="一鍵能量搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].icon} {PRESETS[key].name}</button>)}</div>
+        <div className="preset-row" aria-label="一鍵能量搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].name}</button>)}</div>
         <div className="tabs" aria-label="素材分類">{([["crystal","天然水晶"],["spacer","精緻隔珠"],["charm","專屬吊飾"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => { setTab(id); setQuery(""); }}>{name}</button>)}</div>
         <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "crystal" ? "搜尋水晶名稱…" : "搜尋配件名稱…"} /></label>
         <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>

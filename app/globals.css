@@ -237,7 +237,6 @@ button,input { font:inherit; } button { cursor:pointer; }
 .co-pay { display:flex; flex-direction:column; align-items:flex-start; gap:3px; padding:13px 14px; border:1.5px solid #e0eae8; border-radius:11px; background:#fbfdfc; text-align:left; transition:.15s; }
 .co-pay:hover { border-color:#9ed8d3; }
 .co-pay.active { border-color:#2aa39e; background:#f2fbfa; box-shadow:0 4px 14px #1a4c4914; }
-.cp-icon { font-size:18px; }
 .co-pay b { color:#24403d; font-size:12px; }
 .co-pay i { color:#8ba39f; font-size:9px; font-style:normal; }
 .co-primary { border:0; background:#1a3736; color:#fff; padding:15px 22px; border-radius:9px; font-size:14px; letter-spacing:.04em; transition:.15s; }
@@ -301,7 +300,7 @@ button,input { font:inherit; } button { cursor:pointer; }
 .guide-close { position:absolute; top:16px; right:16px; width:32px; height:32px; border:0; background:transparent; font-size:20px; cursor:pointer; color:#999; transition:color 0.2s; }
 .guide-close:hover { color:#333; }
 .guide-content { text-align:center; margin-bottom:32px; }
-.guide-icon { font-size:64px; margin-bottom:16px; }
+.guide-index { display:block; margin-bottom:10px; color:#c7dedb; font:400 40px/1 Georgia,serif; }
 .guide-content h1 { margin:0 0 8px; color:#1a3c3a; font:600 28px Georgia,serif; }
 .guide-content h2 { margin:0 0 16px; color:#48bbb5; font:400 16px; }
 .guide-content p { margin:0; color:#666; font-size:14px; line-height:1.6; max-width:400px; margin:auto; }
@@ -346,24 +345,32 @@ button,input { font:inherit; } button { cursor:pointer; }
 [data-reveal].in { opacity:1; transform:none; }
 
 .landing-eyebrow { margin:0 0 12px; color:#38aaa6; font-size:10px; letter-spacing:.3em; text-align:center; }
-.landing-features,.landing-presets,.landing-showcase { padding:clamp(64px,9vw,120px) clamp(20px,6vw,64px); text-align:center; }
-.landing-features h2,.landing-presets h2,.landing-showcase h2 { margin:0 auto 52px; max-width:560px; color:#1c3532; font:38px/1.35 Georgia,"Noto Serif TC",serif; }
+.landing-features,.landing-presets,.landing-showcase { padding:clamp(64px,9vw,120px) clamp(20px,6vw,64px); }
+.landing-showcase { text-align:center; }
+.landing-showcase h2 { margin:0 auto 52px; max-width:560px; color:#1c3532; font:38px/1.35 Georgia,"Noto Serif TC",serif; }
 
-.landing-feature-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; max-width:1080px; margin:0 auto; }
-.landing-feature { padding:38px 26px; border:1px solid #e6ecea; border-radius:18px; background:linear-gradient(160deg,#fff,#f7fbfa); text-align:left; transition:.25s; }
-.landing-feature:hover { border-color:#9ed8d3; transform:translateY(-4px); box-shadow:0 18px 34px #159d9b14; }
-.lf-icon { display:block; margin-bottom:18px; font-size:30px; }
-.landing-feature b { display:block; margin-bottom:10px; color:#1c3532; font:600 17px Georgia,"Noto Serif TC",serif; }
-.landing-feature p { margin:0; color:#6d827e; font-size:12.5px; line-height:1.85; }
+/* Editorial feature list: a numeral, a rule, a line of copy — the kind of
+   restrained layout a print spread would use, not an icon/card grid. */
+.landing-features { max-width:920px; margin:0 auto; display:grid; grid-template-columns:.85fr 1.15fr; gap:clamp(32px,6vw,72px); align-items:start; }
+.landing-features-head h2 { margin:14px 0 0; color:#1c3532; font:40px/1.32 Georgia,"Noto Serif TC",serif; }
+.landing-feature-list { border-top:1px solid #dfe8e5; }
+.landing-feature-row { display:grid; grid-template-columns:52px 1fr; gap:20px; padding:28px 0; border-bottom:1px solid #dfe8e5; }
+.lf-index { color:#b9d4d0; font:400 26px/1 Georgia,serif; letter-spacing:.02em; }
+.lf-body b { display:block; margin-bottom:8px; color:#1c3532; font:600 16px Georgia,"Noto Serif TC",serif; }
+.lf-body p { margin:0; color:#6d827e; font-size:12.5px; line-height:1.85; max-width:38em; }
 
-.landing-presets { background:linear-gradient(180deg,#fbfdfc,#f0f8f7); }
-.landing-preset-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; max-width:1080px; margin:0 auto; }
-.landing-preset { padding:30px 24px 26px; border:1.5px solid #e6dcc2; border-radius:16px; background:linear-gradient(155deg,#fffdf6,#fbf4e0); text-align:left; transition:.22s; }
-.landing-preset:hover { border-color:#c9a355; transform:translateY(-3px); box-shadow:0 16px 30px #c9a35524; }
-.lp-icon { display:block; margin-bottom:14px; font-size:26px; }
-.landing-preset b { display:block; margin-bottom:8px; color:#6b4f16; font:600 16px Georgia,"Noto Serif TC",serif; }
-.landing-preset p { margin:0 0 16px; color:#8a734a; font-size:12px; line-height:1.7; }
-.landing-preset i { color:#b9891e; font-size:11px; font-style:normal; letter-spacing:.04em; }
+/* Preset teasers as a plain list — a real crystal swatch stands in for an
+   icon, rows separated by a rule instead of boxed into cards. */
+.landing-presets { max-width:760px; margin:0 auto; padding-top:clamp(56px,8vw,96px); padding-bottom:clamp(56px,8vw,96px); }
+.landing-presets .landing-eyebrow,.landing-presets h2 { text-align:center; }
+.landing-presets h2 { margin:0 0 44px; color:#1c3532; font:32px/1.4 Georgia,"Noto Serif TC",serif; }
+.landing-preset-list { border-top:1px solid #e6dcc2; }
+.landing-preset { display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:18px; width:100%; padding:20px 4px; border:0; border-bottom:1px solid #e6dcc2; background:transparent; text-align:left; transition:.18s; }
+.landing-preset:hover { background:#fdf9ee; padding-inline:14px; }
+.lp-swatch { width:52px; height:52px; object-fit:contain; filter:drop-shadow(0 5px 8px #1a2c2b22); }
+.lp-text b { display:block; margin-bottom:4px; color:#4a3814; font:600 15px Georgia,"Noto Serif TC",serif; }
+.lp-text i { color:#8a734a; font-size:11.5px; font-style:normal; }
+.lp-arrow { color:#b9891e; font-size:11px; letter-spacing:.04em; white-space:nowrap; }
 
 .landing-showcase-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; max-width:960px; margin:0 auto; }
 .ls-item { display:flex; flex-direction:column; align-items:center; gap:10px; padding:22px 10px; border-radius:16px; transition:.2s; }
@@ -381,7 +388,8 @@ button,input { font:inherit; } button { cursor:pointer; }
 .landing-footer span { color:#9db2ae; font-size:10px; letter-spacing:.08em; }
 
 @media (max-width:860px) {
-  .landing-feature-grid,.landing-preset-grid { grid-template-columns:1fr; }
+  .landing-features { grid-template-columns:1fr; }
+  .landing-features-head h2 { margin-bottom:8px; }
   .landing-showcase-grid { grid-template-columns:repeat(3,1fr); }
 }
 @media (max-width:560px) {
@@ -394,8 +402,16 @@ button,input { font:inherit; } button { cursor:pointer; }
   .landing-hero-copy h1 { font-size:40px; }
   .landing-hero-copy > span { font-size:12.5px; }
   .landing-cta { padding:14px 22px; font-size:12px; }
-  .landing-features,.landing-presets,.landing-showcase { padding:52px 18px; }
-  .landing-features h2,.landing-presets h2,.landing-showcase h2 { font-size:27px; margin-bottom:34px; }
+  .landing-features,.landing-presets,.landing-showcase { padding:48px 20px; }
+  .landing-features-head h2,.landing-presets h2,.landing-showcase h2 { font-size:26px; }
+  .landing-features-head h2 { margin-top:10px; }
+  .landing-presets h2 { margin-bottom:28px; }
+  .landing-feature-row { grid-template-columns:36px 1fr; gap:14px; padding:20px 0; }
+  .lf-index { font-size:20px; }
+  .landing-preset { grid-template-columns:40px 1fr; gap:14px; padding:16px 0; }
+  .landing-preset:hover { padding-inline:0; }
+  .lp-swatch { width:40px; height:40px; }
+  .lp-arrow { display:none; }
   .landing-showcase-grid { grid-template-columns:repeat(2,1fr); }
   .landing-quote h2 { font-size:25px; }
 }

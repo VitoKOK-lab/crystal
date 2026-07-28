@@ -15,15 +15,15 @@ const SHOWCASE = [
 ] as const;
 
 const FEATURES = [
-  { icon: "💎", title: "16 款天然水晶", body: "每一顆晶石都有獨特的能量屬性與紋理，從粉水晶到拉長石，任你自由組合。" },
-  { icon: "⚡", title: "即時能量矩陣", body: "六維能量雷達即時運算——豐盛、愛情、療癒、守護、清晰、活力，設計看得見成效。" },
-  { icon: "✨", title: "360° 實體手感", body: "自由翻轉、軟繩晃動、珠子碰撞出聲——下單前就能感受戴在手上的真實質地。" },
+  { title: "16 款天然水晶", body: "每一顆晶石都有獨特的能量屬性與紋理，從粉水晶到拉長石，任你自由組合。" },
+  { title: "即時能量矩陣", body: "六維能量雷達即時運算——豐盛、愛情、療癒、守護、清晰、活力，設計看得見成效。" },
+  { title: "360° 實體手感", body: "自由翻轉、軟繩晃動、珠子碰撞出聲——下單前就能感受戴在手上的真實質地。" },
 ] as const;
 
 const PRESET_TEASERS = [
-  { icon: "💰", name: "金錢豐盛", body: "黃水晶＋虎眼石，招財聚氣" },
-  { icon: "💗", name: "愛情桃花", body: "粉水晶＋薔薇輝石，溫柔靠近" },
-  { icon: "🚀", name: "事業衝勁", body: "太陽石＋青金石，果斷前行" },
+  { name: "金錢豐盛", body: "黃水晶＋虎眼石，招財聚氣", swatch: "citrine" },
+  { name: "愛情桃花", body: "粉水晶＋薔薇輝石，溫柔靠近", swatch: "rose" },
+  { name: "事業衝勁", body: "太陽石＋青金石，果斷前行", swatch: "sunstone" },
 ] as const;
 
 // Fades + lifts each [data-reveal] section in as it enters the viewport —
@@ -64,13 +64,14 @@ export default function Home({ onStart }: { onStart: () => void }) {
     </section>
 
     <section className="landing-features" data-reveal>
-      <p className="landing-eyebrow">WHY OMA</p>
-      <h2>不只是手鍊，是每天的儀式</h2>
-      <div className="landing-feature-grid">
-        {FEATURES.map((f) => <div className="landing-feature" key={f.title}>
-          <span className="lf-icon">{f.icon}</span>
-          <b>{f.title}</b>
-          <p>{f.body}</p>
+      <div className="landing-features-head">
+        <p className="landing-eyebrow">WHY OMA</p>
+        <h2>不只是手鍊，<br />是每天的儀式</h2>
+      </div>
+      <div className="landing-feature-list">
+        {FEATURES.map((f, i) => <div className="landing-feature-row" key={f.title}>
+          <span className="lf-index">{String(i + 1).padStart(2, "0")}</span>
+          <div className="lf-body"><b>{f.title}</b><p>{f.body}</p></div>
         </div>)}
       </div>
     </section>
@@ -78,12 +79,11 @@ export default function Home({ onStart }: { onStart: () => void }) {
     <section className="landing-presets" data-reveal>
       <p className="landing-eyebrow">ONE-TAP RECIPES</p>
       <h2>沒有靈感？試試一鍵能量配方</h2>
-      <div className="landing-preset-grid">
+      <div className="landing-preset-list">
         {PRESET_TEASERS.map((p) => <button className="landing-preset" key={p.name} onClick={onStart}>
-          <span className="lp-icon">{p.icon}</span>
-          <b>{p.name}</b>
-          <p>{p.body}</p>
-          <i>立即嘗試 →</i>
+          <img src={`/materials/${p.swatch}.png`} alt="" className="lp-swatch" />
+          <span className="lp-text"><b>{p.name}</b><i>{p.body}</i></span>
+          <span className="lp-arrow">前往設計 →</span>
         </button>)}
       </div>
     </section>
