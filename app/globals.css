@@ -152,7 +152,14 @@ button,input { font:inherit; } button { cursor:pointer; }
   .material-card { min-height:0; scroll-snap-align:start; }
   .crystal-card { min-height:0; display:flex; flex-direction:column; }
   .crystal-card .card-main { flex:1; padding-top:3px; }
-  .crystal-card .visual-wrap { height:38px; }
+  /* .crystal.large is 56px unscoped (sized for the bracelet's library-card
+     default preview elsewhere), which overflowed this shrunk card and got
+     silently cropped by the grid's overflow:hidden. Square the thumbnail
+     box and size the bead to actually fit inside it — no crop, no
+     wasted padding either. */
+  .crystal-card .visual-wrap,.material-card .visual-wrap { width:38px; height:38px; }
+  .crystal-card .visual-wrap .crystal,.material-card .visual-wrap .crystal,.material-card .visual-wrap .hardware { width:36px; height:36px; }
+  .visual-wrap>span { width:15px; height:15px; font-size:12px; right:-3px; }
   .crystal-card b,.material-card b { font-size:10px; }
   .crystal-card small,.material-card small { display:none; }
   .crystal-card em,.material-card em { margin-top:2px; font-size:8px; }
