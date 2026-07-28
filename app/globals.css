@@ -130,27 +130,35 @@ button,input { font:inherit; } button { cursor:pointer; }
    as a fixed bottom drawer with horizontal swiping, so picking beads never
    requires scrolling away from the bracelet. ─────────────────────── */
 @media (max-width:560px) {
+  /* The bracelet is the whole point — the drawer only exists to feed it.
+     Everything below is trimmed to the smallest footprint that still lets
+     you browse and add a bead, so the preview keeps at least ~60% of the
+     screen: no search field (tap a tab, scroll the row instead), size
+     buttons read as bare mm numbers, and every strip is tightened. */
   .studio-shell { min-height:0; }
   .canvas-panel { min-height:0; padding-bottom:8px; }
-  .bracelet-stage { width:min(78%, 36vh); margin-top:4px; }
+  .bracelet-stage { width:min(86%, 46vh); margin-top:4px; }
   .atelier-note { display:none; }
-  .materials-panel { position:fixed; left:0; right:0; bottom:0; z-index:40; min-height:0; height:auto; border-left:0; border-top:1px solid var(--line); border-radius:18px 18px 0 0; box-shadow:0 -14px 34px #1a3c3a1f; background:#fff; padding-bottom:env(safe-area-inset-bottom); }
+  .materials-panel { position:fixed; left:0; right:0; bottom:0; z-index:40; min-height:0; height:auto; border-left:0; border-top:1px solid var(--line); border-radius:16px 16px 0 0; box-shadow:0 -14px 34px #1a3c3a1f; background:#fff; padding-bottom:env(safe-area-inset-bottom); }
   .materials-head { display:none; }
-  .preset-row { padding:9px 12px 8px; gap:6px; }
+  .preset-row { padding:6px 12px 6px; gap:6px; }
   .preset-row > span { font-size:8px; }
-  .preset-row button { padding:8px 3px; font-size:10px; }
+  .preset-row button { padding:6px 3px; font-size:9px; }
   .materials-panel .tabs { padding-inline:12px; }
-  .materials-panel .tabs button { padding:11px 5px 9px; }
-  .materials-panel .search { margin:8px 14px 2px; padding:8px 11px; }
-  .library-label { margin:4px 16px 0; }
-  .material-grid { grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:112px; grid-template-rows:1fr; gap:8px; overflow-x:auto; overflow-y:hidden; max-height:none; min-height:0; height:176px; flex:none; padding:6px 14px 10px; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+  .materials-panel .tabs button { padding:7px 5px; font-size:10px; }
+  .materials-panel .search { display:none; }
+  .library-label { margin:3px 14px 0; font-size:8px; }
+  .material-grid { grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:100px; grid-template-rows:1fr; gap:6px; overflow-x:auto; overflow-y:hidden; max-height:none; min-height:0; height:118px; flex:none; padding:5px 14px 8px; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
   .material-card { min-height:0; scroll-snap-align:start; }
   .crystal-card { min-height:0; display:flex; flex-direction:column; }
-  .crystal-card .card-main { flex:1; padding-top:5px; }
-  .crystal-card .visual-wrap { height:52px; }
-  .size-actions button { min-height:28px; font-size:8px; }
+  .crystal-card .card-main { flex:1; padding-top:3px; }
+  .crystal-card .visual-wrap { height:38px; }
+  .crystal-card b,.material-card b { font-size:10px; }
+  .crystal-card small,.material-card small { display:none; }
+  .crystal-card em,.material-card em { margin-top:2px; font-size:8px; }
+  .size-actions button { min-height:22px; font-size:8px; padding:0; }
   .selected-detail { display:none; }
-  .empty-library { min-height:130px; }
+  .empty-library { min-height:100px; }
   /* Action bar (清空全部/分享設計/360°預覽/前往結帳) stays in normal document
      flow, right after the bracelet — a `position:fixed` toolbar was tried
      here, but on a real phone (Safari's address bar shrinks the actual
@@ -165,20 +173,20 @@ button,input { font:inherit; } button { cursor:pointer; }
   .canvas-actions { flex-wrap:wrap; gap:8px; }
   .canvas-actions button { flex:1; min-width:80px; padding:11px 6px; font-size:10px; white-space:nowrap; }
   .canvas-actions .primary { flex:1.6; padding-inline:10px; }
-  .studio-shell { padding-bottom:calc(410px + env(safe-area-inset-bottom)); transition:padding-bottom .32s ease; }
-  .studio.drawer-collapsed .studio-shell { padding-bottom:calc(80px + env(safe-area-inset-bottom)); }
+  .studio-shell { padding-bottom:calc(280px + env(safe-area-inset-bottom)); transition:padding-bottom .32s ease; }
+  .studio.drawer-collapsed .studio-shell { padding-bottom:calc(64px + env(safe-area-inset-bottom)); }
   .notice { bottom:auto; top:8px; width:max-content; max-width:92%; }
   .energy-panel { z-index:60; }
 
   /* Pull handle: always visible so the drawer can be dropped out of the way
      and brought back with a single tap, without losing the bracelet view. */
-  .drawer-handle { display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; padding:10px 0 6px; border:0; background:transparent; }
-  .drawer-handle i { width:36px; height:4px; border-radius:99px; background:#d7e2df; }
-  .drawer-handle span { color:#7a938f; font-size:10px; letter-spacing:.1em; }
+  .drawer-handle { display:flex; flex-direction:column; align-items:center; gap:4px; width:100%; padding:8px 0 4px; border:0; background:transparent; }
+  .drawer-handle i { width:34px; height:4px; border-radius:99px; background:#d7e2df; }
+  .drawer-handle span { color:#7a938f; font-size:9px; letter-spacing:.1em; }
   .drawer-body { display:block; overflow:hidden; max-height:70vh; opacity:1; transition:max-height .32s ease,opacity .22s ease; }
   .materials-panel.collapsed .drawer-body { max-height:0; opacity:0; pointer-events:none; }
   .materials-panel.collapsed { box-shadow:0 -6px 18px #1a3c3a14; }
-  .studio.drawer-collapsed .bracelet-stage { width:min(84%, 44vh); }
+  .studio.drawer-collapsed .bracelet-stage { width:min(88%, 50vh); }
 }
 
 /* ── Checkout ────────────────────────────────────────────────────── */
