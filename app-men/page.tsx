@@ -13,7 +13,7 @@ import LandingHome from "./home";
 import Preview, { type PreviewPiece } from "./preview";
 import { generateShareCard } from "./share-card";
 
-type EnergyType = "wealth" | "love" | "health" | "protection" | "clarity" | "energy";
+type EnergyType = "wealth" | "will" | "decision" | "protection" | "focus" | "power";
 type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
 type Accessory = { id: string; zh: string; en: string; type: "spacer" | "charm"; shape: string; metal: "gold" | "silver"; price: number; note: string; energy?: Record<EnergyType, number> };
 type BeadSize = "xlarge" | "large" | "small";
@@ -25,48 +25,19 @@ let uidSeq = 0;
 const nextUid = () => ++uidSeq;
 
 const stones: Stone[] = [
-  ["rose","粉水晶","Rose Quartz","愛與關係","#df9baa","#fff3f4","#a65364",260,"溫柔、親密與自我接納",{wealth:2,love:9,health:7,protection:3,clarity:4,energy:6}],
-  ["clear","白水晶","Clear Quartz","淨化","#d4e2e4","#ffffff","#8ba3a7",230,"清晰思緒，放大你的意圖",{wealth:7,love:5,health:6,protection:8,clarity:10,energy:9}],
-  ["amethyst","紫水晶","Amethyst","守護","#8868b3","#eee5ff","#4e2c80",280,"安定心緒，保持內在平衡",{wealth:4,love:6,health:8,protection:9,clarity:9,energy:8}],
-  ["citrine","黃水晶","Citrine","豐盛","#e1b254","#fff7c5","#9d6a11",300,"邀請豐盛與自信前來",{wealth:10,love:4,health:5,protection:4,clarity:7,energy:9}],
-  ["aqua","海藍寶","Aquamarine","療癒","#7fc6d4","#efffff","#337b8c",360,"像海一樣清澈、自在",{wealth:3,love:8,health:9,protection:5,clarity:8,energy:7}],
-  ["tourmaline","黑碧璽","Black Tourmaline","守護","#282a2c","#74777a","#060708",290,"穩定界線，沉靜守護",{wealth:2,love:3,health:6,protection:10,clarity:5,energy:4}],
-  ["sunstone","太陽石","Sunstone","行動","#ce7b4f","#ffd4ad","#813820",330,"把勇氣帶到每一步",{wealth:7,love:5,health:8,protection:4,clarity:6,energy:9}],
-  ["moon","月光石","Moonstone","療癒","#bbc6e1","#ffffff","#6d78a3",320,"柔和直覺，照亮新開始",{wealth:3,love:7,health:8,protection:6,clarity:7,energy:6}],
-  ["moss","苔蘚瑪瑙","Moss Agate","療癒","#779b78","#e5f3d8","#31563a",290,"穩定生長，回到自己的節奏",{wealth:6,love:4,health:9,protection:7,clarity:5,energy:5}],
-  ["lapis","青金石","Lapis Lazuli","守護","#315b94","#a7d9f3","#122654",330,"誠實表達，連結內在智慧",{wealth:5,love:6,health:7,protection:8,clarity:9,energy:7}],
-  ["garnet","石榴石","Garnet","行動","#9d3753","#ffc2cb","#4d1025",310,"熱情與持續前進的力量",{wealth:8,love:7,health:6,protection:5,clarity:4,energy:10}],
-  ["tiger","虎眼石","Tiger’s Eye","豐盛","#ae7927","#ffdf84","#55340c",270,"專注、果斷與行動力",{wealth:9,love:3,health:7,protection:6,clarity:8,energy:8}],
-  ["smoky","茶晶","Smoky Quartz","守護","#7b604d","#edd7bc","#38241c",300,"沉穩落地，釋放雜訊",{wealth:4,love:4,health:6,protection:9,clarity:6,energy:5}],
-  ["fluorite","螢石","Fluorite","淨化","#79b69f","#e3ffe7","#3d7461",320,"整理思緒，溫柔淨化",{wealth:3,love:5,health:8,protection:7,clarity:9,energy:7}],
-  ["rhodonite","薔薇輝石","Rhodonite","愛與關係","#b96f82","#ffd8e0","#6e3445",350,"修復關係與勇敢去愛",{wealth:2,love:10,health:7,protection:4,clarity:5,energy:6}],
-  ["labradorite","拉長石","Labradorite","守護","#557883","#bfeef2","#263e55",380,"低調光芒，守護你的能量",{wealth:4,love:5,health:6,protection:10,clarity:7,energy:8}],
+  ["obsidian","切面黑曜石","Faceted Black Obsidian","守護","#232323","#5c5c5c","#0a0a0a",280,"深邃切面，隔絕負能量，穩定決斷力",{wealth:3,will:6,decision:8,protection:10,focus:6,power:6}],
+  ["tiger-eye","切面虎眼石","Faceted Tiger Eye","決斷","#a9762f","#e8c876","#4a2f0c",290,"琥珀光澤流動，帶來判斷力與行動的勇氣",{wealth:8,will:5,decision:9,protection:5,focus:7,power:6}],
+  ["hematite","切面赤鐵礦","Faceted Hematite","意志","#71757a","#c7ccd1","#2b2d30",260,"金屬光澤沉穩接地，強化意志與防禦力",{wealth:3,will:9,decision:5,protection:8,focus:5,power:6}],
+  ["smoky","圓珠茶晶","Round Smoky Quartz","專注","#5f4a3a","#a8876a","#241a12",250,"沉穩接地，釋放雜訊，收束專注力",{wealth:4,will:5,decision:5,protection:6,focus:9,power:6}],
+  ["lava","圓珠消光火山岩","Round Matte Lava Rock","力量","#1c1c1c","#3f3f3f","#050505",220,"原始火山岩質地，釋放意志與爆發力",{wealth:2,will:8,decision:4,protection:5,focus:4,power:10}],
+  ["goldstone","切面金沙石","Faceted Blue Goldstone","財富","#1d2b45","#5878ad","#0a1220",310,"深藍夜空中的金色星芒，象徵野心與機運",{wealth:10,will:4,decision:6,protection:3,focus:5,power:7}],
 ].map(([id,zh,en,group,color,light,deep,price,note,energy]) => ({ id,zh,en,group,color,light,deep,price,note,energy } as Stone));
 
 const accessories: Accessory[] = [
-  ["silver-round","925銀圓隔珠","Sterling Silver Round","spacer","round","silver",90,"鏡面拋光的細緻間隔"],
-  ["silver-heart","925銀愛心隔珠","Sterling Silver Heart","spacer","heart","silver",160,"立體愛心，適合作為細緻焦點"],
-  ["gold-rondelle","鍍金方鑽隔珠","Gold Crystal Rondelle","spacer","rondelle","gold",140,"光線下會微微閃爍"],
-  ["silver-flower","銀色雕花隔珠","Silver Filigree","spacer","flower","silver",120,"手工感雕花紋理"],
-  ["gold-knot","金色繩結隔珠","Gold Knot Spacer","spacer","knot","gold",130,"象徵相遇與連結"],
-  ["silver-star","銀色星芒隔珠","Silver Star Spacer","spacer","star","silver",120,"細小卻明亮的星芒"],
-  ["gold-crown","金色皇冠隔珠","Gold Crown Spacer","spacer","crown","gold",160,"為主石留出精緻焦點"],
-  ["leaf","金葉吊飾","Golden Leaf Charm","charm","leaf","gold",390,"把成長與好運帶在身邊"],
-  ["moon-charm","月亮吊飾","Moon Charm","charm","moon","silver",390,"為夜晚留一點柔光"],
-  ["lotus","蓮花吊飾","Lotus Charm","charm","lotus","gold",490,"綻放、平靜與重生"],
-  ["heart","愛心吊飾","Heart Charm","charm","heart","gold",420,"將心意串進每日佩戴"],
-  ["cross","守護十字吊飾","Cross Charm","charm","cross","silver",490,"低調而堅定的守護"],
-  ["key","幸運鑰匙吊飾","Lucky Key Charm","charm","key","gold",450,"開啟新的可能性"],
-  ["butterfly","蛻變蝴蝶吊飾","Butterfly Charm","charm","butterfly","gold",520,"提醒自己，優雅地迎向每次蛻變"],
-  ["evil-eye","守護之眼吊飾","Evil Eye Charm","charm","evil-eye","silver",480,"把溫柔的守護帶在身邊"],
-  ["sun-charm","金色太陽吊飾","Sunray Charm","charm","sun","gold",470,"為每一天留下一點明亮能量"],
-  ["star-charm","許願星吊飾","Wish Star Charm","charm","wish-star","silver",430,"將想完成的願望串成日常"],
-  ["shell","海洋貝殼吊飾","Seashell Charm","charm","shell","gold",460,"像海一樣自在而柔韌"],
-  ["compass","旅行羅盤吊飾","Compass Charm","charm","compass","silver",540,"讓心始終知道前進的方向"],
-  ["angel-wing","天使之翼吊飾","Angel Wing Charm","charm","wing","silver",510,"低調陪伴、安定而溫柔"],
-  ["clover","四葉幸運草吊飾","Four Leaf Clover Charm","charm","clover","gold",500,"收下剛剛好的幸運與祝福"],
-  ["lock","愛的鎖頭吊飾","Love Lock Charm","charm","lock","gold",490,"守住珍視的心意與承諾"],
-  ["hamsa","祝福手掌吊飾","Hamsa Charm","charm","hamsa","silver",520,"以祝福與平安守護你的日常"],
+  ["gold-hex","金色六角框隔珠","Gold Hex Frame Spacer","spacer","hex","gold",150,"俐落線條，界定每段能量"],
+  ["silver-hex","銀色六角框隔珠","Silver Hex Frame Spacer","spacer","hex","silver",140,"冷冽金屬感，中和石材重量"],
+  ["compass","金色羅盤吊飾","Gold Compass Charm","charm","compass","gold",460,"讓決斷始終指向目標"],
+  ["arrow","金屬箭頭吊飾","Metal Arrow Charm","charm","arrow","gold",420,"直線前進，象徵意志與力量"],
 ].map(([id,zh,en,type,shape,metal,price,note]) => ({ id,zh,en,type,shape,metal,price,note } as Accessory));
 
 const byStone = Object.fromEntries(stones.map((x) => [x.id, x]));
@@ -74,41 +45,22 @@ const byAccessory = Object.fromEntries(accessories.map((x) => [x.id, x]));
 // These are original, top-down product renders created specifically for the temporary OMA material library.
 // They can be replaced one-for-one with the final photographed product files later.
 const stonePhotos: Record<string, string> = {
-  clear: "/materials/clear.png",
-  amethyst: "/materials/amethyst.png",
-  rose: "/materials/rose.png",
-  citrine: "/materials/citrine.png",
-  smoky: "/materials/smoky.png",
-  aqua: "/materials/aqua.png",
-  tourmaline: "/materials/tourmaline.png",
-  sunstone: "/materials/sunstone.png",
-  moon: "/materials/moon.png",
-  moss: "/materials/moss.png",
-  lapis: "/materials/lapis.png",
-  garnet: "/materials/garnet.png",
-  tiger: "/materials/tiger.png",
-  fluorite: "/materials/fluorite.png",
-  rhodonite: "/materials/rhodonite.png",
-  labradorite: "/materials/labradorite.png",
+  obsidian: "/materials/men/obsidian.png",
+  "tiger-eye": "/materials/men/tiger-eye.png",
+  hematite: "/materials/men/hematite.png",
+  smoky: "/materials/men/smoky.png",
+  lava: "/materials/men/lava.png",
+  goldstone: "/materials/men/goldstone.png",
 };
 const accessoryPhotos: Record<string, string> = {
-  "silver-round": "/materials/silver-round.png",
-  "gold-crown": "/materials/gold-crown.png",
-  "gold-rondelle": "/materials/gold-rondelle.png",
-  "silver-flower": "/materials/silver-flower.png",
-  "gold-knot": "/materials/gold-knot.png",
-  "silver-star": "/materials/silver-star.png",
-  leaf: "/materials/leaf.png",
-  "moon-charm": "/materials/silver-moon.png",
-  lotus: "/materials/lotus.png",
-  heart: "/materials/gold-heart.png",
-  cross: "/materials/cross.png",
-  key: "/materials/key.png",
-  "silver-heart": "/materials/silver-heart.png",
+  "gold-hex": "/materials/men/gold-hex.png",
+  "silver-hex": "/materials/men/silver-hex.png",
+  compass: "/materials/men/compass.png",
+  arrow: "/materials/men/arrow.png",
 };
 // Starter design sums to ~14.3 cm — comfortably inside the default 16 cm
 // wrist: one 20mm focal bead, 10mm rounds, 8mm accents, spacers and a charm.
-const initialSpec: [string, BeadSize?][] = [["rose","xlarge"],["rose","large"],["rose","large"],["clear","small"],["rose","large"],["silver-round"],["rose","small"],["rose","large"],["rose","small"],["gold-rondelle"],["rose","large"],["clear","small"],["rose","large"],["rose","small"],["rose","large"],["lotus"]];
+const initialSpec: [string, BeadSize?][] = [["obsidian","xlarge"],["obsidian","large"],["tiger-eye","large"],["hematite","small"],["obsidian","large"],["gold-hex"],["tiger-eye","small"],["obsidian","large"],["hematite","small"],["silver-hex"],["obsidian","large"],["tiger-eye","small"],["obsidian","large"],["hematite","small"],["obsidian","large"],["compass"]];
 const buildSpec = (spec: [string, BeadSize?][]): DesignItem[] => spec.map(([id, size]) => accessories.some((a) => a.id === id)
   ? ({ kind: "accessory", id, uid: nextUid() })
   : ({ kind: "stone", id, size: size ?? "large", uid: nextUid() }));
@@ -117,9 +69,9 @@ const initial: DesignItem[] = buildSpec(initialSpec);
 // One-tap energy recipes: stones weighted toward each intention's energy
 // profile, padded with the theme stone to fill the wearer's wrist.
 const PRESETS = {
-  wealth: { name: "金錢豐盛", pad: "citrine", spec: [["citrine","xlarge"],["tiger","large"],["citrine","large"],["tiger","large"],["clear","small"],["gold-rondelle"],["citrine","large"],["tiger","large"],["tiger","small"],["gold-knot"],["citrine","large"],["clear","small"],["tiger","large"],["tiger","small"],["leaf"]] as [string, BeadSize?][] },
-  love: { name: "愛情桃花", pad: "rose", spec: [["rose","xlarge"],["rose","large"],["rhodonite","large"],["rose","large"],["moon","small"],["silver-heart"],["rose","large"],["rhodonite","large"],["rose","small"],["silver-round"],["rose","large"],["moon","small"],["rhodonite","large"],["rose","small"],["heart"]] as [string, BeadSize?][] },
-  career: { name: "事業衝勁", pad: "tiger", spec: [["sunstone","xlarge"],["tiger","large"],["lapis","large"],["garnet","large"],["clear","small"],["gold-crown"],["tiger","large"],["lapis","large"],["smoky","small"],["gold-rondelle"],["garnet","large"],["tiger","large"],["clear","small"],["lapis","large"],["key"]] as [string, BeadSize?][] },
+  power: { name: "力量掌控", pad: "obsidian", spec: [["obsidian","xlarge"],["lava","large"],["obsidian","large"],["hematite","large"],["lava","small"],["gold-hex"],["obsidian","large"],["hematite","large"],["lava","small"],["gold-hex"],["obsidian","large"],["lava","large"],["hematite","small"],["obsidian","large"],["arrow"]] as [string, BeadSize?][] },
+  wealth: { name: "財富機運", pad: "goldstone", spec: [["goldstone","xlarge"],["tiger-eye","large"],["goldstone","large"],["tiger-eye","large"],["hematite","small"],["gold-hex"],["goldstone","large"],["tiger-eye","large"],["hematite","small"],["gold-hex"],["goldstone","large"],["tiger-eye","large"],["hematite","small"],["goldstone","large"],["compass"]] as [string, BeadSize?][] },
+  focus: { name: "決斷專注", pad: "smoky", spec: [["tiger-eye","xlarge"],["smoky","large"],["obsidian","large"],["smoky","large"],["hematite","small"],["silver-hex"],["tiger-eye","large"],["smoky","large"],["hematite","small"],["silver-hex"],["obsidian","large"],["smoky","large"],["hematite","small"],["tiger-eye","large"],["compass"]] as [string, BeadSize?][] },
 } as const;
 
 // Shareable design links: ?d=<wrist>|<id>.<size>,<id>,…
@@ -173,18 +125,18 @@ const PCT_PER_MM = 0.95;
 function itemMM(item: DesignItem) { if (item.kind === "stone") return BEAD_MM[item.size ?? "large"]; return (byAccessory[item.id] as Accessory).type === "spacer" ? 5 : 3; }
 
 const ENERGY_META = [
-  { key: "wealth", zh: "豐盛", en: "WEALTH", color: "#e3b04b" },
-  { key: "love", zh: "愛情", en: "LOVE", color: "#e88aa8" },
-  { key: "health", zh: "療癒", en: "HEALING", color: "#7ec8a5" },
-  { key: "protection", zh: "守護", en: "PROTECTION", color: "#7593d8" },
-  { key: "clarity", zh: "清晰", en: "CLARITY", color: "#72c7d6" },
-  { key: "energy", zh: "活力", en: "VITALITY", color: "#e0885a" },
+  { key: "wealth", zh: "財富", en: "WEALTH", color: "#c9a355" },
+  { key: "will", zh: "意志", en: "WILL", color: "#a8977a" },
+  { key: "decision", zh: "決斷", en: "DECISION", color: "#c7cdd3" },
+  { key: "protection", zh: "守護", en: "PROTECTION", color: "#7d8896" },
+  { key: "focus", zh: "專注", en: "FOCUS", color: "#8a6d1f" },
+  { key: "power", zh: "力量", en: "POWER", color: "#e3c179" },
 ] as const satisfies readonly { key: EnergyType; zh: string; en: string; color: string }[];
 
 // Bigger beads carry more of the stone's energy into the design.
 function energyScores(items: DesignItem[]) {
   const sizeWeight = (s?: BeadSize) => (s === "xlarge" ? 1.6 : s === "small" ? 0.8 : 1);
-  const scores = { wealth: 0, love: 0, health: 0, protection: 0, clarity: 0, energy: 0 } as Record<EnergyType, number>;
+  const scores = { wealth: 0, will: 0, decision: 0, protection: 0, focus: 0, power: 0 } as Record<EnergyType, number>;
   items.forEach((item) => {
     if (item.kind !== "stone") return;
     const stone = byStone[item.id] as Stone;
@@ -260,7 +212,7 @@ export default function Home() {
   const [tab, setTab] = useState<"crystal" | "spacer" | "charm">("crystal");
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
-  const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "rose", size: "large" });
+  const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "obsidian", size: "large" });
   // Drag logic lives in a ref so pointerup always sees the freshest state —
   // reading it from React state raced the render loop and made quick drags
   // register as taps (deleting the bead). dragView only drives rendering.
