@@ -39,6 +39,14 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AC) return;
       actx = new AC();
+      if (actx.state === "suspended") actx.resume();
+      // iOS Safari only unlocks hardware audio output for a context that has
+      // actually started a source node during the originating gesture — just
+      // constructing/resuming the context is not enough, so fire one silent blip.
+      const unlock = actx.createBufferSource();
+      unlock.buffer = actx.createBuffer(1, 1, actx.sampleRate);
+      unlock.connect(actx.destination);
+      unlock.start(0);
       noiseBuf = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.06), actx.sampleRate);
       const data = noiseBuf.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
@@ -242,8 +250,12 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
           continue;
         }
         const d = p.mm * s * proj.persp;
+        const tphi = phiOf(u[i]);
+        const t0 = project(tphi - 0.06), t1 = project(tphi + 0.06);
+        const holeRot = Math.atan2(t1.y - t0.y, t1.x - t0.x);
         ctx.save();
         ctx.translate(proj.x, proj.y);
+        ctx.rotate(holeRot);
         ctx.shadowColor = "rgba(60,84,79,0.25)";
         ctx.shadowBlur = 5 * dpr;
         ctx.shadowOffsetY = 3 * dpr;

@@ -81,6 +81,7 @@ export async function generateShareCard(opts: {
       else { ctx.fillStyle = p.metal === "gold" ? "#d8b25a" : "#c9ced0"; ctx.beginPath(); ctx.arc(0, 0, d / 2, 0, Math.PI * 2); ctx.fill(); }
     } else {
       ctx.translate(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      ctx.rotate(a + Math.PI / 2);
       const d = p.mm * s;
       ctx.shadowColor = "rgba(60,84,79,0.2)";
       ctx.shadowBlur = 12;
