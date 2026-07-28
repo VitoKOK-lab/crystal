@@ -82,7 +82,8 @@ export async function generateShareCard(opts: {
     } else {
       ctx.translate(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
       ctx.rotate(a + Math.PI / 2);
-      const d = p.mm * s;
+      // Matches the studio view's bead-gap fix — see app-men/page.tsx BEAD_OVERLAP.
+      const d = Math.max(p.mm, 9) * 1.2 * s;
       ctx.shadowColor = "rgba(60,84,79,0.2)";
       ctx.shadowBlur = 12;
       ctx.shadowOffsetY = 6;

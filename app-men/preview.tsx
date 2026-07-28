@@ -249,7 +249,12 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
           ctx.restore();
           continue;
         }
-        const d = p.mm * s * proj.persp;
+        // Matches the studio view's bead-gap fix: real strung beads sit snug
+        // with no cord visible between them, and a small 5mm spacer next to
+        // a 10-20mm stone needs a bigger relative size boost than a flat
+        // multiplier gives it, so its rendered (not physical) diameter is
+        // floored before scaling.
+        const d = Math.max(p.mm, 9) * 1.2 * s * proj.persp;
         const tphi = phiOf(u[i]);
         const t0 = project(tphi - 0.06), t1 = project(tphi + 0.06);
         const holeRot = Math.atan2(t1.y - t0.y, t1.x - t0.x);
