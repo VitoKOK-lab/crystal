@@ -14,7 +14,7 @@ export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onCl
     {
       title: "Choose Material",
       subtitle: "選擇你的素材",
-      description: "瀏覽21種天然礦石和20多種精緻配件，每一種都有獨特的稀有度與屬性強度"
+      description: "瀏覽21種天然礦石和30多種精緻配件，每一種都有獨特的稀有度與屬性強度"
     },
     {
       title: "Rearrange Order",
