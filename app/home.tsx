@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { stonePhotos } from "./catalog";
 import { SERIES } from "./series";
 
@@ -22,7 +22,59 @@ const SHOWCASE = [
   ["lava", "圓珠消光火山岩", "力量"],
 ] as const;
 
-const HERO_STILL = "/banners/bedrock.jpg";
+// Women's clip leads, then the second women's, then the men's. Each still is
+// the exact frame its clip opens on, so a swap never flashes a different scene.
+const HERO_CLIPS = [
+  { id: "bloom", still: "/banners/bloom.jpg" },
+  { id: "serene", still: "/banners/serene.jpg" },
+  { id: "bedrock", still: "/banners/bedrock.jpg" },
+] as const;
+
+// Crossfades through the clips. Only the playing clip and the one after it are
+// ever fetched — loading all three up front would pull ~1.4MB before the page
+// is usable, for footage the visitor may never scroll past.
+function HeroMedia() {
+  const [active, setActive] = useState(0);
+  const [armed, setArmed] = useState<number[]>([0, 1]);
+  const refs = useRef<(HTMLVideoElement | null)[]>([]);
+  const advance = () => setActive((n) => (n + 1) % HERO_CLIPS.length);
+
+  useEffect(() => {
+    refs.current.forEach((v, i) => {
+      if (!v) return;
+      if (i === active) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause();
+    });
+    const next = (active + 1) % HERO_CLIPS.length;
+    setArmed((a) => (a.includes(next) ? a : [...a, next]));
+  }, [active]);
+
+  // Adding <source> children after mount does nothing until load() is called.
+  useEffect(() => {
+    armed.forEach((i) => { const v = refs.current[i]; if (v && !v.currentSrc) v.load(); });
+  }, [armed]);
+
+  return <>
+    <img src={HERO_CLIPS[0].still} alt="OMA CRYSTAL 水晶手鍊，溪邊自然情境" />
+    {HERO_CLIPS.map((c, i) => <video
+      key={c.id}
+      ref={(el) => { refs.current[i] = el; }}
+      className={`landing-hero-video ${i === active ? "on" : ""}`}
+      autoPlay={i === 0}
+      muted
+      playsInline
+      preload={i === 0 ? "metadata" : "none"}
+      poster={c.still}
+      aria-hidden="true"
+      onEnded={advance}
+      onError={advance}
+    >
+      {armed.includes(i) && <>
+        <source src={`/video/hero-${c.id}.webm`} type="video/webm" />
+        <source src={`/video/hero-${c.id}.mp4`} type="video/mp4" />
+      </>}
+    </video>)}
+  </>;
+}
 
 const FEATURES = [
   { title: "8 大系列 · 96 款配置", body: "從綻放、澄澈到磐岩、疾行，每個系列 12 款事先配好的規格品，看上就能直接下單。" },
@@ -60,26 +112,7 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     </header>
 
     <section className="landing-hero" id="landing-top">
-      {/* The still is both the video's poster and its fallback: it is the exact
-          frame the clip starts on, so a slow connection, a decode failure or
-          prefers-reduced-motion all land on the same image rather than a
-          different scene popping in. */}
-      <img src={HERO_STILL} alt="OMA CRYSTAL 水晶手鍊，溪邊自然情境" />
-      <video
-        className="landing-hero-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster={HERO_STILL}
-        aria-hidden="true"
-      >
-        {/* WebM first: Chrome/Firefox/Android take the 429KB VP9 file, Safari
-            and iOS fall through to H.264. */}
-        <source src="/video/hero.webm" type="video/webm" />
-        <source src="/video/hero.mp4" type="video/mp4" />
-      </video>
+      <HeroMedia />
       <div className="landing-hero-copy">
         <p>MAKE YOUR OWN ENERGY JEWELRY</p>
         <h1>WEAR YOUR<br />INTENTION</h1>

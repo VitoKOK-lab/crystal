@@ -607,5 +607,22 @@ button,input { font:inherit; } button { cursor:pointer; }
 /* ── Hero video ──────────────────────────────────────────────────── */
 /* Sits over the still, which stays as the first paint and the fallback.
    Muted + playsInline are what let it autoplay on iOS at all. */
-.landing-hero-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:70% 24%; }
+.landing-hero-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:70% 24%; opacity:0; transition:opacity .9s ease; }
+.landing-hero-video.on { opacity:1; }
 @media (prefers-reduced-motion: reduce) { .landing-hero-video { display:none; } }
+
+/* ── Hero on phones ──────────────────────────────────────────────── */
+/* Portrait crops a 16:9 clip to a narrow band, and the copy block plus the
+   landscape-tuned scrim were together covering almost all of it. Shrink the
+   type, drop the left-hand scrim (it exists for wide viewports), and start
+   the fade lower so the top third of the frame is clean video. */
+@media (max-width:560px) {
+  .landing-hero:before { background:linear-gradient(180deg,#08060400 0 32%,#0806049e 60%,#080604ea); }
+  .landing-hero img, .landing-hero-video { object-position:64% 40%; }
+  .landing-hero-copy { padding:0 20px clamp(34px,6vh,58px); }
+  .landing-hero-copy p { margin-bottom:11px; font-size:9px; letter-spacing:.22em; }
+  .landing-hero-copy h1 { margin-bottom:13px; font-size:clamp(32px,10vw,42px); }
+  .landing-hero-copy span { font-size:11px; line-height:1.7; }
+  .landing-hero-actions { gap:8px; margin-top:16px; }
+  .landing-hero-actions .landing-cta { padding:12px 16px; font-size:11px; }
+}
