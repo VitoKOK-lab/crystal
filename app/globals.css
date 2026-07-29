@@ -353,8 +353,12 @@ button,input { font:inherit; } button { cursor:pointer; }
 
 .landing-hero { position:relative; height:100svh; min-height:560px; overflow:hidden; }
 .landing-hero img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:70% 24%; }
-.landing-hero:before { content:""; position:absolute; inset:0; background:linear-gradient(200deg,#08060405 10%,#080604c2 68%,#080604e8); }
-.landing-hero-copy { position:relative; z-index:1; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; height:100%; max-width:640px; padding:0 clamp(22px,6vw,88px) clamp(70px,12vh,140px); }
+/* Two scrims: the original top-to-bottom fade, plus a left-hand one. The
+   video is far brighter than the still it replaced, and the eyebrow and
+   body copy sit bottom-left over moving white water — without the second
+   layer they wash out as the clip plays. */
+.landing-hero:before { content:""; position:absolute; inset:0; z-index:1; background:linear-gradient(200deg,#0806040a 8%,#080604c9 62%,#080604ee),linear-gradient(78deg,#080604b8 0 34%,#08060466 52%,transparent 70%); }
+.landing-hero-copy { position:relative; z-index:2; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; height:100%; max-width:640px; padding:0 clamp(22px,6vw,88px) clamp(70px,12vh,140px); }
 .landing-hero-copy p { margin:0 0 18px; color:#e3c179; font-size:11px; letter-spacing:.34em; }
 .landing-hero-copy h1 { margin:0 0 22px; color:#fff; font:600 clamp(40px,7.2vw,74px)/1.08 Georgia,serif; letter-spacing:.03em; text-shadow:0 10px 34px #00000040; }
 .landing-hero-copy > span { display:block; max-width:420px; margin-bottom:34px; color:#dcefec; font-size:14px; line-height:1.85; }
@@ -599,3 +603,9 @@ button,input { font:inherit; } button { cursor:pointer; }
 @keyframes wrist-shake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-4px); } 40% { transform:translateX(4px); } 60% { transform:translateX(-2px); } 80% { transform:translateX(2px); } }
 
 @keyframes notice-in { from { opacity:0; transform:translate(-50%,6px); } to { opacity:1; transform:translate(-50%,0); } }
+
+/* ── Hero video ──────────────────────────────────────────────────── */
+/* Sits over the still, which stays as the first paint and the fallback.
+   Muted + playsInline are what let it autoplay on iOS at all. */
+.landing-hero-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:70% 24%; }
+@media (prefers-reduced-motion: reduce) { .landing-hero-video { display:none; } }

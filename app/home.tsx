@@ -22,6 +22,8 @@ const SHOWCASE = [
   ["lava", "圓珠消光火山岩", "力量"],
 ] as const;
 
+const HERO_STILL = "/banners/bedrock.jpg";
+
 const FEATURES = [
   { title: "8 大系列 · 96 款配置", body: "從綻放、澄澈到磐岩、疾行，每個系列 12 款事先配好的規格品，看上就能直接下單。" },
   { title: "細繩、正常、大顆任你選", body: "8mm 細繩款、10mm 正常款到 20mm 大顆款都有，21 款礦石與 37 款配件全系列共用。" },
@@ -58,7 +60,26 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     </header>
 
     <section className="landing-hero" id="landing-top">
-      <img src="/hero-banner.png" alt="OMA CRYSTAL 水晶手鍊配戴示意" />
+      {/* The still is both the video's poster and its fallback: it is the exact
+          frame the clip starts on, so a slow connection, a decode failure or
+          prefers-reduced-motion all land on the same image rather than a
+          different scene popping in. */}
+      <img src={HERO_STILL} alt="OMA CRYSTAL 水晶手鍊，溪邊自然情境" />
+      <video
+        className="landing-hero-video"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster={HERO_STILL}
+        aria-hidden="true"
+      >
+        {/* WebM first: Chrome/Firefox/Android take the 429KB VP9 file, Safari
+            and iOS fall through to H.264. */}
+        <source src="/video/hero.webm" type="video/webm" />
+        <source src="/video/hero.mp4" type="video/mp4" />
+      </video>
       <div className="landing-hero-copy">
         <p>MAKE YOUR OWN ENERGY JEWELRY</p>
         <h1>WEAR YOUR<br />INTENTION</h1>
