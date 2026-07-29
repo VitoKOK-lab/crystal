@@ -3,13 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OMA Crystal Men｜礦石手鍊設計工作室</title>
-    <meta name="description" content="打造專屬的礦石戰力手鍊：21 種天然礦石、稀有度分級、戰力矩陣、即時定價與互動設計。" />
+    <title>OMA Crystal｜曜石系列已併入主站</title>
+    <meta name="description" content="OMA Crystal 男款「曜石系列」已併入主站，與女款共用同一個材料庫。" />
     <link rel="icon" href="/crystal/men/assets/favicon-B13FBozU.svg" />
-    <script type="module" crossorigin src="/crystal/men/assets/index-DH93wBI-.js"></script>
-    <link rel="stylesheet" crossorigin href="/crystal/men/assets/index-DPcUfh0W.css">
+    <!-- The men's line used to be a separate app at /crystal/men/. It is now
+         the "曜石 FORGE" series inside the unified storefront, so this page
+         only exists to keep previously-shared links working. meta refresh is
+         the belt-and-braces fallback for when JS is blocked. -->
+    <meta http-equiv="refresh" content="0; url=../?series=forge" />
+    <link rel="canonical" href="https://vitokok-lab.github.io/crystal/?series=forge" />
+    <style>
+      body { margin:0; display:grid; place-items:center; min-height:100vh; background:#fff;
+             font-family:Arial,"Noto Sans TC",sans-serif; color:#6b6b6b; }
+      a { color:#8a6d1f; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <p>正在前往 <a href="../?series=forge">曜石系列</a>…</p>
+    <script>
+      location.replace(new URL("../?series=forge", location.href).toString());
+    </script>
   </body>
 </html>
