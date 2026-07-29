@@ -125,6 +125,12 @@ export default function Home() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [wristAlert, setWristAlert] = useState(false);
+  // A toast that sits until dismissed is fine on desktop but covers the wrist
+  // and price readouts on a phone, so it clears itself. The nonce restarts the
+  // timer even when the same message fires twice (e.g. tapping a material that
+  // still doesn't fit), which a plain string dependency would not.
+  const [noticeSeq, setNoticeSeq] = useState(0);
+  const showNotice = (text: string) => { setNotice(text); setNoticeSeq((n) => n + 1); };
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -137,7 +143,7 @@ export default function Home() {
     if (!decoded) return;
     setItems(decoded.items);
     setWristCm(decoded.wrist);
-    setNotice("已載入分享的設計，可以直接調整或結帳");
+    showNotice("已載入分享的設計，可以直接調整或結帳");
     setView("studio");
   }, []);
   // Ready-to-wear products are re-parsed from their spec on click rather than
@@ -150,7 +156,7 @@ export default function Home() {
     setItems(parseSpec(product.spec));
     setWristCm(product.wrist);
     setView(mode === "buy" ? "checkout" : "studio");
-    setNotice(mode === "buy" ? "" : `已載入「${product.name}」，可以自由增減調整`);
+    showNotice(mode === "buy" ? "" : `已載入「${product.name}」，可以自由增減調整`);
     window.scrollTo({ top: 0 });
   };
   const stageRef = useRef<HTMLDivElement>(null);
@@ -168,18 +174,18 @@ export default function Home() {
     if (needMM > wristCm * 10) {
       const next = WRIST_CHOICES.find((c) => c * 10 >= needMM);
       setWristAlert(true);
-      setNotice(next
+      showNotice(next
         ? `${wristCm} cm 放不下${label(item)}了 — 請先把手圍改成 ${next} cm，或移除一些素材`
         : `已達最大手圍 ${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm，放不下${label(item)}了，請先移除部分素材`);
       return;
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
     playClaspClick(true);
-    setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${(needMM / 10).toFixed(1)} / ${wristCm} cm`);
+    showNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${(needMM / 10).toFixed(1)} / ${wristCm} cm`);
   };
   const shareDesign = async () => {
-    if (!items.length) { setNotice("先加入素材，再分享你的設計！"); return; }
-    setNotice("正在產生分享卡…");
+    if (!items.length) { showNotice("先加入素材，再分享你的設計！"); return; }
+    showNotice("正在產生分享卡…");
     const url = `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(encodeDesign(items, wristCm))}`;
     try {
       const blob = await generateShareCard({
@@ -191,7 +197,7 @@ export default function Home() {
       const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ${url}`, url });
-        setNotice("已開啟分享面板");
+        showNotice("已開啟分享面板");
       } else {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -199,12 +205,12 @@ export default function Home() {
         a.click();
         URL.revokeObjectURL(a.href);
         await navigator.clipboard?.writeText(url);
-        setNotice("分享卡已下載，設計連結已複製 — 貼給朋友就能看到同款");
+        showNotice("分享卡已下載，設計連結已複製 — 貼給朋友就能看到同款");
       }
     } catch (error) {
       if ((error as Error).name === "AbortError") { setNotice(""); return; }
       await navigator.clipboard?.writeText(url).catch(() => {});
-      setNotice("分享卡產生失敗，已改為複製設計連結");
+      showNotice("分享卡產生失敗，已改為複製設計連結");
     }
   };
   const applyPreset = (key: keyof typeof PRESETS) => {
@@ -216,14 +222,15 @@ export default function Home() {
     while (mm + 8 <= cm * 10 && mm < cm * 10 * 0.85) { built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() }); mm += 8; }
     if (cm !== wristCm) setWristCm(cm);
     setItems(built);
-    setNotice(`已為你搭配「${preset.name}」，可再自由調整`);
+    showNotice(`已為你搭配「${preset.name}」，可再自由調整`);
   };
+  useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(""), 3000); return () => clearTimeout(t); }, [notice, noticeSeq]);
   useEffect(() => { if (!wristAlert) return; const t = setTimeout(() => setWristAlert(false), 2000); return () => clearTimeout(t); }, [wristAlert]);
   const changeWrist = (cm: number) => {
-    if (strandMM > cm * 10) { setNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
-    setWristCm(cm); setWristAlert(false); setNotice(`手圍已設定為 ${cm} cm`);
+    if (strandMM > cm * 10) { showNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
+    setWristCm(cm); setWristAlert(false); showNotice(`手圍已設定為 ${cm} cm`);
   };
-  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); setNotice(`已移除 ${label(item)}`); } };
+  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`已移除 ${label(item)}`); } };
   const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
   // Live reorder while dragging: map the pointer angle to a millimetre
   // position along the strand and insert the bead between the pieces whose
@@ -286,12 +293,12 @@ export default function Home() {
     onBuy={(sid, pid) => openProduct(sid, pid, "buy")}
     onCustomize={(sid, pid) => openProduct(sid, pid, "customize")}
     onHome={() => { setView("home"); window.scrollTo({ top: 0 }); }}
-    onBlankStudio={() => { setItems([]); setView("studio"); setNotice("空白畫布：從右側挑第一顆礦石開始"); window.scrollTo({ top: 0 }); }}
+    onBlankStudio={() => { setItems([]); setView("studio"); showNotice("空白畫布：從右側挑第一顆礦石開始"); window.scrollTo({ top: 0 }); }}
   />;
   return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`} style={activeSeries ? { "--series-accent": activeSeries.accent } as React.CSSProperties : undefined}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     {previewOpen && <Preview pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />}
-    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
+    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("設計已清空"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
@@ -299,14 +306,14 @@ export default function Home() {
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
-          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const sizePct = isCharm ? 10.5 : arcs[i].w * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) setNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
+          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const sizePct = isCharm ? 10.5 : arcs[i].w * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) showNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
           {beads > 0
             ? <div className="center-intention"><small>{tone.dominantEn}</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
             : <div className="center-intention"><small>OMA CRYSTAL</small><b>START YOUR STORY</b><span className="ci-note">從右側挑選第一顆水晶</span></div>}
           <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { setNotice("先加入素材，再看立體預覽！"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { setNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { setNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("設計已清空"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加入素材，再看立體預覽！"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先加入素材再結帳吧！"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm，至少串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆珠子吧！`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <aside className={`materials-panel ${drawerOpen ? "" : "collapsed"}`}>
