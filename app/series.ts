@@ -156,7 +156,7 @@ export const SERIES: Series[] = [
   },
   {
     id: "forge", zh: "曜石", en: "FORGE", audience: "men",
-    theme: "力量與守護", accent: "#b8923f", banner: "/men-hero.jpg", swatch: "obsidian",
+    theme: "力量與守護", accent: "#b8923f", banner: "/banners/forge.jpg", swatch: "obsidian",
     tagline: "黑曜石、赤鐵礦與貔貅隔珠，固定、扎實、不多話。",
     craft: "黑銀硬派，主石款到大顆款皆有。",
     tone: POWER_TONE,
