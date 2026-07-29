@@ -14,8 +14,14 @@ import Preview, { type PreviewPiece } from "./preview";
 import { generateShareCard } from "./share-card";
 
 type EnergyType = "wealth" | "will" | "decision" | "protection" | "focus" | "power";
+type Rarity = "common" | "rare" | "legendary";
 type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
 type Accessory = { id: string; zh: string; en: string; type: "spacer" | "charm"; shape: string; metal: "gold" | "silver"; price: number; note: string; energy?: Record<EnergyType, number> };
+// Rarity is derived from price rather than hand-tagged per item — keeps the
+// tier consistent as the catalogue grows instead of drifting out of sync.
+const RARITY_TIER = { common: 280, rare: 450 } as const;
+function rarityOf(price: number): Rarity { return price <= RARITY_TIER.common ? "common" : price <= RARITY_TIER.rare ? "rare" : "legendary"; }
+const RARITY_LABEL: Record<Rarity, string> = { common: "普通", rare: "稀有", legendary: "傳說" };
 type BeadSize = "xlarge" | "large" | "small";
 type DesignItem = { kind: "stone" | "accessory"; id: string; size?: BeadSize; uid?: number };
 
@@ -31,6 +37,21 @@ const stones: Stone[] = [
   ["smoky","圓珠茶晶","Round Smoky Quartz","專注","#5f4a3a","#a8876a","#241a12",250,"沉穩接地，釋放雜訊，收束專注力",{wealth:4,will:5,decision:5,protection:6,focus:9,power:6}],
   ["lava","圓珠消光火山岩","Round Matte Lava Rock","力量","#1c1c1c","#3f3f3f","#050505",220,"原始火山岩質地，釋放意志與爆發力",{wealth:2,will:8,decision:4,protection:5,focus:4,power:10}],
   ["goldstone","切面金沙石","Faceted Blue Goldstone","財富","#1d2b45","#5878ad","#0a1220",310,"深藍夜空中的金色星芒，象徵野心與機運",{wealth:10,will:4,decision:6,protection:3,focus:5,power:7}],
+  ["rose","粉晶","Rose Quartz","意志","#df9baa","#fff3f4","#a65364",260,"溫潤粉色礦脈，安定情緒，穩固意志的核心",{wealth:2,will:9,decision:3,protection:4,focus:4,power:5}],
+  ["clear","白水晶","Clear Quartz","專注","#d4e2e4","#ffffff","#8ba3a7",230,"純淨無雜訊，放大專注力與判斷的清晰度",{wealth:5,will:5,decision:7,protection:6,focus:10,power:7}],
+  ["amethyst","紫水晶","Amethyst","守護","#8868b3","#eee5ff","#4e2c80",280,"深紫礦石，鎮定心神，強化守護與自制力",{wealth:3,will:7,decision:5,protection:9,focus:8,power:6}],
+  ["citrine","黃水晶","Citrine","財富","#e1b254","#fff7c5","#9d6a11",300,"陽光色澤，招引機運與自信的果決",{wealth:10,will:4,decision:7,protection:3,focus:5,power:7}],
+  ["aqua","海藍寶","Aquamarine","意志","#7fc6d4","#efffff","#337b8c",360,"深海般的沉靜，讓意志在壓力下依然清晰",{wealth:3,will:8,decision:6,protection:5,focus:7,power:5}],
+  ["tourmaline","黑碧璽","Black Tourmaline","守護","#282a2c","#74777a","#060708",290,"極致黑色礦石，隔絕干擾，築起最強防線",{wealth:2,will:5,decision:4,protection:10,focus:5,power:6}],
+  ["sunstone","太陽石","Sunstone","力量","#ce7b4f","#ffd4ad","#813820",330,"橙金色反光，點燃行動力與無畏的氣場",{wealth:6,will:6,decision:6,protection:3,focus:5,power:9}],
+  ["moon","月光石","Moonstone","決斷","#bbc6e1","#ffffff","#6d78a3",320,"低調流轉的光暈，在關鍵時刻看清局勢",{wealth:3,will:6,decision:8,protection:6,focus:6,power:5}],
+  ["moss","苔蘚瑪瑙","Moss Agate","意志","#779b78","#e5f3d8","#31563a",290,"沉穩生長紋理，累積不張揚的長期意志",{wealth:5,will:9,decision:4,protection:6,focus:5,power:5}],
+  ["lapis","青金石","Lapis Lazuli","決斷","#315b94","#a7d9f3","#122654",330,"深藍夜色礦脈，象徵智慧與果斷的權威",{wealth:5,will:5,decision:9,protection:7,focus:7,power:6}],
+  ["garnet","石榴石","Garnet","力量","#9d3753","#ffc2cb","#4d1025",310,"深紅如血的礦石，驅動持續前進的爆發力",{wealth:6,will:6,decision:5,protection:4,focus:4,power:10}],
+  ["tiger","圓珠虎眼石","Round Tiger Eye","決斷","#ae7927","#ffdf84","#55340c",260,"圓潤金棕紋理，果斷俐落不拖泥帶水",{wealth:7,will:4,decision:8,protection:5,focus:6,power:6}],
+  ["fluorite","螢石","Fluorite","專注","#79b69f","#e3ffe7","#3d7461",320,"多彩層次礦石，整頓雜念，鋒利思路",{wealth:3,will:5,decision:6,protection:6,focus:9,power:5}],
+  ["rhodonite","薔薇輝石","Rhodonite","意志","#b96f82","#ffd8e0","#6e3445",350,"深粉帶黑紋理，修復耗損、重建意志力",{wealth:2,will:9,decision:4,protection:5,focus:5,power:6}],
+  ["labradorite","拉長石","Labradorite","守護","#557883","#bfeef2","#263e55",380,"深藍流光暗湧，低調卻難以動搖的守護力",{wealth:4,will:6,decision:6,protection:10,focus:6,power:6}],
 ].map(([id,zh,en,group,color,light,deep,price,note,energy]) => ({ id,zh,en,group,color,light,deep,price,note,energy } as Stone));
 
 const accessories: Accessory[] = [
@@ -38,6 +59,29 @@ const accessories: Accessory[] = [
   ["silver-hex","銀色六角框隔珠","Silver Hex Frame Spacer","spacer","hex","silver",140,"冷冽金屬感，中和石材重量"],
   ["compass","金色羅盤吊飾","Gold Compass Charm","charm","compass","gold",460,"讓決斷始終指向目標"],
   ["arrow","金屬箭頭吊飾","Metal Arrow Charm","charm","arrow","gold",420,"直線前進，象徵意志與力量"],
+  ["silver-round","銀圓隔珠","Sterling Silver Round","spacer","round","silver",90,"鏡面拋光，簡練俐落的分段"],
+  ["silver-heart","銀立體隔珠","Sterling Silver Heart","spacer","heart","silver",160,"低調立體造型，作為視覺焦點"],
+  ["gold-rondelle","鍍金方鑽隔珠","Gold Crystal Rondelle","spacer","rondelle","gold",140,"光線下細微閃爍，增添層次"],
+  ["silver-flower","銀雕花隔珠","Silver Filigree","spacer","flower","silver",120,"手工雕花紋理，粗獷中見細節"],
+  ["gold-knot","金繩結隔珠","Gold Knot Spacer","spacer","knot","gold",130,"繩結造型，象徵牢牢守住的目標"],
+  ["silver-star","銀星芒隔珠","Silver Star Spacer","spacer","star","silver",120,"細小星芒，暗夜中的座標"],
+  ["gold-crown","金皇冠隔珠","Gold Crown Spacer","spacer","crown","gold",160,"皇冠輪廓，為主石留出焦點"],
+  ["leaf","金葉吊飾","Golden Leaf Charm","charm","leaf","gold",390,"破土而生的姿態，象徵持續成長"],
+  ["moon-charm","月亮吊飾","Moon Charm","charm","moon","silver",390,"夜行者的座標，沉靜中蓄積力量"],
+  ["lotus","蓮花吊飾","Lotus Charm","charm","lotus","gold",490,"泥中不染，淬鍊後的從容"],
+  ["heart","赤誠吊飾","Heart Charm","charm","heart","gold",420,"純粹的初衷，提醒自己為何出發"],
+  ["cross","守護十字吊飾","Cross Charm","charm","cross","silver",490,"低調堅定，扛住每一次風浪"],
+  ["key","掌控鑰匙吊飾","Lucky Key Charm","charm","key","gold",450,"掌握開啟下一步的主動權"],
+  ["butterfly","蛻變吊飾","Butterfly Charm","charm","butterfly","gold",520,"破繭姿態，提醒自己敢於蛻變"],
+  ["evil-eye","守護之眼吊飾","Evil Eye Charm","charm","evil-eye","silver",480,"警醒之眼，阻擋來自四面的干擾"],
+  ["sun-charm","太陽吊飾","Sunray Charm","charm","sun","gold",470,"每天為自己點亮一次氣場"],
+  ["star-charm","目標星吊飾","Wish Star Charm","charm","wish-star","silver",430,"把目標釘進日常，時刻可見"],
+  ["shell","遠航貝殼吊飾","Seashell Charm","charm","shell","gold",460,"見過風浪，依然自在前行"],
+  ["travel-compass","旅行羅盤吊飾","Travel Compass Charm","charm","compass","silver",540,"無論走到哪，心裡有一個方向"],
+  ["angel-wing","守護之翼吊飾","Angel Wing Charm","charm","wing","silver",510,"低調的後盾，安靜地在背後撐著"],
+  ["clover","幸運草吊飾","Four Leaf Clover Charm","charm","clover","gold",500,"收下恰到好處的運氣，其餘靠實力"],
+  ["lock","承諾鎖頭吊飾","Love Lock Charm","charm","lock","gold",490,"鎖住說出口的承諾"],
+  ["hamsa","平安手掌吊飾","Hamsa Charm","charm","hamsa","silver",520,"掌心向外，擋下多餘的雜訊"],
 ].map(([id,zh,en,type,shape,metal,price,note]) => ({ id,zh,en,type,shape,metal,price,note } as Accessory));
 
 const byStone = Object.fromEntries(stones.map((x) => [x.id, x]));
@@ -51,12 +95,40 @@ const stonePhotos: Record<string, string> = {
   smoky: "/materials/men/smoky.png",
   lava: "/materials/men/lava.png",
   goldstone: "/materials/men/goldstone.png",
+  clear: "/materials/clear.png",
+  amethyst: "/materials/amethyst.png",
+  rose: "/materials/rose.png",
+  citrine: "/materials/citrine.png",
+  aqua: "/materials/aqua.png",
+  tourmaline: "/materials/tourmaline.png",
+  sunstone: "/materials/sunstone.png",
+  moon: "/materials/moon.png",
+  moss: "/materials/moss.png",
+  lapis: "/materials/lapis.png",
+  garnet: "/materials/garnet.png",
+  tiger: "/materials/tiger.png",
+  fluorite: "/materials/fluorite.png",
+  rhodonite: "/materials/rhodonite.png",
+  labradorite: "/materials/labradorite.png",
 };
 const accessoryPhotos: Record<string, string> = {
   "gold-hex": "/materials/men/gold-hex.png",
   "silver-hex": "/materials/men/silver-hex.png",
   compass: "/materials/men/compass.png",
   arrow: "/materials/men/arrow.png",
+  "silver-round": "/materials/silver-round.png",
+  "gold-crown": "/materials/gold-crown.png",
+  "gold-rondelle": "/materials/gold-rondelle.png",
+  "silver-flower": "/materials/silver-flower.png",
+  "gold-knot": "/materials/gold-knot.png",
+  "silver-star": "/materials/silver-star.png",
+  leaf: "/materials/leaf.png",
+  "moon-charm": "/materials/silver-moon.png",
+  lotus: "/materials/lotus.png",
+  heart: "/materials/gold-heart.png",
+  cross: "/materials/cross.png",
+  key: "/materials/key.png",
+  "silver-heart": "/materials/silver-heart.png",
 };
 // Starter design sums to ~14.3 cm — comfortably inside the default 16 cm
 // wrist: one 20mm focal bead, 10mm rounds, 8mm accents, spacers and a charm.
@@ -376,10 +448,11 @@ export default function Home() {
         <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>
         <div className="material-grid" key={`${tab}-${query}`}>{visible.length ? visible.map((x: Stone | Accessory) => {
           const item: DesignItem = tab === "crystal" ? { kind: "stone", id: x.id, size: "large" } : { kind: "accessory", id: x.id };
-          if (tab === "crystal") return <article className={`material-card crystal-card ${selected.id === item.id ? "selected" : ""}`} key={x.id}><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} 10mm 大珠`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {itemPrice(item)}</em></button><div className="size-actions"><button onClick={() => add({ kind: "stone", id: x.id, size: "xlarge" })} aria-label="加入 20mm 特大主珠">20mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "large" })} aria-label="加入 10mm 大珠">10mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "small" })} aria-label="加入 8mm 中珠">8mm</button></div></article>;
-          return <button className={`material-card ${selected.id === item.id ? "selected" : ""}`} key={x.id} onClick={() => add(item)}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {x.price}</em><i>{(x as Accessory).type === "spacer" ? "精緻小隔珠" : "垂墜吊飾"}</i></button>;
+          const tier = rarityOf(x.price);
+          if (tab === "crystal") return <article className={`material-card crystal-card rarity-${tier} ${selected.id === item.id ? "selected" : ""}`} key={x.id}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} 10mm 大珠`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {itemPrice(item)}</em></button><div className="size-actions"><button onClick={() => add({ kind: "stone", id: x.id, size: "xlarge" })} aria-label="加入 20mm 特大主珠">20mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "large" })} aria-label="加入 10mm 大珠">10mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "small" })} aria-label="加入 8mm 中珠">8mm</button></div></article>;
+          return <button className={`material-card rarity-${tier} ${selected.id === item.id ? "selected" : ""}`} key={x.id} onClick={() => add(item)}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {x.price}</em><i>{(x as Accessory).type === "spacer" ? "精緻小隔珠" : "垂墜吊飾"}</i></button>;
         }) : <div className="empty-library"><b>這個分類暫時沒有符合的素材</b><span>請清除搜尋文字，或切換其他分類。</span></div>}</div>
-        <div className="selected-detail"><div className="detail-visual"><ItemVisual item={selected} /></div><div><p>{selected.kind === "stone" ? "NATURAL STONE" : "JEWELRY DETAIL"}</p><b>{selectedInfo.zh}</b><span>{selectedInfo.note}</span></div><button onClick={() => add(selected)}>加入 <strong>＋</strong></button></div>
+        <div className="selected-detail"><div className="detail-visual"><ItemVisual item={selected} /></div><div><p>{selected.kind === "stone" ? "NATURAL STONE" : "JEWELRY DETAIL"} · <span className={`sd-rarity rarity-${rarityOf(selectedInfo.price)}`}>{RARITY_LABEL[rarityOf(selectedInfo.price)]}</span></p><b>{selectedInfo.zh}</b><span>{selectedInfo.note}</span></div><button onClick={() => add(selected)}>加入 <strong>＋</strong></button></div>
         </div>
       </aside>
     </section>

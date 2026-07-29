@@ -416,3 +416,18 @@ button,input { font:inherit; } button { cursor:pointer; }
   .landing-showcase-grid { grid-template-columns:repeat(2,1fr); }
   .landing-quote h2 { font-size:25px; }
 }
+
+/* ── Rarity tiers ─────────────────────────────────────────────────── */
+.material-card { position:relative; }
+.rarity-tag { position:absolute; top:6px; left:6px; z-index:2; padding:2px 6px; border-radius:4px; font-size:7px; letter-spacing:.1em; font-weight:600; }
+.material-card.rarity-common .rarity-tag { background:#f3f1ec; color:#8a8f93; }
+.material-card.rarity-rare .rarity-tag { background:#eef0f1; color:#5c6268; }
+.material-card.rarity-legendary .rarity-tag { background:#2a2210; color:#e3c179; }
+.material-card.rarity-rare { border-color:#b8bcc0; }
+.material-card.rarity-rare:hover, .material-card.rarity-rare.selected { border-color:#8a8f93; box-shadow:0 9px 18px #8a8f9322; }
+.material-card.rarity-legendary { border-color:#d3b06c; box-shadow:0 0 0 1px #d3b06c22 inset; }
+.material-card.rarity-legendary:hover, .material-card.rarity-legendary.selected { border-color:#b8923f; box-shadow:0 9px 22px #b8923f33; }
+.sd-rarity { font-weight:700; letter-spacing:.08em; }
+.sd-rarity.rarity-common { color:#8a8f93; }
+.sd-rarity.rarity-rare { color:#5c6268; }
+.sd-rarity.rarity-legendary { color:#b8923f; }
