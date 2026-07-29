@@ -107,9 +107,9 @@ button,input { font:inherit; } button { cursor:pointer; }
 .wrist-select:hover { color:#8a6d1f; }
 
 /* One-tap energy presets */
-.preset-row { display:flex; align-items:center; gap:8px; padding:12px 24px 10px; border-bottom:1px solid var(--line); }
+.preset-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 24px 10px; border-bottom:1px solid var(--line); }
 .preset-row > span { color:#6b6b6b; font-size:9px; letter-spacing:.14em; line-height:1.5; white-space:nowrap; }
-.preset-row button { flex:1; padding:9px 4px; border:1px solid #141414; border-radius:999px; background:#fff; color:#141414; font-size:11px; white-space:nowrap; transition:.15s; }
+.preset-row button { flex:1 1 27%; min-width:88px; padding:9px 4px; border:1px solid #141414; border-radius:999px; background:#fff; color:#141414; font-size:11px; white-space:nowrap; transition:.15s; }
 .preset-row button:hover { border-color:#c9a355; transform:translateY(-1px); box-shadow:0 6px 14px #c9a35526; }
 
 /* ── 360° physics preview ────────────────────────────────────────── */
@@ -142,9 +142,12 @@ button,input { font:inherit; } button { cursor:pointer; }
   .atelier-note { display:none; }
   .materials-panel { position:fixed; left:0; right:0; bottom:0; z-index:40; min-height:0; height:auto; border-left:0; border-top:1px solid var(--line); border-radius:16px 16px 0 0; box-shadow:0 -14px 34px #14141422; background:#ffffff; padding-bottom:env(safe-area-inset-bottom); }
   .materials-head { display:none; }
-  .preset-row { padding:6px 12px 6px; gap:6px; }
-  .preset-row > span { font-size:8px; }
-  .preset-row button { padding:6px 3px; font-size:9px; }
+  /* Six presets now instead of three — wrapping would eat into the drawer's
+     tight mobile height budget (the ≥60% preview-area rule), so scroll
+     horizontally in one row instead of growing taller. */
+  .preset-row { flex-wrap:nowrap; overflow-x:auto; padding:6px 12px 6px; gap:6px; -webkit-overflow-scrolling:touch; }
+  .preset-row > span { flex:none; font-size:8px; }
+  .preset-row button { flex:none; min-width:0; padding:6px 10px; font-size:9px; }
   .materials-panel .tabs { padding-inline:12px; }
   .materials-panel .tabs button { padding:7px 5px; font-size:10px; }
   .materials-panel .search { display:none; }
