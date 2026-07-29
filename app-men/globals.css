@@ -384,6 +384,19 @@ button,input { font:inherit; } button { cursor:pointer; }
 .lp-text i { color:#6b6b6b; font-size:11.5px; font-style:normal; }
 .lp-arrow { color:#8a6d1f; font-size:11px; letter-spacing:.04em; white-space:nowrap; }
 
+/* Curated builds — clickable cards that decode straight into the studio. */
+.landing-builds { max-width:1040px; margin:0 auto; padding:clamp(56px,8vw,96px) clamp(20px,6vw,64px); text-align:center; }
+.landing-builds h2 { margin:0 0 10px; color:#141414; font:34px/1.35 Georgia,"Noto Serif TC",serif; }
+.lb-note { display:block; margin:0 auto 36px; max-width:480px; color:#8a8f93; font-size:11.5px; line-height:1.7; }
+.landing-builds-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.lb-card { display:flex; flex-direction:column; align-items:center; gap:6px; padding:26px 14px 20px; border:1px solid #dedad0; border-radius:16px; background:#fff; text-align:center; transition:.18s; }
+.lb-card:hover { border-color:#141414; box-shadow:0 14px 28px #14141414; transform:translateY(-4px); }
+.lb-swatch { width:64px; height:64px; object-fit:contain; margin-bottom:8px; filter:drop-shadow(0 8px 14px #1a2c2b22); }
+.lb-card b { color:#141414; font:600 14px Georgia,"Noto Serif TC",serif; }
+.lb-tag { color:#8a6d1f; font-size:10px; letter-spacing:.08em; font-weight:600; }
+.lb-arrow { margin-top:10px; color:#6b6b6b; font-size:10.5px; letter-spacing:.04em; }
+.lb-card:hover .lb-arrow { color:#141414; }
+
 .landing-showcase-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; max-width:960px; margin:0 auto; }
 .ls-item { display:flex; flex-direction:column; align-items:center; gap:10px; padding:22px 10px; border-radius:16px; transition:.2s; }
 .ls-item:hover { background:#faf9f6; transform:translateY(-3px); }
@@ -425,6 +438,9 @@ button,input { font:inherit; } button { cursor:pointer; }
   .lp-swatch { width:40px; height:40px; }
   .lp-arrow { display:none; }
   .landing-showcase-grid { grid-template-columns:repeat(2,1fr); }
+  .landing-builds-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .landing-builds h2 { font-size:24px; }
+  .lb-card { padding:20px 10px 16px; }
   .landing-quote h2 { font-size:25px; }
 }
 

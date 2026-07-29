@@ -310,6 +310,17 @@ export default function Home() {
     setNotice("已載入分享的設計，可以直接調整或結帳");
     setView("studio");
   }, []);
+  // Shared by the URL-param loader above and the landing page's curated
+  // "top builds" showcase — both just decode a design code into the studio.
+  const loadDesign = (code: string) => {
+    const decoded = decodeDesign(code);
+    if (!decoded) return;
+    setItems(decoded.items);
+    setWristCm(decoded.wrist);
+    setNotice("已載入精選手鍊，可以直接調整或結帳");
+    setView("studio");
+    window.scrollTo({ top: 0 });
+  };
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
@@ -419,7 +430,7 @@ export default function Home() {
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
   const arcs = useMemo(() => { let cum = 0; return items.map((it) => { const w = itemMM(it); const centerMM = cum + w / 2; cum += w; return { w, angle: -Math.PI / 2 + (centerMM / capacityMM) * Math.PI * 2 }; }); }, [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
-  if (view === "home") return <LandingHome onStart={() => { setView("studio"); window.scrollTo({ top: 0 }); }} />;
+  if (view === "home") return <LandingHome onStart={() => { setView("studio"); window.scrollTo({ top: 0 }); }} onLoadBuild={loadDesign} />;
   return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     {previewOpen && <Preview pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />}
