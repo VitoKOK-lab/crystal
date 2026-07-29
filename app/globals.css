@@ -579,3 +579,12 @@ button,input { font:inherit; } button { cursor:pointer; }
   .sb-tagline { font-size:10.5px; }
   .sb-craft { font-size:9.5px; }
 }
+
+/* ── Wrist fullness nudge ────────────────────────────────────────── */
+/* Appears once the strand passes 88% so sizing up stays the customer's
+   choice, instead of the wrist silently auto-growing under them when the
+   next bead no longer fits. One tap applies the next size. */
+.wrist-hint { margin-top:5px; padding:3px 8px; border:1px solid #e3b04b; border-radius:99px; background:#fffaf0; color:#8a6d1f; font-size:9px; letter-spacing:.04em; white-space:nowrap; animation:wrist-hint-in .24s ease; transition:.16s; }
+.wrist-hint:hover { background:#8a6d1f; border-color:#8a6d1f; color:#fff; }
+@keyframes wrist-hint-in { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:none; } }
+@media (max-width:560px) { .wrist-hint { padding:2px 6px; font-size:8px; } }

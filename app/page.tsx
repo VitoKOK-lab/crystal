@@ -23,20 +23,24 @@ import {
 } from "./catalog";
 import { NEUTRAL_TONE, SERIES, bySeries, findProduct, type SeriesTone } from "./series";
 
-// Starter design sums to ~14.3 cm — comfortably inside the default 16 cm
-// wrist: one 20mm focal bead, 10mm rounds, 8mm accents, spacers and a charm.
-const initialSpec: [string, BeadSize?][] = [["obsidian","xlarge"],["obsidian","large"],["tiger-eye","large"],["hematite","small"],["obsidian","large"],["gold-hex"],["tiger-eye","small"],["obsidian","large"],["hematite","small"],["silver-hex"],["obsidian","large"],["tiger-eye","small"],["obsidian","large"],["hematite","small"],["obsidian","large"],["compass"]];
+// Starter design sums to 11.8 cm on the 14 cm default wrist (84%) — past the
+// 80% checkout gate, but still under the 88% "nearly full" nudge so the first
+// couple of beads a customer adds don't immediately trigger a size warning.
+const initialSpec: [string, BeadSize?][] = [["amethyst","xlarge"],["amethyst","large"],["clear","large"],["amethyst","large"],["silver-round"],["rose","large"],["amethyst","large"],["moon","large"],["amethyst","large"],["clear","large"],["amethyst","large"],["moon-charm"]];
 const initial: DesignItem[] = buildSpec(initialSpec);
+// The most common wrist size, so both the studio and every ready-to-wear
+// product in series.ts are configured around it.
+export const DEFAULT_WRIST = 14;
 
 // One-tap recipes: stones weighted toward each intention's energy profile,
 // padded with the theme stone to fill the wearer's wrist.
 const PRESETS = {
-  power: { name: "力量掌控", pad: "obsidian", spec: [["obsidian","xlarge"],["lava","large"],["obsidian","large"],["hematite","large"],["lava","small"],["gold-hex"],["obsidian","large"],["hematite","large"],["lava","small"],["gold-hex"],["obsidian","large"],["lava","large"],["hematite","small"],["obsidian","large"],["arrow"]] as [string, BeadSize?][] },
-  wealth: { name: "財富機運", pad: "goldstone", spec: [["goldstone","xlarge"],["tiger-eye","large"],["goldstone","large"],["tiger-eye","large"],["hematite","small"],["gold-hex"],["goldstone","large"],["tiger-eye","large"],["hematite","small"],["gold-hex"],["goldstone","large"],["tiger-eye","large"],["hematite","small"],["goldstone","large"],["compass"]] as [string, BeadSize?][] },
-  focus: { name: "沉靜專注", pad: "smoky", spec: [["tiger-eye","xlarge"],["smoky","large"],["obsidian","large"],["smoky","large"],["hematite","small"],["silver-hex"],["tiger-eye","large"],["smoky","large"],["hematite","small"],["silver-hex"],["obsidian","large"],["smoky","large"],["hematite","small"],["tiger-eye","large"],["compass"]] as [string, BeadSize?][] },
-  gym: { name: "健身能量", pad: "lava", spec: [["garnet","xlarge"],["lava","large"],["sunstone","large"],["hematite","large"],["lava","small"],["gold-hex"],["garnet","large"],["lava","large"],["sunstone","small"],["gold-hex"],["hematite","large"],["garnet","large"],["lava","small"],["sunstone","large"],["arrow"]] as [string, BeadSize?][] },
-  office: { name: "辦公室專注", pad: "lapis", spec: [["lapis","xlarge"],["moon","large"],["tiger-eye","large"],["clear","large"],["moon","small"],["silver-hex"],["lapis","large"],["tiger-eye","large"],["clear","small"],["silver-hex"],["moon","large"],["lapis","large"],["clear","small"],["tiger-eye","large"],["key"]] as [string, BeadSize?][] },
-  travel: { name: "旅行守護", pad: "labradorite", spec: [["labradorite","xlarge"],["tourmaline","large"],["amethyst","large"],["obsidian","large"],["tourmaline","small"],["silver-hex"],["labradorite","large"],["amethyst","large"],["tourmaline","small"],["silver-hex"],["obsidian","large"],["labradorite","large"],["amethyst","small"],["tourmaline","large"],["travel-compass"]] as [string, BeadSize?][] },
+  power: { name: "力量掌控", pad: "obsidian", spec: [["obsidian","xlarge"],["lava","large"],["obsidian","large"],["hematite","large"],["gold-hex"],["obsidian","large"],["lava","large"],["obsidian","large"],["gold-hex"],["hematite","large"],["obsidian","large"],["lava","large"],["arrow"]] as [string, BeadSize?][] },
+  wealth: { name: "財富機運", pad: "goldstone", spec: [["goldstone","xlarge"],["tiger-eye","large"],["goldstone","large"],["citrine","large"],["gold-hex"],["goldstone","large"],["tiger-eye","large"],["goldstone","large"],["gold-hex"],["citrine","large"],["goldstone","large"],["tiger-eye","large"],["compass"]] as [string, BeadSize?][] },
+  focus: { name: "沉靜專注", pad: "smoky", spec: [["tiger-eye","xlarge"],["smoky","large"],["clear","large"],["smoky","large"],["silver-hex"],["tiger-eye","large"],["smoky","large"],["clear","large"],["silver-hex"],["smoky","large"],["tiger-eye","large"],["smoky","large"],["compass"]] as [string, BeadSize?][] },
+  gym: { name: "健身能量", pad: "lava", spec: [["garnet","xlarge"],["lava","large"],["sunstone","large"],["hematite","large"],["gold-hex"],["garnet","large"],["lava","large"],["sunstone","large"],["gold-hex"],["hematite","large"],["garnet","large"],["lava","large"],["arrow"]] as [string, BeadSize?][] },
+  office: { name: "辦公室專注", pad: "lapis", spec: [["lapis","xlarge"],["moon","large"],["clear","large"],["lapis","large"],["silver-hex"],["moon","large"],["lapis","large"],["clear","large"],["silver-hex"],["lapis","large"],["moon","large"],["lapis","large"],["key"]] as [string, BeadSize?][] },
+  travel: { name: "旅行守護", pad: "labradorite", spec: [["labradorite","xlarge"],["tourmaline","large"],["amethyst","large"],["labradorite","large"],["silver-hex"],["tourmaline","large"],["labradorite","large"],["amethyst","large"],["silver-hex"],["labradorite","large"],["tourmaline","large"],["labradorite","large"],["travel-compass"]] as [string, BeadSize?][] },
 } as const;
 
 // Animates a number toward its target so energy totals count up smoothly.
@@ -117,7 +121,7 @@ export default function Home() {
   // and whether the studio speaks 能量 or 戰力. Null = walked straight into
   // the studio without picking a series, which gets the neutral wording.
   const [seriesId, setSeriesId] = useState<string | null>(null);
-  const [wristCm, setWristCm] = useState(16);
+  const [wristCm, setWristCm] = useState(DEFAULT_WRIST);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
@@ -165,7 +169,9 @@ export default function Home() {
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
     playClaspClick(true);
-    setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}${cm !== wristCm ? `・手圍自動放大為 ${cm} cm` : `・已串 ${(needMM / 10).toFixed(1)} / ${cm} cm`}`);
+    setNotice(cm !== wristCm
+      ? `${wristCm} cm 放不下了，手圍已改為 ${cm} cm — 記得確認這是你的實際手圍`
+      : `已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${(needMM / 10).toFixed(1)} / ${cm} cm`);
   };
   const shareDesign = async () => {
     if (!items.length) { setNotice("先加入素材，再分享你的設計！"); return; }
@@ -255,6 +261,10 @@ export default function Home() {
   const charms = items.filter((x) => x.kind === "accessory" && (byAccessory[x.id] as Accessory).type === "charm").length;
   const strung = (strandMM / 10).toFixed(1);
   const fillRatio = strandMM / capacityMM;
+  // Warn before the wrist auto-grows rather than after, so sizing stays the
+  // customer's decision instead of a side effect of adding one more bead.
+  const nextWrist = WRIST_CHOICES.find((c) => c > wristCm);
+  const nearFull = fillRatio >= 0.88 && nextWrist !== undefined;
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
   const arcs = useMemo(() => { let cum = 0; return items.map((it) => { const w = itemMM(it); const centerMM = cum + w / 2; cum += w; return { w, angle: -Math.PI / 2 + (centerMM / capacityMM) * Math.PI * 2 }; }); }, [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
@@ -280,7 +290,7 @@ export default function Home() {
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
-        <div className="canvas-top"><div className="stats"><span><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        <div className="canvas-top"><div className="stats"><span><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span>{nearFull && <button className="wrist-hint" onClick={() => changeWrist(nextWrist as number)}>快滿了 · 改 {nextWrist} cm</button>}</span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
