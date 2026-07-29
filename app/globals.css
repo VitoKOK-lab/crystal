@@ -618,7 +618,7 @@ button,input { font:inherit; } button { cursor:pointer; }
    the fade lower so the top third of the frame is clean video. */
 @media (max-width:560px) {
   .landing-hero:before { background:linear-gradient(180deg,#08060400 0 32%,#0806049e 60%,#080604ea); }
-  .landing-hero img, .landing-hero-video { object-position:64% 40%; }
+  .landing-hero img, .landing-hero-video { object-position:50% 38%; }
   .landing-hero-copy { padding:0 20px clamp(34px,6vh,58px); }
   .landing-hero-copy p { margin-bottom:11px; font-size:9px; letter-spacing:.22em; }
   .landing-hero-copy h1 { margin-bottom:13px; font-size:clamp(32px,10vw,42px); }

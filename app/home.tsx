@@ -25,16 +25,27 @@ const SHOWCASE = [
 // Women's clip leads, then the second women's, then the men's. Each still is
 // the exact frame its clip opens on, so a swap never flashes a different scene.
 const HERO_CLIPS = [
-  { id: "bloom", still: "/banners/bloom.jpg" },
-  { id: "serene", still: "/banners/serene.jpg" },
-  { id: "bedrock", still: "/banners/bedrock.jpg" },
+  { id: "bloom", still: "/banners/bloom.jpg", stillV: "/video/hero-bloom-v.jpg" },
+  { id: "serene", still: "/banners/serene.jpg", stillV: "/video/hero-serene-v.jpg" },
+  { id: "bedrock", still: "/banners/bedrock.jpg", stillV: "/video/hero-bedrock-v.jpg" },
 ] as const;
+
+// Phones get a natively vertical cut; wide viewports get the landscape one.
+// The browser downloads only the matching file, so shipping both costs no
+// visitor any extra bytes.
+const HERO_PORTRAIT_Q = "(max-width:560px)";
 
 // Crossfades through the clips. Only the playing clip and the one after it are
 // ever fetched — loading all three up front would pull ~1.4MB before the page
 // is usable, for footage the visitor may never scroll past.
 function HeroMedia() {
   const [active, setActive] = useState(0);
+  // <video> picks its <source> once, at load, and — unlike <picture> — never
+  // re-evaluates when the viewport changes. Rotating a phone would otherwise
+  // keep serving the portrait cut to a landscape screen, so track the query
+  // and re-load on the way through.
+  const [portrait, setPortrait] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia(HERO_PORTRAIT_Q).matches);
   const [armed, setArmed] = useState<number[]>([0, 1]);
   const refs = useRef<(HTMLVideoElement | null)[]>([]);
   const advance = () => setActive((n) => (n + 1) % HERO_CLIPS.length);
@@ -53,8 +64,23 @@ function HeroMedia() {
     armed.forEach((i) => { const v = refs.current[i]; if (v && !v.currentSrc) v.load(); });
   }, [armed]);
 
+  useEffect(() => {
+    const mq = window.matchMedia(HERO_PORTRAIT_Q);
+    const onChange = () => setPortrait(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // Crossing the breakpoint: force every loaded clip to re-pick its source.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    armed.forEach((i) => refs.current[i]?.load());
+    refs.current[active]?.play().catch(() => {});
+  }, [portrait]);
+
   return <>
-    <img src={HERO_CLIPS[0].still} alt="OMA CRYSTAL 水晶手鍊，溪邊自然情境" />
+    <img src={portrait ? HERO_CLIPS[0].stillV : HERO_CLIPS[0].still} alt="OMA CRYSTAL 水晶手鍊，溪邊自然情境" />
     {HERO_CLIPS.map((c, i) => <video
       key={c.id}
       ref={(el) => { refs.current[i] = el; }}
@@ -63,12 +89,14 @@ function HeroMedia() {
       muted
       playsInline
       preload={i === 0 ? "metadata" : "none"}
-      poster={c.still}
+      poster={portrait ? c.stillV : c.still}
       aria-hidden="true"
       onEnded={advance}
       onError={advance}
     >
       {armed.includes(i) && <>
+        <source media={HERO_PORTRAIT_Q} src={`/video/hero-${c.id}-v.webm`} type="video/webm" />
+        <source media={HERO_PORTRAIT_Q} src={`/video/hero-${c.id}-v.mp4`} type="video/mp4" />
         <source src={`/video/hero-${c.id}.webm`} type="video/webm" />
         <source src={`/video/hero-${c.id}.mp4`} type="video/mp4" />
       </>}
