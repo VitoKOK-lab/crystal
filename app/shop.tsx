@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ItemVisual, byAccessory, dominantOf, energyScores, itemMM, itemPrice, parseSpec, type DesignItem } from "./catalog";
-import { SERIES, bySeries, type Product } from "./series";
+import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
 
 const BASE_FEE = 680;
 
@@ -80,7 +80,7 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
     <section className="shop-intro">
       <p className="landing-eyebrow">THE COLLECTIONS</p>
       <h1>選一條直接帶走，<br />或按「微客制」改成你的</h1>
-      <span>四個系列、每系列 12 款配置，全部由 OMA team 事先配好。看上哪一條可以直接下單；想調整就進工作室加珠子、換石頭、改手圍。</span>
+      <span>八個系列、每系列 12 款配置，全部由 OMA team 事先配好。從 8mm 細繩、10mm 正常款到 20mm 大顆款都有，看上哪一條可以直接下單；想調整就進工作室加珠子、換石頭、改手圍。</span>
     </section>
 
     <div className="series-tabs" role="tablist" aria-label="系列">
@@ -98,12 +98,21 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
       </button>)}
     </div>
 
-    <p className="series-tagline">{series.tagline}</p>
+    <section className="series-banner" key={series.id}>
+      <img src={series.banner} alt={`${series.zh} ${series.en} 系列`} />
+      <div className="sb-copy">
+        <p className="sb-theme">{series.theme}</p>
+        <h2>{series.zh} <i>{series.en}</i></h2>
+        <span className="sb-tagline">{series.tagline}</span>
+        <span className="sb-craft">{series.craft}</span>
+      </div>
+    </section>
 
     <div className="shop-grid">
       {priced.map(({ product, items, price, dominant, beads }) => <article className="shop-card" key={product.id}>
         <BraceletThumb items={items} wrist={product.wrist} />
         <div className="sc-body">
+          <span className="sc-style">{STYLE_LABEL[product.style]}</span>
           <b className="sc-name">{product.name}</b>
           <span className="sc-tagline">{product.tagline}</span>
           <span className="sc-meta">

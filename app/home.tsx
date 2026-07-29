@@ -23,8 +23,8 @@ const SHOWCASE = [
 ] as const;
 
 const FEATURES = [
-  { title: "4 大系列 · 48 款配置", body: "綻放、澄澈、極光與曜石，每個系列 12 款事先配好的規格品，看上就能直接下單。" },
-  { title: "21 款天然礦石自由搭配", body: "37 款隔珠與吊飾全系列共用，任何一條規格品都能按「微客制」拆開重配。" },
+  { title: "8 大系列 · 96 款配置", body: "從綻放、澄澈到磐岩、疾行，每個系列 12 款事先配好的規格品，看上就能直接下單。" },
+  { title: "細繩、正常、大顆任你選", body: "8mm 細繩款、10mm 正常款到 20mm 大顆款都有，21 款礦石與 37 款配件全系列共用。" },
   { title: "即時能量矩陣", body: "六維雷達即時運算——財富、愛情、療癒、守護、專注、力量，設計看得見成效。" },
 ] as const;
 
@@ -62,7 +62,7 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
       <div className="landing-hero-copy">
         <p>MAKE YOUR OWN ENERGY JEWELRY</p>
         <h1>WEAR YOUR<br />INTENTION</h1>
-        <span>四個系列、48 款配好的規格品，女款男款共用同一個材料庫。挑一條直接帶走，或按「微客制」改成只屬於你的那條。</span>
+        <span>八個系列、96 款配好的規格品，女款男款共用同一個材料庫。挑一條直接帶走，或按「微客制」改成只屬於你的那條。</span>
         <div className="landing-hero-actions">
           <button className="landing-cta" onClick={() => onShop()}>逛系列商品 <i>→</i></button>
           <button className="landing-cta ghost" onClick={onStart}>從空白開始設計</button>
@@ -73,8 +73,8 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
 
     <section className="landing-series" data-reveal>
       <p className="landing-eyebrow">THE COLLECTIONS</p>
-      <h2>四個系列，各有 12 款配置</h2>
-      <span className="ls-note">每一款都事先配好比例與手圍，可以直接下單，也可以進工作室繼續調整。</span>
+      <h2>八個系列，各有 12 款配置</h2>
+      <span className="ls-note">每個系列有自己的主題與配法——有的全是 8mm 細繩，有的全用 20mm 大顆。可以直接下單，也可以進工作室繼續調整。</span>
       <div className="landing-series-grid">
         {SERIES.map((s) => <button
           className="lsr-card"
@@ -82,11 +82,15 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
           style={{ "--series-accent": s.accent } as React.CSSProperties}
           onClick={() => onShop(s.id)}
         >
-          <img src={stonePhotos[s.swatch]} alt="" className="lsr-swatch" />
+          <span className="lsr-banner">
+            <img src={s.banner} alt="" />
+            <img src={stonePhotos[s.swatch]} alt="" className="lsr-swatch" />
+          </span>
           <span className="lsr-badge">{s.audience === "men" ? "男款" : "女款"}</span>
+          <span className="lsr-theme">{s.theme}</span>
           <b>{s.zh}</b>
           <i>{s.en}</i>
-          <p>{s.tagline}</p>
+          <p>{s.craft}</p>
           <span className="lsr-arrow">12 款配置 →</span>
         </button>)}
       </div>

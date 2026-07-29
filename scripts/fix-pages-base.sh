@@ -17,6 +17,7 @@ BASE="/crystal"
 find "$DIST" -type f -name '*.js' -print0 |
   xargs -0 sed -i \
     -e "s|/materials/|$BASE/materials/|g" \
+    -e "s|/banners/|$BASE/banners/|g" \
     -e "s|\`/hero-banner.png\`|\`$BASE/hero-banner.png\`|g" \
     -e "s|/men-hero.jpg|$BASE/men-hero.jpg|g"
 

@@ -468,9 +468,9 @@ button,input { font:inherit; } button { cursor:pointer; }
 .landing-series h2 { margin:0 0 10px; color:#141414; font:34px/1.35 Georgia,"Noto Serif TC",serif; }
 .ls-note { display:block; margin:0 auto 36px; max-width:520px; color:#8a8f93; font-size:11.5px; line-height:1.7; }
 .landing-series-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-.lsr-card { position:relative; display:flex; flex-direction:column; align-items:center; gap:5px; padding:28px 16px 20px; border:1px solid #dedad0; border-radius:16px; background:#fff; text-align:center; transition:.18s; }
+.lsr-card { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; padding:0 16px 20px; border:1px solid #dedad0; border-radius:16px; background:#fff; text-align:center; overflow:hidden; transition:.18s; }
 .lsr-card:hover { border-color:var(--series-accent); box-shadow:0 14px 30px #14141416; transform:translateY(-4px); }
-.lsr-swatch { width:62px; height:62px; object-fit:contain; margin-bottom:6px; filter:drop-shadow(0 8px 14px #1a2c2b22); }
+
 .lsr-badge { position:absolute; top:10px; right:10px; padding:2px 7px; border-radius:4px; background:#f3f1ec; color:#8a8f93; font-size:8px; letter-spacing:.1em; font-weight:600; }
 .lsr-card b { color:#141414; font:600 17px Georgia,"Noto Serif TC",serif; letter-spacing:.04em; }
 .lsr-card i { color:var(--series-accent); font:normal 9px Arial,sans-serif; letter-spacing:.22em; }
@@ -538,4 +538,44 @@ button,input { font:inherit; } button { cursor:pointer; }
   .sc-tagline { font-size:9.5px; min-height:30px; }
   .sc-price { font-size:15px; }
   .sc-actions button { padding:11px 4px; font-size:10px; }
+}
+
+/* ── Series banners (landing cards + shop hero band) ─────────────── */
+/* Card leads with the series' own banner; the signature stone overlaps the
+   bottom edge so each card still reads as "a bracelet series", not a photo. */
+.lsr-banner { position:relative; display:block; width:calc(100% + 32px); margin:0 -16px 34px; aspect-ratio:21 / 9; overflow:hidden; }
+.lsr-banner > img:first-child { width:100%; height:100%; object-fit:cover; display:block; transition:transform .4s ease; }
+.lsr-card:hover .lsr-banner > img:first-child { transform:scale(1.05); }
+.lsr-swatch { position:absolute; left:50%; bottom:-26px; width:52px; height:52px; object-fit:contain; transform:translateX(-50%); filter:drop-shadow(0 6px 12px #1a2c2b33); }
+.lsr-theme { color:var(--series-accent); font-size:9.5px; letter-spacing:.16em; font-weight:600; }
+.lsr-badge { top:10px; right:10px; background:#ffffffe0; backdrop-filter:blur(4px); }
+
+.series-banner { position:relative; max-width:1220px; margin:26px auto 0; border-radius:18px; overflow:hidden; isolation:isolate; }
+.series-banner img { display:block; width:100%; aspect-ratio:21 / 9; max-height:290px; object-fit:cover; }
+.series-banner:after { content:""; position:absolute; inset:0; background:linear-gradient(100deg,#ffffffef 0 26%,#ffffffc4 42%,transparent 66%); }
+.sb-copy { position:absolute; z-index:1; left:clamp(22px,4.5vw,58px); top:50%; transform:translateY(-50%); max-width:44%; text-align:left; }
+.sb-theme { margin:0 0 7px; color:var(--series-accent); font-size:10px; letter-spacing:.2em; font-weight:600; }
+.sb-copy h2 { margin:0 0 10px; color:#141414; font:clamp(26px,3.2vw,38px) Georgia,"Noto Serif TC",serif; letter-spacing:.05em; }
+.sb-copy h2 i { color:var(--series-accent); font:normal clamp(10px,1.1vw,13px) Arial,sans-serif; letter-spacing:.24em; vertical-align:middle; margin-left:6px; }
+.sb-tagline { display:block; color:#3f3f3f; font-size:12px; line-height:1.75; }
+.sb-craft { display:block; margin-top:8px; color:#8a8f93; font-size:10.5px; line-height:1.6; }
+
+/* Construction style badge — the whole point of the variety is that a
+   shopper can tell 細繩 from 大顆 at a glance. */
+.sc-style { align-self:flex-start; padding:2px 7px; border-radius:4px; background:#f3f1ec; color:#8a6d1f; font-size:8.5px; letter-spacing:.1em; font-weight:600; }
+
+@media (max-width:900px) {
+  .series-banner { margin-inline:16px; border-radius:14px; }
+  .series-banner img { aspect-ratio:16 / 9; max-height:210px; }
+  .sb-copy { max-width:58%; }
+  .series-banner:after { background:linear-gradient(100deg,#fffffff2 0 40%,#ffffffcc 58%,transparent 82%); }
+}
+@media (max-width:560px) {
+  .landing-series-grid { grid-template-columns:repeat(2,1fr); }
+  .lsr-banner { margin-bottom:30px; }
+  .lsr-swatch { width:42px; height:42px; bottom:-22px; }
+  .series-banner img { aspect-ratio:3 / 2; max-height:190px; }
+  .sb-copy { max-width:74%; }
+  .sb-tagline { font-size:10.5px; }
+  .sb-craft { font-size:9.5px; }
 }
