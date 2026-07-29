@@ -249,9 +249,17 @@ button,input { font:inherit; } button { cursor:pointer; }
 .co-tip { margin:12px 0 0; text-align:center; color:#6b6b6b; font-size:10px; }
 /* success view */
 .done-view { display:grid; place-items:center; min-height:70vh; }
-.done-card { width:min(620px,100%); padding:44px 40px; text-align:center; background:#fff; border:1px solid #dedad0; border-radius:18px; box-shadow:0 24px 60px #14141412; }
-.done-mark { width:64px; height:64px; margin:0 auto 18px; display:grid; place-items:center; border-radius:50%; background:#141414; color:#c9a355; font-size:30px; animation:done-pop .5s cubic-bezier(.2,1.4,.4,1); }
+.done-card { position:relative; overflow:hidden; width:min(620px,100%); padding:44px 40px; text-align:center; background:#fff; border:1px solid #dedad0; border-radius:18px; box-shadow:0 24px 60px #14141412; }
+.done-mark { position:relative; z-index:1; width:64px; height:64px; margin:0 auto 18px; display:grid; place-items:center; border-radius:50%; background:#141414; color:#c9a355; font-size:30px; animation:done-pop .5s cubic-bezier(.2,1.4,.4,1); }
 @keyframes done-pop { from { transform:scale(.4); opacity:0; } to { transform:scale(1); opacity:1; } }
+/* Forging-complete flash: an expanding gold shockwave behind the checkmark,
+   like a weapon finishing its final tempering pass. */
+.forge-flash { position:absolute; top:66px; left:50%; width:8px; height:8px; border-radius:50%; transform:translateX(-50%); pointer-events:none; animation:forge-burst .9s ease-out; }
+@keyframes forge-burst {
+  0% { box-shadow:0 0 0 0 #c9a355aa; opacity:1; }
+  55% { box-shadow:0 0 0 70px #c9a35500; opacity:.5; }
+  100% { box-shadow:0 0 0 100px #c9a35500; opacity:0; }
+}
 .done-eyebrow { margin:0; color:#b8923f; font-size:9px; letter-spacing:.26em; }
 .done-card h1 { margin:8px 0 12px; color:#141414; font:30px Georgia,"Noto Serif TC",serif; }
 .done-order-id { display:inline-block; padding:7px 18px; border-radius:999px; background:#faf9f6; border:1px dashed #8a8f93; color:#8a6d1f; font:600 14px Georgia,serif; letter-spacing:.1em; }

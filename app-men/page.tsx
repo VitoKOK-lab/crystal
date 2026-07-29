@@ -251,10 +251,10 @@ function EnergyPanel({ scores, total, dominant, open, onToggle }: { scores: Reco
   };
   const ringPoints = (r: number) => ENERGY_META.map((_, i) => point(i, r).join(",")).join(" ");
   const valuePoints = ENERGY_META.map((m, i) => point(i, 8 + (scores[m.key] / max) * (R - 8)));
-  if (!open) return <button className="energy-fab" onClick={onToggle} aria-label="展開能量矩陣"><span>能量</span></button>;
+  if (!open) return <button className="energy-fab" onClick={onToggle} aria-label="展開戰力矩陣"><span>戰力</span></button>;
   return <div className="energy-panel">
-    <div className="ep-head"><b>ENERGY MATRIX</b><span>能量矩陣</span><button onClick={onToggle} aria-label="收合能量矩陣">▾</button></div>
-    <svg viewBox="0 0 220 186" className="ep-chart" role="img" aria-label="六維能量雷達圖">
+    <div className="ep-head"><b>POWER MATRIX</b><span>戰力矩陣</span><button onClick={onToggle} aria-label="收合戰力矩陣">▾</button></div>
+    <svg viewBox="0 0 220 186" className="ep-chart" role="img" aria-label="六維戰力雷達圖">
       <defs>
         <linearGradient id="epFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#ffd76a" stopOpacity=".5" />
@@ -274,8 +274,8 @@ function EnergyPanel({ scores, total, dominant, open, onToggle }: { scores: Reco
         </g>;
       })}
     </svg>
-    <div className="ep-dominant">主能量 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b></div>
-    <div className="ep-total"><span>TOTAL ENERGY</span><b>{displayTotal.toLocaleString()}</b></div>
+    <div className="ep-dominant">主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b></div>
+    <div className="ep-total"><span>TOTAL POWER</span><b>{displayTotal.toLocaleString()}</b></div>
   </div>;
 }
 
@@ -338,7 +338,7 @@ export default function Home() {
       });
       const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ${url}`, url });
+        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬戰力手鍊 ${url}`, url });
         setNotice("已開啟分享面板");
       } else {
         const a = document.createElement("a");
@@ -364,7 +364,7 @@ export default function Home() {
     while (mm + 8 <= cm * 10 && mm < cm * 10 * 0.85) { built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() }); mm += 8; }
     if (cm !== wristCm) setWristCm(cm);
     setItems(built);
-    setNotice(`已為你搭配「${preset.name}」能量手鍊，可再自由調整`);
+    setNotice(`已為你搭配「${preset.name}」戰力手鍊，可再自由調整`);
   };
   const changeWrist = (cm: number) => {
     if (strandMM > cm * 10) { setNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
@@ -420,7 +420,7 @@ export default function Home() {
   return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     {previewOpen && <Preview pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />}
-    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">MAKE YOUR OWN ENERGY JEWELRY</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
+    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">FORGE YOUR OWN POWER</div><div className="head-actions"><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); setNotice("設計已清空"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
@@ -430,7 +430,7 @@ export default function Home() {
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
           {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const sizePct = isCharm ? 10.5 : arcs[i].w * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) setNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
           {beads > 0
-            ? <div className="center-intention"><small>DOMINANT ENERGY</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
+            ? <div className="center-intention"><small>DOMINANT POWER</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
             : <div className="center-intention"><small>OMA CRYSTAL</small><b>START YOUR STORY</b><span className="ci-note">從右側挑選第一顆水晶</span></div>}
           <div className="stage-tip">輕點珠子移除 · 按住拖曳調整位置</div>
         </div>
@@ -442,7 +442,7 @@ export default function Home() {
         <button className="drawer-handle" onClick={() => setDrawerOpen((v) => !v)} aria-expanded={drawerOpen} aria-label={drawerOpen ? "收起素材選擇區" : "展開素材選擇區"}><i /><span>{drawerOpen ? "收起選項" : "選擇水晶與配件"}</span></button>
         <div className="drawer-body">
         <div className="materials-head"><p>01 — CHOOSE MATERIAL</p><h1>打造專屬<br /><em>Crystal Story</em></h1><span>點選素材加入手鍊；每一顆天然晶石皆有獨一無二的紋理。</span></div>
-        <div className="preset-row" aria-label="一鍵能量搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].name}</button>)}</div>
+        <div className="preset-row" aria-label="一鍵戰力搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].name}</button>)}</div>
         <div className="tabs" aria-label="素材分類">{([["crystal","天然水晶"],["spacer","精緻隔珠"],["charm","專屬吊飾"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => { setTab(id); setQuery(""); }}>{name}</button>)}</div>
         <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "crystal" ? "搜尋水晶名稱…" : "搜尋配件名稱…"} /></label>
         <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>
