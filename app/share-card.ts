@@ -35,22 +35,22 @@ export async function generateShareCard(opts: {
   // backdrop
   const bg = ctx.createLinearGradient(0, 0, 0, H);
   bg.addColorStop(0, "#ffffff");
-  bg.addColorStop(0.62, "#fbfdfc");
-  bg.addColorStop(1, "#edf4f2");
+  bg.addColorStop(0.62, "#faf9f6");
+  bg.addColorStop(1, "#f3f1ec");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
   // brand header
   ctx.textAlign = "center";
-  ctx.fillStyle = "#172929";
+  ctx.fillStyle = "#141414";
   ctx.font = "500 60px Georgia, serif";
   ctx.fillText("O M A", W / 2, 108);
-  ctx.fillStyle = "#159d9b";
+  ctx.fillStyle = "#b8923f";
   ctx.font = "600 24px Arial, sans-serif";
   ctx.fillText("C R Y S T A L", W / 2, 148);
-  ctx.fillStyle = "#8a9c99";
+  ctx.fillStyle = "#6b6b6b";
   ctx.font = "500 17px Arial, sans-serif";
-  ctx.fillText("M A K E   Y O U R   O W N   E N E R G Y   J E W E L R Y", W / 2, 186);
+  ctx.fillText("M A K E   Y O U R   O W N   E N E R G Y", W / 2, 186);
 
   // bracelet ring at true proportions
   const cx = W / 2, cy = 600;
@@ -98,22 +98,22 @@ export async function generateShareCard(opts: {
     ctx.restore();
   });
 
-  // dominant energy in the ring centre
+  // dominant power in the ring centre
   ctx.textAlign = "center";
-  ctx.fillStyle = "#299b98";
+  ctx.fillStyle = "#b8923f";
   ctx.font = "600 18px Arial, sans-serif";
   ctx.fillText("D O M I N A N T   E N E R G Y", cx, cy - 46);
   ctx.save();
   ctx.shadowColor = "rgba(255,215,106,0.85)";
   ctx.shadowBlur = 26;
-  ctx.fillStyle = "#b9891e";
+  ctx.fillStyle = "#8a6d1f";
   ctx.font = "600 64px Georgia, serif";
   ctx.fillText(dominant.en, cx, cy + 22);
   ctx.restore();
   ctx.fillStyle = "#8a6d1f";
   ctx.font = "500 34px Georgia, serif";
   ctx.fillText(dominant.score.toLocaleString(), cx, cy + 68);
-  ctx.fillStyle = "#8ba39f";
+  ctx.fillStyle = "#6b6b6b";
   ctx.font = "500 18px Arial, sans-serif";
   ctx.fillText(`${beads} NATURAL STONES · ${pieces.length} PIECES`, cx, cy + 104);
 
@@ -145,7 +145,7 @@ export async function generateShareCard(opts: {
     ctx.fillStyle = e.color;
     ctx.font = "600 22px Arial, sans-serif";
     ctx.fillText(e.zh, x, y);
-    ctx.fillStyle = "#7d9490";
+    ctx.fillStyle = "#6b6b6b";
     ctx.font = "500 17px Arial, sans-serif";
     ctx.fillText(e.score.toLocaleString(), x, y + 24);
   });
@@ -153,36 +153,36 @@ export async function generateShareCard(opts: {
   // totals (bottom right)
   ctx.textAlign = "left";
   const tx = 560;
-  ctx.fillStyle = "#8a9c99";
+  ctx.fillStyle = "#6b6b6b";
   ctx.font = "600 17px Arial, sans-serif";
   ctx.fillText("TOTAL ENERGY", tx, 1000);
   ctx.save();
   ctx.shadowColor = "rgba(255,215,106,0.6)";
   ctx.shadowBlur = 16;
-  ctx.fillStyle = "#b9891e";
+  ctx.fillStyle = "#8a6d1f";
   ctx.font = "600 54px Georgia, serif";
   ctx.fillText(totalEnergy.toLocaleString(), tx, 1052);
   ctx.restore();
-  ctx.fillStyle = "#8a9c99";
+  ctx.fillStyle = "#6b6b6b";
   ctx.font = "600 17px Arial, sans-serif";
   ctx.fillText("ESTIMATED TOTAL", tx, 1104);
-  ctx.fillStyle = "#0d7f7c";
+  ctx.fillStyle = "#141414";
   ctx.font = "600 46px Georgia, serif";
   ctx.fillText(`NT$ ${priceNTD.toLocaleString()}`, tx, 1152);
-  ctx.fillStyle = "#7d9490";
+  ctx.fillStyle = "#6b6b6b";
   ctx.font = "500 22px Arial, sans-serif";
   ctx.fillText(`手圍 ${wristCm} cm`, tx, 1192);
 
   // footer link bar
   const fy = 1246, fh = 64;
-  ctx.fillStyle = "#143331";
+  ctx.fillStyle = "#141414";
   if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(60, fy, W - 120, fh, 16); ctx.fill(); }
   else ctx.fillRect(60, fy, W - 120, fh);
   ctx.textAlign = "center";
-  ctx.fillStyle = "#ffd76a";
+  ctx.fillStyle = "#c9a355";
   ctx.font = "600 21px Arial, sans-serif";
   const shortUrl = url.replace(/^https?:\/\//, "");
-  ctx.fillText(`✨ 打造你的同款 → ${shortUrl.length > 62 ? shortUrl.slice(0, 60) + "…" : shortUrl}`, W / 2, fy + 40);
+  ctx.fillText(`打造你的同款 → ${shortUrl.length > 62 ? shortUrl.slice(0, 60) + "…" : shortUrl}`, W / 2, fy + 40);
 
   return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"));
 }

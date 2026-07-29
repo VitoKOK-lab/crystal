@@ -9,12 +9,12 @@ export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onCl
     {
       title: "How to Design",
       subtitle: "打造專屬 Crystal Story",
-      description: "透過簡單的拖拽和點擊，創造屬於你的獨特水晶手鍊"
+      description: "透過簡單的拖拽和點擊，創造屬於你的獨特礦石手鍊"
     },
     {
       title: "Choose Material",
       subtitle: "選擇你的素材",
-      description: "瀏覽16種天然水晶和20多種精緻配件，每一種都有獨特的能量特性"
+      description: "瀏覽21種天然礦石和30多種精緻配件，每一種都有獨特的稀有度與屬性強度"
     },
     {
       title: "Rearrange Order",
@@ -22,9 +22,9 @@ export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onCl
       description: "在手鍊上拖拽珠子即可改變位置和順序，找到最完美的組合"
     },
     {
-      title: "View Energy",
+      title: "View Power",
       subtitle: "查看能量矩陣",
-      description: "實時看到你的手鍊設計如何通過不同的能量維度（豐盛、愛情、療癒等）發揮作用"
+      description: "實時看到你的手鍊設計如何通過不同的能量維度（財富、愛情、療癒、守護、專注、力量）發揮作用"
     },
     {
       title: "Save & Share",

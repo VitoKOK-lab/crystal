@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { playConfirmBoom } from "./ui-sound";
 
 export type OrderLine = { key: string; visual: React.ReactNode; name: string; sub: string; qty: number; unit: number };
 type EnergyInfo = { zh: string; en: string; color: string };
@@ -43,12 +44,13 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
     if (Object.keys(errs).length) return;
     setOrderId(`OMA-${Date.now().toString(36).toUpperCase()}`);
     setStep("done");
+    playConfirmBoom();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const orderText = () => [
     `OMA CRYSTAL 訂單 ${orderId}`,
-    `主能量：${dominant.zh} ${dominant.en}（總能量 ${totalEnergy.toLocaleString()}）`,
+    `主屬性：${dominant.zh} ${dominant.en}（總能量 ${totalEnergy.toLocaleString()}）`,
     ...lines.map((l) => `・${l.name} ${l.sub}｜${l.qty} 顆 × NT$${l.unit}`),
     `設計串製費 NT$${baseFee}`,
     shipping ? `運費 NT$${shipping}` : "免運費",
@@ -60,8 +62,9 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
 
   if (step === "done") return <section className="checkout done-view">
     <div className="done-card">
+      <div className="forge-flash" />
       <div className="done-mark">✓</div>
-      <p className="done-eyebrow">ORDER RECEIVED</p>
+      <p className="done-eyebrow">FORGING COMPLETE · 鍛造完成</p>
       <h1>訂單已成立！</h1>
       <div className="done-order-id">{orderId}</div>
       <p className="done-note">感謝你的訂購。珠寶顧問將在 1 個工作天內透過電話或 Email 與你確認手圍、付款與出貨細節。</p>
@@ -71,7 +74,7 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
         <div className="done-line fee"><span /><span className="dl-name">運費</span><span /><b>{shipping ? `NT$ ${shipping}` : "免運"}</b></div>
         <div className="done-line total"><span /><span className="dl-name">合計</span><span /><b>NT$ {grand.toLocaleString()}</b></div>
       </div>
-      <div className="done-energy">此手鍊的主能量 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b>・總能量 <em>{totalEnergy.toLocaleString()}</em></div>
+      <div className="done-energy">此手鍊的主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b>・總能量 <em>{totalEnergy.toLocaleString()}</em></div>
       <div className="done-actions">
         <button className="co-secondary" onClick={() => navigator.clipboard?.writeText(orderText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "已複製 ✓" : "複製訂單明細"}</button>
         <button className="co-primary" onClick={onBack}>回到設計工作室</button>
@@ -85,7 +88,7 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
       <aside className="co-summary">
         <p className="co-eyebrow">ORDER SUMMARY</p>
         <h2>你的專屬手鍊</h2>
-        <div className="co-energy-chip">主能量 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b><em>TOTAL ENERGY {totalEnergy.toLocaleString()}</em></div>
+        <div className="co-energy-chip">主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b><em>TOTAL ENERGY {totalEnergy.toLocaleString()}</em></div>
         <div className="co-lines">
           {lines.map((l) => <div className="co-line" key={l.key}>
             <span className="co-visual">{l.visual}</span>

@@ -1,29 +1,31 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { stonePhotos } from "./catalog";
+import { SERIES } from "./series";
 
 // Crystal thumbnails used purely for the showcase strip below the fold.
+// Paths come from the catalogue so men's-line and shared assets resolve
+// correctly without this file tracking which lives where.
 const SHOWCASE = [
-  ["rose", "粉水晶", "愛與關係"],
-  ["citrine", "黃水晶", "豐盛"],
-  ["amethyst", "紫水晶", "守護"],
+  ["rose", "粉水晶", "愛情"],
   ["aqua", "海藍寶", "療癒"],
-  ["tiger", "虎眼石", "行動"],
-  ["labradorite", "拉長石", "守護"],
+  ["amethyst", "紫水晶", "守護"],
+  ["citrine", "黃水晶", "財富"],
   ["moon", "月光石", "療癒"],
-  ["garnet", "石榴石", "行動"],
+  ["labradorite", "拉長石", "守護"],
+  ["obsidian", "切面黑曜石", "守護"],
+  ["tiger-eye", "切面虎眼石", "財富"],
+  ["hematite", "切面赤鐵礦", "守護"],
+  ["goldstone", "切面金沙石", "財富"],
+  ["garnet", "石榴石", "力量"],
+  ["lava", "圓珠消光火山岩", "力量"],
 ] as const;
 
 const FEATURES = [
-  { title: "16 款天然水晶", body: "每一顆晶石都有獨特的能量屬性與紋理，從粉水晶到拉長石，任你自由組合。" },
-  { title: "即時能量矩陣", body: "六維能量雷達即時運算——豐盛、愛情、療癒、守護、清晰、活力，設計看得見成效。" },
-  { title: "360° 實體手感", body: "自由翻轉、軟繩晃動、珠子碰撞出聲——下單前就能感受戴在手上的真實質地。" },
-] as const;
-
-const PRESET_TEASERS = [
-  { name: "金錢豐盛", body: "黃水晶＋虎眼石，招財聚氣", swatch: "citrine" },
-  { name: "愛情桃花", body: "粉水晶＋薔薇輝石，溫柔靠近", swatch: "rose" },
-  { name: "事業衝勁", body: "太陽石＋青金石，果斷前行", swatch: "sunstone" },
+  { title: "4 大系列 · 48 款配置", body: "綻放、澄澈、極光與曜石，每個系列 12 款事先配好的規格品，看上就能直接下單。" },
+  { title: "21 款天然礦石自由搭配", body: "37 款隔珠與吊飾全系列共用，任何一條規格品都能按「微客制」拆開重配。" },
+  { title: "即時能量矩陣", body: "六維雷達即時運算——財富、愛情、療癒、守護、專注、力量，設計看得見成效。" },
 ] as const;
 
 // Fades + lifts each [data-reveal] section in as it enters the viewport —
@@ -44,12 +46,15 @@ function useScrollReveal() {
   return rootRef;
 }
 
-export default function Home({ onStart }: { onStart: () => void }) {
+export default function Home({ onStart, onShop }: { onStart: () => void; onShop: (seriesId?: string) => void }) {
   const rootRef = useScrollReveal();
   return <div className="landing" ref={rootRef}>
     <header className="landing-nav">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
-      <button className="landing-nav-cta" onClick={onStart}>開始設計</button>
+      <div className="landing-nav-links">
+        <button className="landing-nav-quiet" onClick={() => onShop()}>系列商品</button>
+        <button className="landing-nav-cta" onClick={onStart}>開始設計</button>
+      </div>
     </header>
 
     <section className="landing-hero" id="landing-top">
@@ -57,16 +62,40 @@ export default function Home({ onStart }: { onStart: () => void }) {
       <div className="landing-hero-copy">
         <p>MAKE YOUR OWN ENERGY JEWELRY</p>
         <h1>WEAR YOUR<br />INTENTION</h1>
-        <span>用天然水晶串出屬於你的能量手鍊，一顆一顆，都是自己的選擇。</span>
-        <button className="landing-cta" onClick={onStart}>開始設計我的手鍊 <i>→</i></button>
+        <span>四個系列、48 款配好的規格品，女款男款共用同一個材料庫。挑一條直接帶走，或按「微客制」改成只屬於你的那條。</span>
+        <div className="landing-hero-actions">
+          <button className="landing-cta" onClick={() => onShop()}>逛系列商品 <i>→</i></button>
+          <button className="landing-cta ghost" onClick={onStart}>從空白開始設計</button>
+        </div>
       </div>
       <div className="landing-scroll-hint"><i /></div>
+    </section>
+
+    <section className="landing-series" data-reveal>
+      <p className="landing-eyebrow">THE COLLECTIONS</p>
+      <h2>四個系列，各有 12 款配置</h2>
+      <span className="ls-note">每一款都事先配好比例與手圍，可以直接下單，也可以進工作室繼續調整。</span>
+      <div className="landing-series-grid">
+        {SERIES.map((s) => <button
+          className="lsr-card"
+          key={s.id}
+          style={{ "--series-accent": s.accent } as React.CSSProperties}
+          onClick={() => onShop(s.id)}
+        >
+          <img src={stonePhotos[s.swatch]} alt="" className="lsr-swatch" />
+          <span className="lsr-badge">{s.audience === "men" ? "男款" : "女款"}</span>
+          <b>{s.zh}</b>
+          <i>{s.en}</i>
+          <p>{s.tagline}</p>
+          <span className="lsr-arrow">12 款配置 →</span>
+        </button>)}
+      </div>
     </section>
 
     <section className="landing-features" data-reveal>
       <div className="landing-features-head">
         <p className="landing-eyebrow">WHY OMA</p>
-        <h2>不只是手鍊，<br />是每天的儀式</h2>
+        <h2>不只是手鍊，<br />是每天的自我校準</h2>
       </div>
       <div className="landing-feature-list">
         {FEATURES.map((f, i) => <div className="landing-feature-row" key={f.title}>
@@ -76,24 +105,12 @@ export default function Home({ onStart }: { onStart: () => void }) {
       </div>
     </section>
 
-    <section className="landing-presets" data-reveal>
-      <p className="landing-eyebrow">ONE-TAP RECIPES</p>
-      <h2>沒有靈感？試試一鍵能量配方</h2>
-      <div className="landing-preset-list">
-        {PRESET_TEASERS.map((p) => <button className="landing-preset" key={p.name} onClick={onStart}>
-          <img src={`/materials/${p.swatch}.png`} alt="" className="lp-swatch" />
-          <span className="lp-text"><b>{p.name}</b><i>{p.body}</i></span>
-          <span className="lp-arrow">前往設計 →</span>
-        </button>)}
-      </div>
-    </section>
-
     <section className="landing-showcase" data-reveal>
-      <p className="landing-eyebrow">THE COLLECTION</p>
-      <h2>16 款天然水晶，任你搭配</h2>
+      <p className="landing-eyebrow">THE MATERIALS</p>
+      <h2>21 款天然礦石，全系列共用</h2>
       <div className="landing-showcase-grid">
         {SHOWCASE.map(([id, zh, group]) => <div className="ls-item" key={id}>
-          <img src={`/materials/${id}.png`} alt={zh} />
+          <img src={stonePhotos[id]} alt={zh} />
           <b>{zh}</b>
           <span>{group}</span>
         </div>)}
@@ -102,13 +119,13 @@ export default function Home({ onStart }: { onStart: () => void }) {
 
     <section className="landing-quote" data-reveal>
       <p>THE OMA ATELIER</p>
-      <h2>多一份用心，<br />讓每天的配戴成為一次自我祝福。</h2>
-      <button className="landing-cta light" onClick={onStart}>開始設計我的手鍊 <i>→</i></button>
+      <h2>多一份克制，<br />讓每天的配戴成為一次自我校準。</h2>
+      <button className="landing-cta light" onClick={() => onShop()}>逛系列商品 <i>→</i></button>
     </section>
 
     <footer className="landing-footer">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
-      <span>© {new Date().getFullYear() || 2026} OMA CRYSTAL · MAKE YOUR OWN ENERGY JEWELRY</span>
+      <span>© {new Date().getFullYear() || 2026} OMA CRYSTAL</span>
     </footer>
   </div>;
 }
