@@ -588,3 +588,9 @@ button,input { font:inherit; } button { cursor:pointer; }
 .wrist-hint:hover { background:#8a6d1f; border-color:#8a6d1f; color:#fff; }
 @keyframes wrist-hint-in { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:none; } }
 @media (max-width:560px) { .wrist-hint { padding:2px 6px; font-size:8px; } }
+
+/* Blocked-add feedback: the wrist selector is the thing that has to change,
+   so point at it rather than leaving the reason only in the notice bar. */
+.wrist-alert .wrist-select { border-bottom:1.5px solid #c44848; color:#c44848; }
+.wrist-alert { animation:wrist-shake .45s ease; }
+@keyframes wrist-shake { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-4px); } 40% { transform:translateX(4px); } 60% { transform:translateX(-2px); } 80% { transform:translateX(2px); } }

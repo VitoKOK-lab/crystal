@@ -124,6 +124,7 @@ export default function Home() {
   const [wristCm, setWristCm] = useState(DEFAULT_WRIST);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
+  const [wristAlert, setWristAlert] = useState(false);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -157,21 +158,24 @@ export default function Home() {
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
   const strandMM = useMemo(() => items.reduce((sum, it) => sum + itemMM(it), 0), [items]);
   const capacityMM = wristCm * 10;
-  // Adding always succeeds while the max wrist can hold it: the wrist grows
-  // automatically to fit. Shrinking is only ever done by hand via the selector.
+  // The wrist is a hard limit, never something adding a bead can move. It used
+  // to grow itself to fit, which meant a customer could hold down a material
+  // and walk the bracelet up to 22 cm without ever deciding to — the size has
+  // to stay an explicit choice, because it is what has to fit their arm. So a
+  // bead that does not fit is refused, and they change the wrist first.
   const add = (item: DesignItem) => {
     const needMM = strandMM + itemMM(item);
-    let cm = wristCm;
-    if (needMM > cm * 10) {
-      const grown = WRIST_CHOICES.find((c) => c * 10 >= needMM);
-      if (!grown) { setNotice(`已達最大手圍 ${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm，放不下${label(item)}了，請先移除部分素材。`); return; }
-      cm = grown; setWristCm(grown);
+    if (needMM > wristCm * 10) {
+      const next = WRIST_CHOICES.find((c) => c * 10 >= needMM);
+      setWristAlert(true);
+      setNotice(next
+        ? `${wristCm} cm 放不下${label(item)}了 — 請先把手圍改成 ${next} cm，或移除一些素材`
+        : `已達最大手圍 ${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm，放不下${label(item)}了，請先移除部分素材`);
+      return;
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
     playClaspClick(true);
-    setNotice(cm !== wristCm
-      ? `${wristCm} cm 放不下了，手圍已改為 ${cm} cm — 記得確認這是你的實際手圍`
-      : `已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${(needMM / 10).toFixed(1)} / ${cm} cm`);
+    setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${(needMM / 10).toFixed(1)} / ${wristCm} cm`);
   };
   const shareDesign = async () => {
     if (!items.length) { setNotice("先加入素材，再分享你的設計！"); return; }
@@ -214,9 +218,10 @@ export default function Home() {
     setItems(built);
     setNotice(`已為你搭配「${preset.name}」，可再自由調整`);
   };
+  useEffect(() => { if (!wristAlert) return; const t = setTimeout(() => setWristAlert(false), 2000); return () => clearTimeout(t); }, [wristAlert]);
   const changeWrist = (cm: number) => {
     if (strandMM > cm * 10) { setNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
-    setWristCm(cm); setNotice(`手圍已設定為 ${cm} cm`);
+    setWristCm(cm); setWristAlert(false); setNotice(`手圍已設定為 ${cm} cm`);
   };
   const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); setNotice(`已移除 ${label(item)}`); } };
   const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
@@ -290,7 +295,7 @@ export default function Home() {
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
-        <div className="canvas-top"><div className="stats"><span><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span>{nearFull && <button className="wrist-hint" onClick={() => changeWrist(nextWrist as number)}>快滿了 · 改 {nextWrist} cm</button>}</span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span>{nearFull && <button className="wrist-hint" onClick={() => changeWrist(nextWrist as number)}>快滿了 · 改 {nextWrist} cm</button>}</span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
