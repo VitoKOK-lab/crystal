@@ -24,8 +24,10 @@ const SHOWCASE = [
 
 // Women's clip leads, then the second women's, then the men's. Each still is
 // the exact frame its clip opens on, so a swap never flashes a different scene.
+// `pos` is the landscape crop; bloom centres its bracelet, so it needs to sit
+// further right than the other two to clear the bottom-left copy.
 const HERO_CLIPS = [
-  { id: "bloom", still: "/banners/bloom.jpg", stillV: "/video/hero-bloom-v.jpg" },
+  { id: "bloom", still: "/video/hero-bloom.jpg", stillV: "/video/hero-bloom-v.jpg", pos: "22% 30%" },
   { id: "serene", still: "/banners/serene.jpg", stillV: "/video/hero-serene-v.jpg" },
   { id: "bedrock", still: "/banners/bedrock.jpg", stillV: "/video/hero-bedrock-v.jpg" },
 ] as const;
@@ -85,6 +87,7 @@ function HeroMedia() {
       key={c.id}
       ref={(el) => { refs.current[i] = el; }}
       className={`landing-hero-video ${i === active ? "on" : ""}`}
+      style={"pos" in c ? ({ "--hero-pos": c.pos } as React.CSSProperties) : undefined}
       autoPlay={i === 0}
       muted
       playsInline

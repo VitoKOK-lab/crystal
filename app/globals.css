@@ -352,12 +352,15 @@ button,input { font:inherit; } button { cursor:pointer; }
 .landing-nav-cta:hover { background:#2a2a2a; transform:translateY(-1px); }
 
 .landing-hero { position:relative; height:100svh; min-height:560px; overflow:hidden; }
-.landing-hero img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:70% 24%; }
-/* Two scrims: the original top-to-bottom fade, plus a left-hand one. The
-   video is far brighter than the still it replaced, and the eyebrow and
-   body copy sit bottom-left over moving white water — without the second
-   layer they wash out as the clip plays. */
-.landing-hero:before { content:""; position:absolute; inset:0; z-index:1; background:linear-gradient(200deg,#0806040a 8%,#080604c9 62%,#080604ee),linear-gradient(78deg,#080604b8 0 34%,#08060466 52%,transparent 70%); }
+/* First paint and the no-video fallback. It always shows the first clip's
+   still, so it takes that clip's crop — otherwise the frame jumps when the
+   video fades in over it. */
+.landing-hero img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:22% 30%; }
+/* Two scrims: a top-to-bottom fade, plus a left-hand one. The copy sits
+   bottom-left, so the left scrim does most of the legibility work and the
+   vertical one can stay light through the middle of the frame — that band
+   is where the bracelet lives, and crushing it there hid the product. */
+.landing-hero:before { content:""; position:absolute; inset:0; z-index:1; background:linear-gradient(200deg,#08060400 12%,#0806045c 52%,#080604c4 79%,#080604ee),linear-gradient(78deg,#080604c4 0 32%,#08060470 50%,transparent 68%); }
 .landing-hero-copy { position:relative; z-index:2; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; height:100%; max-width:640px; padding:0 clamp(22px,6vw,88px) clamp(70px,12vh,140px); }
 .landing-hero-copy p { margin:0 0 18px; color:#e3c179; font-size:11px; letter-spacing:.34em; }
 .landing-hero-copy h1 { margin:0 0 22px; color:#fff; font:600 clamp(40px,7.2vw,74px)/1.08 Georgia,serif; letter-spacing:.03em; text-shadow:0 10px 34px #00000040; }
@@ -607,7 +610,10 @@ button,input { font:inherit; } button { cursor:pointer; }
 /* ── Hero video ──────────────────────────────────────────────────── */
 /* Sits over the still, which stays as the first paint and the fallback.
    Muted + playsInline are what let it autoplay on iOS at all. */
-.landing-hero-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:70% 24%; opacity:0; transition:opacity .9s ease; }
+/* Each clip frames its subject differently, so the crop is per-clip; 70% 24%
+   is what the original two were cut for. Mobile overrides this wholesale
+   below, since the vertical cuts are already framed for a tall viewport. */
+.landing-hero-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:var(--hero-pos,70% 24%); opacity:0; transition:opacity .9s ease; }
 .landing-hero-video.on { opacity:1; }
 @media (prefers-reduced-motion: reduce) { .landing-hero-video { display:none; } }
 
