@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { playConfirmBoom } from "./ui-sound";
 
 export type OrderLine = { key: string; visual: React.ReactNode; name: string; sub: string; qty: number; unit: number };
 type EnergyInfo = { zh: string; en: string; color: string };
@@ -43,6 +44,7 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
     if (Object.keys(errs).length) return;
     setOrderId(`OMA-${Date.now().toString(36).toUpperCase()}`);
     setStep("done");
+    playConfirmBoom();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

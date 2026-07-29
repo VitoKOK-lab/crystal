@@ -12,6 +12,7 @@ import DesignGuide from "./design-guide";
 import LandingHome from "./home";
 import Preview, { type PreviewPiece } from "./preview";
 import { generateShareCard } from "./share-card";
+import { playClaspClick } from "./ui-sound";
 
 type EnergyType = "wealth" | "will" | "decision" | "protection" | "focus" | "power";
 type Rarity = "common" | "rare" | "legendary";
@@ -337,6 +338,7 @@ export default function Home() {
       cm = grown; setWristCm(grown);
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
+    playClaspClick(true);
     setNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}${cm !== wristCm ? `・手圍自動放大為 ${cm} cm` : `・已串 ${(needMM / 10).toFixed(1)} / ${cm} cm`}`);
   };
   const shareDesign = async () => {
@@ -384,7 +386,7 @@ export default function Home() {
     if (strandMM > cm * 10) { setNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材。`); return; }
     setWristCm(cm); setNotice(`手圍已設定為 ${cm} cm`);
   };
-  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); setNotice(`已移除 ${label(item)}`); } };
+  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); setNotice(`已移除 ${label(item)}`); } };
   const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
   // Live reorder while dragging: map the pointer angle to a millimetre
   // position along the strand and insert the bead between the pieces whose
