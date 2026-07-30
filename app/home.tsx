@@ -32,9 +32,10 @@ const HERO_CLIPS = [
   { id: "bedrock", still: "/banners/bedrock.jpg", stillV: "/video/hero-bedrock-v.jpg" },
 ] as const;
 
-// Phones get a natively vertical cut; wide viewports get the landscape one.
-// The browser downloads only the matching file, so shipping both costs no
-// visitor any extra bytes.
+// Phones get a 9:10 window cut out of the same landscape footage, centred on
+// the bracelet — letting the browser crop a 16:9 clip into a phone-shaped box
+// instead would show a quarter of the width and blow it up past 3x. The
+// browser downloads only the matching file, so shipping both costs nothing.
 const HERO_PORTRAIT_Q = "(max-width:560px)";
 
 // Crossfades through the clips. Only the playing clip and the one after it are
@@ -81,7 +82,10 @@ function HeroMedia() {
     refs.current[active]?.play().catch(() => {});
   }, [portrait]);
 
-  return <>
+  // The wrapper is what lets phones give the footage its own band with the copy
+  // underneath, instead of stacking type over the bracelet. On wide viewports
+  // it just fills the hero, so the overlay layout is unchanged.
+  return <div className="landing-hero-media">
     <img src={portrait ? HERO_CLIPS[0].stillV : HERO_CLIPS[0].still} alt="OMA CRYSTAL 水晶手鍊，溪邊自然情境" />
     {HERO_CLIPS.map((c, i) => <video
       key={c.id}
@@ -104,7 +108,7 @@ function HeroMedia() {
         <source src={`/video/hero-${c.id}.mp4`} type="video/mp4" />
       </>}
     </video>)}
-  </>;
+  </div>;
 }
 
 const FEATURES = [

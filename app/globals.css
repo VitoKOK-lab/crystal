@@ -352,6 +352,9 @@ button,input { font:inherit; } button { cursor:pointer; }
 .landing-nav-cta:hover { background:#2a2a2a; transform:translateY(-1px); }
 
 .landing-hero { position:relative; height:100svh; min-height:560px; overflow:hidden; }
+/* Holds the crossfading clip stack. Fills the hero on wide viewports; phones
+   give it its own 4:5 band and flow the copy after it (see the phone block). */
+.landing-hero-media { position:absolute; inset:0; }
 /* First paint and the no-video fallback. It always shows the first clip's
    still, so it takes that clip's crop — otherwise the frame jumps when the
    video fades in over it. */
@@ -618,17 +621,24 @@ button,input { font:inherit; } button { cursor:pointer; }
 @media (prefers-reduced-motion: reduce) { .landing-hero-video { display:none; } }
 
 /* ── Hero on phones ──────────────────────────────────────────────── */
-/* Portrait crops a 16:9 clip to a narrow band, and the copy block plus the
-   landscape-tuned scrim were together covering almost all of it. Shrink the
-   type, drop the left-hand scrim (it exists for wide viewports), and start
-   the fade lower so the top third of the frame is clean video. */
+/* No overlay here. Type over a 4:5 frame of a bracelet leaves nowhere for the
+   type to go that isn't on top of the product, so the footage gets its own
+   band and the copy sits underneath it. That also lets the hero size to its
+   contents instead of 100svh, so the next section peeks in and reads as
+   scrollable. The clips are pre-cut to 9:10 with the bracelet centred, so no
+   crop offset is needed — cover has nothing left to trim. */
 @media (max-width:560px) {
-  .landing-hero:before { background:linear-gradient(180deg,#08060400 0 32%,#0806049e 60%,#080604ea); }
-  .landing-hero img, .landing-hero-video { object-position:50% 38%; }
-  .landing-hero-copy { padding:0 20px clamp(34px,6vh,58px); }
-  .landing-hero-copy p { margin-bottom:11px; font-size:9px; letter-spacing:.22em; }
-  .landing-hero-copy h1 { margin-bottom:13px; font-size:clamp(32px,10vw,42px); }
-  .landing-hero-copy span { font-size:11px; line-height:1.7; }
-  .landing-hero-actions { gap:8px; margin-top:16px; }
+  .landing-hero { height:auto; min-height:0; background:#080604; }
+  .landing-hero:before { display:none; }
+  .landing-hero-media { position:relative; inset:auto; width:100%; aspect-ratio:9/10; }
+  /* Melt the bottom edge into the page so the band isn't a hard-edged box. */
+  .landing-hero-media:after { content:""; position:absolute; inset:auto 0 0 0; height:22%; background:linear-gradient(#08060400,#080604); pointer-events:none; }
+  .landing-hero img, .landing-hero-video { object-position:50% 50%; }
+  .landing-hero-copy { position:relative; height:auto; max-width:none; justify-content:flex-start; padding:18px 20px 40px; }
+  .landing-hero-copy p { margin-bottom:9px; font-size:8.5px; letter-spacing:.22em; }
+  .landing-hero-copy h1 { margin-bottom:11px; font-size:clamp(25px,7.4vw,31px); }
+  .landing-hero-copy > span { max-width:none; margin-bottom:0; font-size:11.5px; line-height:1.75; }
+  .landing-hero-actions { gap:8px; margin-top:18px; }
   .landing-hero-actions .landing-cta { padding:12px 16px; font-size:11px; }
+  .landing-scroll-hint { display:none; }
 }
