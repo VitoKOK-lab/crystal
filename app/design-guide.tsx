@@ -7,29 +7,29 @@ export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onCl
 
   const steps = [
     {
-      title: "How to Design",
-      subtitle: "打造專屬 Crystal Story",
-      description: "透過簡單的拖拽和點擊，創造屬於你的獨特礦石手鍊"
+      title: "Begin With One",
+      subtitle: "從一顆開始",
+      description: "不用先想好整條的樣子。挑一顆你此刻想要的，其餘的會慢慢長出來。"
     },
     {
-      title: "Choose Material",
-      subtitle: "選擇你的素材",
-      description: "瀏覽21種天然礦石和30多種精緻配件，每一種都有獨特的稀有度與屬性強度"
+      title: "Choose Your Stones",
+      subtitle: "選你想要的礦石",
+      description: "21 款天然礦石、37 款隔珠與吊飾。每一種的稀有度與能量強度都不一樣，喜歡的就先放上去。"
     },
     {
-      title: "Rearrange Order",
-      subtitle: "調整排列順序",
-      description: "在手鍊上拖拽珠子即可改變位置和順序，找到最完美的組合"
+      title: "Move Them Around",
+      subtitle: "換到對的位置",
+      description: "按住珠子拖曳就能換位置。哪一顆貼著手腕內側，只有你會知道——那是給自己留的。"
     },
     {
-      title: "View Power",
-      subtitle: "查看能量矩陣",
-      description: "實時看到你的手鍊設計如何通過不同的能量維度（財富、愛情、療癒、守護、專注、力量）發揮作用"
+      title: "See What You're Wearing",
+      subtitle: "看見你戴的是什麼",
+      description: "六個維度即時運算：財富、愛情、療癒、守護、專注、力量。你在意什麼，戴上之前就看得出來。"
     },
     {
-      title: "Save & Share",
-      subtitle: "保存並分享",
-      description: "完成設計後，保存你的創作並與朋友分享這份獨特的能量禮物"
+      title: "Keep It, Or Share It",
+      subtitle: "留著，或送出去",
+      description: "配好之後可以直接下單，也可以把設計連結分享出去——讓在意你的人知道你正在往哪裡走。"
     }
   ];
 

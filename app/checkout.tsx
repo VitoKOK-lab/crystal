@@ -64,10 +64,10 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
     <div className="done-card">
       <div className="forge-flash" />
       <div className="done-mark">✓</div>
-      <p className="done-eyebrow">FORGING COMPLETE · 鍛造完成</p>
-      <h1>訂單已成立！</h1>
+      <p className="done-eyebrow">RITUAL COMPLETE · 圓滿</p>
+      <h1>你的手鍊，開始成形了</h1>
       <div className="done-order-id">{orderId}</div>
-      <p className="done-note">感謝你的訂購。珠寶顧問將在 1 個工作天內透過電話或 Email 與你確認手圍、付款與出貨細節。</p>
+      <p className="done-note">謝謝你把這條交給我們。珠寶顧問會在 1 個工作天內與你確認手圍、付款與出貨細節——在那之前，什麼都還可以改。</p>
       <div className="done-summary">
         {lines.map((l) => <div className="done-line" key={l.key}><span className="dl-visual">{l.visual}</span><span className="dl-name">{l.name}<i>{l.sub}</i></span><span className="dl-qty">× {l.qty}</span><b>NT$ {(l.unit * l.qty).toLocaleString()}</b></div>)}
         <div className="done-line fee"><span /><span className="dl-name">設計串製費</span><span /><b>NT$ {baseFee.toLocaleString()}</b></div>
@@ -77,17 +77,17 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
       <div className="done-energy">此手鍊的主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b>・總能量 <em>{totalEnergy.toLocaleString()}</em></div>
       <div className="done-actions">
         <button className="co-secondary" onClick={() => navigator.clipboard?.writeText(orderText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "已複製 ✓" : "複製訂單明細"}</button>
-        <button className="co-primary" onClick={onBack}>回到設計工作室</button>
+        <button className="co-primary" onClick={onBack}>回到工作室</button>
       </div>
     </div>
   </section>;
 
   return <section className="checkout">
-    <button className="co-back" onClick={onBack}>← 返回設計</button>
+    <button className="co-back" onClick={onBack}>← 回去再調整</button>
     <div className="co-grid">
       <aside className="co-summary">
         <p className="co-eyebrow">ORDER SUMMARY</p>
-        <h2>你的專屬手鍊</h2>
+        <h2>為你而生的這一條</h2>
         <div className="co-energy-chip">主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b><em>TOTAL ENERGY {totalEnergy.toLocaleString()}</em></div>
         <div className="co-lines">
           {lines.map((l) => <div className="co-line" key={l.key}>
@@ -105,8 +105,8 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
         </div>
       </aside>
       <div className="co-form">
-        <p className="co-eyebrow">02 — CHECKOUT</p>
-        <h2>收件資訊</h2>
+        <p className="co-eyebrow">02 — CHECKOUT · 完成訂購</p>
+        <h2>寄到哪裡 Delivery</h2>
         <div className="co-fields">
           <label className={errors.name ? "err" : ""}><span>收件人姓名 *</span><input value={form.name} onChange={set("name")} placeholder="王小明" autoComplete="name" />{errors.name && <em>{errors.name}</em>}</label>
           <label className={errors.phone ? "err" : ""}><span>手機號碼 *</span><input value={form.phone} onChange={set("phone")} placeholder="0912345678" inputMode="numeric" autoComplete="tel" />{errors.phone && <em>{errors.phone}</em>}</label>
@@ -115,14 +115,14 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
           <label className={`co-wide ${errors.address ? "err" : ""}`}><span>收件地址 *</span><input value={form.address} onChange={set("address")} placeholder="縣市、區、路街巷弄門牌樓層" autoComplete="street-address" />{errors.address && <em>{errors.address}</em>}</label>
           <label className="co-wide"><span>備註（選填）</span><textarea value={form.note} onChange={set("note")} rows={2} placeholder="包裝需求、指定到貨時段…" /></label>
         </div>
-        <h2 className="co-pay-title">付款方式</h2>
+        <h2 className="co-pay-title">付款方式 Payment</h2>
         <div className="co-payments">
           {PAYMENTS.map((p) => <button key={p.id} type="button" className={`co-pay ${payment === p.id ? "active" : ""}`} onClick={() => setPayment(p.id)}>
             <b>{p.name}</b><i>{p.note}</i>
           </button>)}
         </div>
         <button className="co-primary co-submit" onClick={submit}>確認下單 · NT$ {grand.toLocaleString()} <span>→</span></button>
-        <p className="co-tip">送出後由珠寶顧問與你確認細節，確認前不會請款。</p>
+        <p className="co-tip">送出後由珠寶顧問與你確認細節，確認前不會請款。慢慢想，不急。</p>
       </div>
     </div>
   </section>;

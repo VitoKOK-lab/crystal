@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Starter Project",
-  description: "A clean starting point for building your site.",
+  title: "OMA CRYSTAL — 能量水晶手鍊 · Crystal Rituals for Becoming",
+  description: "為身心靈而生的天然水晶手鍊。八個系列、96 款已為你配好的配置，或親手為自己串一條。Handmade crystal bracelets for healing, beauty, and becoming.",
   other: {
     "codex-preview": "development",
   },

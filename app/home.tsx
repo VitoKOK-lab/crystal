@@ -112,9 +112,9 @@ function HeroMedia() {
 }
 
 const FEATURES = [
-  { title: "8 大系列 · 96 款配置", body: "從綻放、澄澈到磐岩、疾行，每個系列 12 款事先配好的規格品，看上就能直接下單。" },
-  { title: "細繩、正常、大顆任你選", body: "8mm 細繩款、10mm 正常款到 20mm 大顆款都有，21 款礦石與 37 款配件全系列共用。" },
-  { title: "即時能量矩陣", body: "六維雷達即時運算——財富、愛情、療癒、守護、專注、力量，設計看得見成效。" },
+  { en: "CHOSEN FOR YOU", title: "已經替你想過了", body: "八個系列、96 款配置，從 8mm 細繩到 20mm 大顆。不知道從哪裡開始的時候，就從別人替你想過的地方開始。" },
+  { en: "MADE BY YOUR HAND", title: "也可以親手為自己串", body: "21 款天然礦石、37 款隔珠與吊飾自由重組。哪一顆貼著手腕內側只有你知道——那是給自己的，不是給別人看的。" },
+  { en: "SEEN, NOT GUESSED", title: "心願看得見", body: "財富、愛情、療癒、守護、專注、力量，六個維度即時運算。你在意什麼，戴上之前就看得出來。" },
 ] as const;
 
 // Fades + lifts each [data-reveal] section in as it enters the viewport —
@@ -149,21 +149,22 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     <section className="landing-hero" id="landing-top">
       <HeroMedia />
       <div className="landing-hero-copy">
-        <p>MAKE YOUR OWN ENERGY JEWELRY</p>
-        <h1>WEAR YOUR<br />INTENTION</h1>
-        <span>八個系列、96 款配好的規格品，女款男款共用同一個材料庫。挑一條直接帶走，或按「微客制」改成只屬於你的那條。</span>
+        <p>RITUALS FOR BECOMING · 成為的儀式</p>
+        <h1>WEAR YOUR<br />BECOMING</h1>
+        <span className="hero-lede">戴上你正在成為的那個自己</span>
+        <span>療癒不是把自己修好，是把本來就在的光重新戴回身上。八個系列、96 款已經配好的能量手鍊，挑一條開始，或親手為自己串一條。</span>
         <div className="landing-hero-actions">
-          <button className="landing-cta" onClick={() => onShop()}>逛系列商品 <i>→</i></button>
-          <button className="landing-cta ghost" onClick={onStart}>從空白開始設計</button>
+          <button className="landing-cta" onClick={() => onShop()}>探索系列 <i>→</i></button>
+          <button className="landing-cta ghost" onClick={onStart}>親手為自己串一條</button>
         </div>
       </div>
       <div className="landing-scroll-hint"><i /></div>
     </section>
 
     <section className="landing-series" data-reveal>
-      <p className="landing-eyebrow">THE COLLECTIONS</p>
-      <h2>八個系列，各有 12 款配置</h2>
-      <span className="ls-note">每個系列有自己的主題與配法——有的全是 8mm 細繩，有的全用 20mm 大顆。可以直接下單，也可以進工作室繼續調整。</span>
+      <p className="landing-eyebrow">THE COLLECTIONS · 八個系列</p>
+      <h2>每個系列，<br />對應你正在經歷的一種狀態</h2>
+      <span className="ls-note">有的替你擋掉不屬於你的雜訊，有的陪你把心慢慢軟下來。可以直接帶走一條，也可以進工作室改成只屬於你的比例。</span>
       <div className="landing-series-grid">
         {SERIES.map((s) => <button
           className="lsr-card"
@@ -175,8 +176,8 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
             <img src={s.banner} alt="" />
             <img src={stonePhotos[s.swatch]} alt="" className="lsr-swatch" />
           </span>
-          <span className="lsr-badge">{s.audience === "men" ? "男款" : "女款"}</span>
-          <span className="lsr-theme">{s.theme}</span>
+          <span className="lsr-badge">{s.audience === "men" ? "FOR HIM 男款" : "FOR HER 女款"}</span>
+          <span className="lsr-theme">{s.themeEn} · {s.theme}</span>
           <b>{s.zh}</b>
           <i>{s.en}</i>
           <p>{s.craft}</p>
@@ -187,20 +188,20 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
 
     <section className="landing-features" data-reveal>
       <div className="landing-features-head">
-        <p className="landing-eyebrow">WHY OMA</p>
-        <h2>不只是手鍊，<br />是每天的自我校準</h2>
+        <p className="landing-eyebrow">WHY OMA · 為什麼是 OMA</p>
+        <h2>不只是配飾，<br />是每天對自己的一次確認</h2>
       </div>
       <div className="landing-feature-list">
         {FEATURES.map((f, i) => <div className="landing-feature-row" key={f.title}>
           <span className="lf-index">{String(i + 1).padStart(2, "0")}</span>
-          <div className="lf-body"><b>{f.title}</b><p>{f.body}</p></div>
+          <div className="lf-body"><i className="lf-en">{f.en}</i><b>{f.title}</b><p>{f.body}</p></div>
         </div>)}
       </div>
     </section>
 
     <section className="landing-showcase" data-reveal>
-      <p className="landing-eyebrow">THE MATERIALS</p>
-      <h2>21 款天然礦石，全系列共用</h2>
+      <p className="landing-eyebrow">THE MATERIALS · 21 款天然礦石</p>
+      <h2>每一顆，<br />都帶著自己的紋理來</h2>
       <div className="landing-showcase-grid">
         {SHOWCASE.map(([id, zh, group]) => <div className="ls-item" key={id}>
           <img src={stonePhotos[id]} alt={zh} />
@@ -211,9 +212,9 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     </section>
 
     <section className="landing-quote" data-reveal>
-      <p>THE OMA ATELIER</p>
-      <h2>多一份克制，<br />讓每天的配戴成為一次自我校準。</h2>
-      <button className="landing-cta light" onClick={() => onShop()}>逛系列商品 <i>→</i></button>
+      <p>THE OMA ATELIER · 手作工坊</p>
+      <h2>慢一點，<br />讓每天的配戴成為一次回到自己。</h2>
+      <button className="landing-cta light" onClick={() => onShop()}>探索系列 <i>→</i></button>
     </section>
 
     <footer className="landing-footer">

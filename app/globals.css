@@ -368,6 +368,8 @@ button,input { font:inherit; } button { cursor:pointer; }
 .landing-hero-copy p { margin:0 0 18px; color:#e3c179; font-size:11px; letter-spacing:.34em; }
 .landing-hero-copy h1 { margin:0 0 22px; color:#fff; font:600 clamp(40px,7.2vw,74px)/1.08 Georgia,serif; letter-spacing:.03em; text-shadow:0 10px 34px #00000040; }
 .landing-hero-copy > span { display:block; max-width:420px; margin-bottom:34px; color:#dcefec; font-size:14px; line-height:1.85; }
+/* Chinese line paired with the English headline above it. */
+.landing-hero-copy > span.hero-lede { max-width:none; margin-bottom:18px; color:#f4e9d6; font:400 clamp(15px,1.5vw,18px)/1.6 Georgia,"Noto Serif TC",serif; letter-spacing:.06em; }
 .landing-cta { display:inline-flex; align-items:center; gap:12px; padding:16px 28px; border:0; border-radius:999px; background:#c9a355; color:#141414; font:600 13px/1 Arial,"Noto Sans TC",sans-serif; letter-spacing:.06em; box-shadow:0 14px 30px #c9a35544; transition:.22s; }
 .landing-cta:hover { background:#dab369; transform:translateY(-2px); box-shadow:0 18px 36px #c9a35566; }
 .landing-cta i { font-style:normal; }
@@ -392,6 +394,7 @@ button,input { font:inherit; } button { cursor:pointer; }
 .landing-feature-list { border-top:1px solid #141414; }
 .landing-feature-row { display:grid; grid-template-columns:52px 1fr; gap:20px; padding:28px 0; border-bottom:1px solid #dedad0; }
 .lf-index { color:#8a8f93; font:400 26px/1 Georgia,serif; letter-spacing:.02em; }
+.lf-en { display:block; margin-bottom:5px; color:#a58a4e; font-style:normal; font-size:9.5px; letter-spacing:.22em; font-weight:600; }
 .lf-body b { display:block; margin-bottom:8px; color:#141414; font:600 16px Georgia,"Noto Serif TC",serif; }
 .lf-body p { margin:0; color:#6b6b6b; font-size:12.5px; line-height:1.85; max-width:38em; }
 

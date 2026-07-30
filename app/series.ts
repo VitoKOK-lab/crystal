@@ -39,6 +39,7 @@ export type Series = {
   en: string;
   audience: "women" | "men";
   theme: string;
+  themeEn: string;
   tagline: string;
   craft: string;
   accent: string;
@@ -51,9 +52,10 @@ export type Series = {
 export const SERIES: Series[] = [
   {
     id: "bloom", zh: "綻放", en: "BLOOM", audience: "women",
-    theme: "愛與關係", accent: "#c9738e", banner: "/banners/bloom.jpg", swatch: "rose",
-    tagline: "粉晶與薔薇輝石為主調，寫給關係裡的溫柔與勇敢。",
-    craft: "以粉調主石為核心，8mm 細繩到 20mm 大顆都有。",
+    theme: "愛與關係", themeEn: "LOVE & RELATING",
+    accent: "#c9738e", banner: "/banners/bloom.jpg", swatch: "rose",
+    tagline: "粉晶與薔薇輝石。寫給願意先對自己溫柔的人。",
+    craft: "粉調主石為核心，8mm 細繩到 20mm 大顆都有。",
     tone: ENERGY_TONE,
     products: [
       { id: "first-love", name: "初戀告白", tagline: "粉水晶主石，剛萌芽的心動", style: "focal", wrist: 14, spec: "rose.x,rose.l,rhodonite.l,silver-round,rose.l,moon.l,rose.l,clear.l,gold-rondelle,rose.l,garnet.l,rose.l,heart" },
@@ -72,8 +74,9 @@ export const SERIES: Series[] = [
   },
   {
     id: "serene", zh: "澄澈", en: "SERENE", audience: "women",
-    theme: "療癒與呼吸", accent: "#3f9aab", banner: "/banners/serene.jpg", swatch: "aqua",
-    tagline: "海藍寶、白水晶與螢石，給需要喘口氣的日子。",
+    theme: "療癒與呼吸", themeEn: "HEALING & BREATH",
+    accent: "#3f9aab", banner: "/banners/serene.jpg", swatch: "aqua",
+    tagline: "海藍寶、白水晶與螢石。給那些只想好好喘一口氣的日子。",
     craft: "以 10mm 正常款為主，搭配細繩與漸層。",
     tone: ENERGY_TONE,
     products: [
@@ -93,8 +96,9 @@ export const SERIES: Series[] = [
   },
   {
     id: "aurora", zh: "極光", en: "AURORA", audience: "women",
-    theme: "守護與直覺", accent: "#6b5bb0", banner: "/banners/aurora.jpg", swatch: "labradorite",
-    tagline: "拉長石與紫水晶的暗色流光，替你擋掉多餘的雜訊。",
+    theme: "守護與直覺", themeEn: "PROTECTION & INTUITION",
+    accent: "#6b5bb0", banner: "/banners/aurora.jpg", swatch: "labradorite",
+    tagline: "拉長石與紫水晶的暗色流光。替你擋掉不屬於你的雜訊。",
     craft: "暗色流光，主石款與大顆款並重。",
     tone: ENERGY_TONE,
     products: [
@@ -114,8 +118,9 @@ export const SERIES: Series[] = [
   },
   {
     id: "abundance", zh: "豐盈", en: "ABUNDANCE", audience: "women",
-    theme: "財富與機運", accent: "#c8912f", banner: "/banners/abundance.jpg", swatch: "citrine",
-    tagline: "黃水晶、虎眼石與金沙石，把好運戴在手上不必含蓄。",
+    theme: "豐盛與流動", themeEn: "ABUNDANCE & FLOW",
+    accent: "#c8912f", banner: "/banners/abundance.jpg", swatch: "citrine",
+    tagline: "黃水晶、虎眼石與金沙石。值得的，不必說得含蓄。",
     craft: "金調為主，偏好大顆與雙主石。",
     tone: ENERGY_TONE,
     products: [
@@ -135,9 +140,10 @@ export const SERIES: Series[] = [
   },
   {
     id: "whisper", zh: "細語", en: "WHISPER", audience: "women",
-    theme: "日常疊戴", accent: "#a88b7a", banner: "/banners/whisper.jpg", swatch: "moon",
-    tagline: "8mm 為主的細繩款，為每天都戴、也為疊戴而生。",
-    craft: "幾乎全是 8mm 細繩款，最輕最不搶戲。",
+    theme: "日常與疊戴", themeEn: "EVERYDAY LAYERS",
+    accent: "#a88b7a", banner: "/banners/whisper.jpg", swatch: "moon",
+    tagline: "8mm 為主的細繩款。輕到你會忘記，但它一直在。",
+    craft: "幾乎全是 8mm 細繩款，最輕、最不搶戲。",
     tone: ENERGY_TONE,
     products: [
       { id: "plain-days", name: "素日細語", tagline: "8mm 月光石，最日常的一條", style: "delicate", wrist: 14, spec: "moon.s,rose.s,moon.s,clear.s,moon.s,silver-round,aqua.s,moon.s,fluorite.s,moon.s,amethyst.s,moon.s,silver-star,rose.s,moon.s,clear.s,moon.s" },
@@ -156,8 +162,9 @@ export const SERIES: Series[] = [
   },
   {
     id: "forge", zh: "曜石", en: "FORGE", audience: "men",
-    theme: "力量與守護", accent: "#b8923f", banner: "/banners/forge.jpg", swatch: "obsidian",
-    tagline: "黑曜石、赤鐵礦與貔貅隔珠，固定、扎實、不多話。",
+    theme: "力量與守護", themeEn: "STRENGTH & GUARD",
+    accent: "#b8923f", banner: "/banners/forge.jpg", swatch: "obsidian",
+    tagline: "黑曜石、赤鐵礦與貔貅隔珠。扎實、安靜、不需要解釋。",
     craft: "黑銀硬派，主石款到大顆款皆有。",
     tone: POWER_TONE,
     products: [
@@ -177,8 +184,9 @@ export const SERIES: Series[] = [
   },
   {
     id: "bedrock", zh: "磐岩", en: "BEDROCK", audience: "men",
-    theme: "沉穩重量", accent: "#5f6b70", banner: "/banners/bedrock.jpg", swatch: "hematite",
-    tagline: "以 20mm 大顆為主的重裝路線，戴上就有存在感。",
+    theme: "沉穩與定錨", themeEn: "WEIGHT & ANCHOR",
+    accent: "#5f6b70", banner: "/banners/bedrock.jpg", swatch: "hematite",
+    tagline: "以 20mm 大顆為主。重量本身就是一種安定。",
     craft: "以 20mm 大顆款為主，重量是重點。",
     tone: POWER_TONE,
     products: [
@@ -198,8 +206,9 @@ export const SERIES: Series[] = [
   },
   {
     id: "velocity", zh: "疾行", en: "VELOCITY", audience: "men",
-    theme: "專注與行動", accent: "#2f6f7a", banner: "/banners/velocity.jpg", swatch: "lapis",
-    tagline: "輕、細、俐落——為跑步、通勤與長時間專注而配。",
+    theme: "專注與行動", themeEn: "FOCUS & MOTION",
+    accent: "#2f6f7a", banner: "/banners/velocity.jpg", swatch: "lapis",
+    tagline: "輕、細、俐落。為長時間專注而配。",
     craft: "多為 8mm 與 10mm，追求輕與俐落。",
     tone: POWER_TONE,
     products: [

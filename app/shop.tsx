@@ -73,14 +73,14 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
   return <div className="shop" style={{ "--series-accent": series.accent } as React.CSSProperties}>
     <header className="shop-head">
       <button className="wordmark" onClick={onHome}>OMA <span>CRYSTAL</span></button>
-      <div className="head-note">READY-TO-WEAR COLLECTIONS</div>
-      <div className="head-actions"><button className="quiet" onClick={onBlankStudio}>從空白開始設計 →</button></div>
+      <div className="head-note">READY-TO-WEAR · 為你配好的系列</div>
+      <div className="head-actions"><button className="quiet" onClick={onBlankStudio}>親手串一條 →</button></div>
     </header>
 
     <section className="shop-intro">
-      <p className="landing-eyebrow">THE COLLECTIONS</p>
-      <h1>選一條直接帶走，<br />或按「微客制」改成你的</h1>
-      <span>八個系列、每系列 12 款配置，全部由 OMA team 事先配好。從 8mm 細繩、10mm 正常款到 20mm 大顆款都有，看上哪一條可以直接下單；想調整就進工作室加珠子、換石頭、改手圍。</span>
+      <p className="landing-eyebrow">THE COLLECTIONS · 八個系列</p>
+      <h1>挑一條直接帶走，<br />或改成只屬於你的比例</h1>
+      <span>八個系列、每個系列 12 款，都由 OMA 事先為你配好——從 8mm 細繩、10mm 正常款到 20mm 大顆款。看上就能直接下單；想調整就按「微客制」進工作室換石頭、加珠子、改手圍，它會慢慢變成你的。</span>
     </section>
 
     <div className="series-tabs" role="tablist" aria-label="系列">
@@ -94,14 +94,14 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
       >
         <b>{s.zh}</b>
         <i>{s.en}</i>
-        <em>{s.audience === "men" ? "男款" : "女款"}</em>
+        <em>{s.audience === "men" ? "FOR HIM" : "FOR HER"}</em>
       </button>)}
     </div>
 
     <section className="series-banner" key={series.id}>
       <img src={series.banner} alt={`${series.zh} ${series.en} 系列`} />
       <div className="sb-copy">
-        <p className="sb-theme">{series.theme}</p>
+        <p className="sb-theme">{series.themeEn} · {series.theme}</p>
         <h2>{series.zh} <i>{series.en}</i></h2>
         <span className="sb-tagline">{series.tagline}</span>
         <span className="sb-craft">{series.craft}</span>
@@ -129,9 +129,9 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
     </div>
 
     <section className="shop-foot">
-      <h2>沒有一條剛好？</h2>
-      <span>21 款天然礦石、37 款隔珠與吊飾，全部開放自由搭配。</span>
-      <button className="landing-cta" onClick={onBlankStudio}>從空白開始設計 <i>→</i></button>
+      <h2>都還不夠像你嗎？</h2>
+      <span>21 款天然礦石、37 款隔珠與吊飾全部開放。從一顆開始就好，剩下的慢慢來。</span>
+      <button className="landing-cta" onClick={onBlankStudio}>親手為自己串一條 <i>→</i></button>
     </section>
   </div>;
 }
