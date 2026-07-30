@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "OMA CRYSTAL — Crystal Rituals for Becoming",
-  description: "Natural crystal bracelets for healing, beauty and becoming. Eight collections of twelve, or compose your own.",
+  description: "Natural crystal bracelets for healing, beauty and becoming. Eight collections of four, or compose your own.",
   other: {
     "codex-preview": "development",
   },

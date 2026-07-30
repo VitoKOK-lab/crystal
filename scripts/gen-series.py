@@ -2,7 +2,7 @@
 """Emit app/series.ts.
 
 Specs are computed from a construction style + palette rather than typed by
-hand, so every one of the 96 products is guaranteed to fit its wrist and clear
+hand, so every one of the 32 products is guaranteed to fit its wrist and clear
 the studio's 80% fill gate by construction.
 """
 
@@ -56,7 +56,11 @@ def measure(toks, spacers, charm):
     return mm
 
 
-def build(style, wrist, pal, spacers, charm):
+def build(style, wrist, pal, spacers, charm, rot=0):
+    # Rotating the palette moves a different stone into the hero slot, which is
+    # what actually makes four pieces in one collection look unalike — without it
+    # every build leads with pal[0] and the whole grid reads as one recolour.
+    pal = pal[rot:] + pal[:rot]
     cap = wrist * 10
     ns = len(spacers)
     fixed_hw = ns * SPACER_MM + (CHARM_MM if charm else 0)
@@ -93,16 +97,16 @@ def build(style, wrist, pal, spacers, charm):
 
 
 # ── series definitions ────────────────────────────────────────────────────
-# (style, wrist, spacer-count-index, charm, name, tagline)
+# (style, palette-rotation, spacer-count, charm-index, id, name, tagline)
 S = []
 
 def series(sid, en, theme, audience, tagline, craft, accent, banner, swatch, tone, pal, sps, charms, rows):
     prods = []
-    for i, (style, _row_wrist, nsp, charm_i, pid, name, tag) in enumerate(rows):
+    for i, (style, rot, nsp, charm_i, pid, name, tag) in enumerate(rows):
         wrist = DEFAULT_WRIST
         spacers = [sps[(i + k) % len(sps)] for k in range(nsp)]
         charm = charms[charm_i] if charm_i is not None else None
-        prods.append((pid, name, tag, style, wrist, build(style, wrist, pal, spacers, charm)))
+        prods.append((pid, name, tag, style, wrist, build(style, wrist, pal, spacers, charm, rot)))
     S.append(dict(id=sid, en=en, theme=theme, audience=audience,
                   tagline=tagline, craft=craft, accent=accent, banner=banner, swatch=swatch,
                   tone=tone, products=prods))
@@ -110,165 +114,102 @@ def series(sid, en, theme, audience, tagline, craft, accent, banner, swatch, ton
 
 series("bloom", "BLOOM", "LOVE & RELATING", "women",
        "Rose quartz and rhodonite. For anyone willing to be gentle with herself first.",
-       "Pink focal stones at the centre — 8mm fine through 20mm bold.", "#c9738e", "/banners/bloom.jpg", "rose", "ENERGY_TONE",
+       "A 20mm rose focal, a fine moonstone strand, all-20mm rhodonite, and a graduated fade.", "#c9738e", "/banners/bloom.jpg", "rose", "ENERGY_TONE",
        ["rose", "rhodonite", "moon", "clear", "garnet", "aqua"],
        ["silver-round", "gold-rondelle", "gold-knot", "silver-flower"],
        ["heart", "lock", "butterfly", "lotus", "clover"],
-       [("focal", 15.5, 2, 0, "first-love", "First Confession", "Rose quartz focal. The very beginning of wanting someone."),
-        ("uniform", 16, 2, None, "daily-pink", "Everyday Rose", "Even 10mm pink. Made to be worn without thinking."),
-        ("delicate", 16, 3, 2, "soft-secret", "Soft Secret", "8mm fine strand. A whisper under a shirt cuff."),
-        ("focal", 16, 2, 1, "rose-vow", "Rose Vow", "Rhodonite holds the promise you said out loud."),
-        ("duo", 16.5, 2, 0, "twin-hearts", "Twin Hearts", "Two focal stones, evenly matched."),
-        ("uniform", 16, 2, 3, "gentle-guard", "Gentle Guard", "Moonstone and rose quartz, quietly nearby."),
-        ("graduated", 16.5, 2, 2, "fading-words", "Fading Words", "Large to small, like a sentence finished slowly."),
-        ("delicate", 15.5, 2, None, "light-kiss", "Light Kiss", "The finest of them. Reads like a collarbone chain."),
-        ("focal", 16, 2, 0, "heartbeat", "Heartbeat", "Garnet's heat. Impossible to hide."),
-        ("chunky", 17, 2, 4, "full-bloom", "Full Bloom", "All 20mm. It speaks before you do."),
-        ("uniform", 16.5, 2, 1, "kindred", "Kindred", "Aquamarine keeps the conversation clear."),
-        ("duo", 17, 2, 1, "eternal-vow", "Eternal Vow", "Two focal stones, set for the long way round.")])
+       [("focal", 0, 2, 0, "first-love", "First Confession", "20mm rose quartz focal. The very beginning of wanting someone."),
+        ("delicate", 2, 3, 2, "soft-secret", "Soft Secret", "8mm moonstone, pale and fine. A whisper under a shirt cuff."),
+        ("chunky", 1, 2, 4, "full-bloom", "Full Bloom", "All 20mm rhodonite. Deep pink, and it speaks before you do."),
+        ("graduated", 3, 2, 3, "fading-words", "Fading Words", "Clear quartz tapering small, pink surfacing through it.")])
 
 series("serene", "SERENE", "HEALING & BREATH", "women",
        "Aquamarine, clear quartz and fluorite. For the days you only want to breathe.",
-       "Mostly 10mm, with fine strands and graduated pieces.", "#3f9aab", "/banners/serene.jpg", "aqua", "ENERGY_TONE",
+       "Even 10mm aquamarine, fine clear quartz, bold amethyst, and a fluorite gradient.", "#3f9aab", "/banners/serene.jpg", "aqua", "ENERGY_TONE",
        ["aqua", "clear", "fluorite", "moon", "moss", "amethyst"],
        ["silver-round", "silver-star", "silver-flower"],
        ["shell", "angel-wing", "moon-charm", "star-charm", "leaf"],
-       [("uniform", 16, 2, 0, "deep-breath", "Deep Breath", "Aquamarine, loosening you the way the sea does."),
-        ("delicate", 15.5, 3, None, "morning-clarity", "Morning Clarity", "Fine clear quartz. The first air of the day."),
-        ("uniform", 16, 2, 1, "still-mind", "Still Mind", "Amethyst settles. Wear it before sleep."),
-        ("focal", 16, 2, 4, "forest-breath", "Forest Breath", "Moss agate. Back to your own tempo."),
-        ("delicate", 16, 3, 3, "dewlight", "Dewlight", "8mm fluorite. Translucent, never loud."),
-        ("uniform", 16.5, 2, 2, "moon-healing", "Moon Healing", "Moonstone lights every fresh start."),
-        ("graduated", 16.5, 2, 1, "breath-gradient", "Breath Gradient", "Tapering from the focal stone, like an exhale."),
-        ("focal", 16, 2, 3, "pure-halo", "Pure Halo", "Clear quartz and moonstone in soft layers."),
-        ("delicate", 15.5, 2, None, "soft-restart", "Soft Restart", "Put it down, begin again. The lightest one here."),
-        ("uniform", 16, 2, 0, "blue-wisdom", "Blue Wisdom", "Lapis calm. Says the thing plainly."),
-        ("chunky", 17, 2, 0, "deep-pool", "Deep Pool", "Large aquamarine. Quiet, and impossible to miss."),
-        ("duo", 17, 2, 3, "serene-manifesto", "Serene Manifesto", "Two focal stones. The fullest piece in the series.")])
+       [("uniform", 0, 2, 0, "deep-breath", "Deep Breath", "Even 10mm aquamarine, loosening you the way the sea does."),
+        ("delicate", 1, 3, 2, "morning-clarity", "Morning Clarity", "8mm clear quartz. The first air of the day."),
+        ("chunky", 5, 2, 1, "deep-pool", "Deep Pool", "All 20mm amethyst. Quiet, and impossible to miss."),
+        ("graduated", 2, 2, 4, "breath-gradient", "Breath Gradient", "Fluorite thinning out, like a long exhale.")])
 
 series("aurora", "AURORA", "PROTECTION & INTUITION", "women",
        "Labradorite and amethyst, dark and shifting. Turns away what isn't yours.",
-       "Dark flash. Focal and bold pieces in equal measure.", "#6b5bb0", "/banners/aurora.jpg", "labradorite", "ENERGY_TONE",
+       "A labradorite focal, fine moonstone, all-20mm obsidian, and a lapis gradient.", "#6b5bb0", "/banners/aurora.jpg", "labradorite", "ENERGY_TONE",
        ["labradorite", "amethyst", "tourmaline", "moon", "lapis", "obsidian"],
        ["silver-hex", "silver-round", "silver-cube"],
        ["evil-eye", "hamsa", "cross", "angel-wing", "moon-charm"],
-       [("focal", 16, 2, 0, "aurora-guard", "Aurora Guard", "Labradorite flash. Understated and immovable."),
-        ("uniform", 16, 2, 1, "violet-ward", "Violet Ward", "Amethyst with black tourmaline. Two lines drawn."),
-        ("chunky", 17, 2, 2, "night-shield", "Night Shield", "All 20mm obsidian. The hardest wall we make."),
-        ("uniform", 16, 2, 2, "quiet-boundary", "Quiet Boundary", "Tourmaline and smoky quartz, holding the edge."),
-        ("focal", 16, 2, 4, "moon-watch", "Moon Watch", "Moonstone over labradorite, layered like dusk."),
-        ("graduated", 16.5, 2, 3, "flowing-gradient", "Flowing Gradient", "Deep to pale, the way an aurora opens."),
-        ("delicate", 16, 3, None, "stardust", "Stardust", "8mm fine strand. Worn like an amulet."),
-        ("focal", 16.5, 2, 0, "flowing-insight", "Flowing Insight", "Labradorite with lapis. Sharpens the instinct."),
-        ("duo", 17, 2, 1, "twin-ward", "Twin Ward", "Two focal stones facing out, and in."),
-        ("uniform", 16, 2, 3, "violet-barrier", "Violet Barrier", "Amethyst at 20mm. Nothing gets through casually."),
-        ("chunky", 16.5, 2, None, "bedrock-heart", "Obsidian Heart", "Black at the centre, light all around it."),
-        ("focal", 17, 2, 1, "aurora-manifesto", "Aurora Manifesto", "The series, said in full.")])
+       [("focal", 0, 2, 0, "aurora-guard", "Aurora Guard", "20mm labradorite focal. Understated, and immovable."),
+        ("delicate", 3, 3, 4, "stardust", "Stardust", "8mm moonstone. Worn close, like an amulet."),
+        ("chunky", 5, 2, 2, "night-shield", "Night Shield", "All 20mm obsidian. The hardest wall we make."),
+        ("graduated", 4, 2, 1, "flowing-gradient", "Flowing Gradient", "Lapis deepening to fine, the way an aurora opens.")])
 
 series("abundance", "ABUNDANCE", "ABUNDANCE & FLOW", "women",
        "Citrine, tiger eye and goldstone. No need to be coy about what you want.",
-       "Gold tones, leaning bold and twin-focal.", "#c8912f", "/banners/abundance.jpg", "citrine", "ENERGY_TONE",
+       "All-20mm citrine, fine clear quartz on gold, a tiger eye focal, and a goldstone gradient.", "#c8912f", "/banners/abundance.jpg", "citrine", "ENERGY_TONE",
        ["citrine", "tiger", "goldstone", "sunstone", "clear", "rose"],
        ["gold-crown", "gold-rondelle", "gold-knot", "gold-pixiu"],
        ["sun-charm", "key", "clover", "compass"],
-       [("chunky", 17, 2, 0, "golden-fortune", "Golden Fortune", "All 20mm citrine. Not being coy about it."),
-        ("uniform", 16, 2, 2, "daily-abundance", "Daily Abundance", "Even 10mm gold tones, for ordinary days."),
-        ("focal", 16, 2, 1, "tiger-decision", "Tiger's Call", "Tiger eye, for the decision you keep postponing."),
-        ("duo", 16.5, 2, 3, "goldstone-night", "Goldstone Night", "Gold flecks across midnight blue."),
-        ("delicate", 16, 3, None, "fine-gold", "Fine Gold", "8mm. Wealth, worn lightly."),
-        ("uniform", 16, 2, 0, "warm-harvest", "Warm Harvest", "Sunstone and citrine. What you already gathered."),
-        ("graduated", 16.5, 2, 2, "rising-road", "Rising Road", "Graduated, like a road going up."),
-        ("focal", 16, 2, 1, "crowned", "Crowned", "A gold crown spacer, clearing the stage."),
-        ("chunky", 16.5, 2, None, "cash-flow", "Cash Flow", "Movement, not hoarding."),
-        ("focal", 16.5, 2, 3, "pixiu-keeper", "Pixiu Keeper", "The wealth beast, standing guard."),
-        ("uniform", 16, 2, 1, "clear-chance", "Clear Chance", "Clear quartz opens the way."),
-        ("duo", 17, 2, 0, "abundance-manifesto", "Abundance Manifesto", "Two focal stones. The whole argument.")])
+       [("chunky", 0, 2, 0, "golden-fortune", "Golden Fortune", "All 20mm citrine. Not being coy about it."),
+        ("delicate", 4, 2, 3, "fine-gold", "Fine Gold", "8mm clear quartz on gold. Wealth, worn lightly."),
+        ("focal", 1, 2, 1, "tiger-decision", "Tiger's Call", "20mm tiger eye focal, for the decision you keep postponing."),
+        ("graduated", 2, 2, 2, "rising-road", "Rising Road", "Goldstone stepping down. Midnight blue, flecked gold.")])
 
 series("whisper", "WHISPER", "EVERYDAY LAYERS", "women",
        "Fine 8mm strands. Light enough to forget, and always still there.",
-       "Almost entirely 8mm. The lightest, least insistent line.", "#a88b7a", "/banners/whisper.jpg", "moon", "ENERGY_TONE",
+       "Fine moonstone, fine aquamarine, 10mm rose quartz, and an amethyst fade. Nothing heavier.", "#a88b7a", "/banners/whisper.jpg", "moon", "ENERGY_TONE",
        ["moon", "rose", "clear", "aqua", "fluorite", "amethyst"],
        ["silver-round", "silver-star"],
        ["star-charm", "moon-charm"],
-       [("delicate", 16, 2, None, "plain-days", "Plain Days", "8mm moonstone. The most ordinary one, on purpose."),
-        ("delicate", 15.5, 2, None, "morning-murmur", "Morning Murmur", "First thing, barely there."),
-        ("delicate", 16, 3, None, "pure-thread", "Pure Thread", "Clear quartz, fine as a thread."),
-        ("delicate", 16, 2, 0, "sea-breeze", "Sea Breeze", "Aquamarine at 8mm. Cool and easy."),
-        ("delicate", 15.5, 2, None, "violet-hush", "Violet Hush", "Amethyst, turned all the way down."),
-        ("delicate", 16, 2, 1, "fluor-thread", "Fluorite Thread", "Green translucence, almost weightless."),
-        ("delicate", 16.5, 3, None, "two-tone", "Two Tone", "Two stones alternating, nothing more."),
-        ("delicate", 16, 2, None, "stack-base", "Stack Base", "Built to sit under everything else."),
-        ("uniform", 16, 2, 0, "soft-weight", "Soft Weight", "10mm, for when 8mm isn't quite enough."),
-        ("delicate", 16.5, 2, None, "gentle-space", "Gentle Space", "Spacers doing most of the talking."),
-        ("uniform", 16, 2, 1, "quiet-murmur", "Quiet Murmur", "You'll forget it's on. It still is."),
-        ("delicate", 17, 3, None, "whisper-manifesto", "Whisper Manifesto", "The lightest statement in the house.")])
+       [("delicate", 0, 2, None, "plain-days", "Plain Days", "8mm moonstone. The most ordinary one, on purpose."),
+        ("delicate", 3, 2, 1, "sea-breeze", "Sea Breeze", "8mm aquamarine. Cool, and easy to forget."),
+        ("uniform", 1, 2, 0, "soft-weight", "Soft Weight", "10mm rose quartz, for when 8mm is not quite enough."),
+        ("graduated", 5, 2, 1, "two-tone", "Two Tone", "Amethyst falling away to nothing.")])
 
 series("forge", "FORGE", "STRENGTH & GUARD", "men",
        "Obsidian, hematite and pixiu spacers. Solid, quiet, unexplained.",
-       "Black and silver. Focal through bold.", "#b8923f", "/banners/forge.jpg", "obsidian", "POWER_TONE",
+       "An obsidian focal, fine hematite, all-20mm lava, and a tiger eye gradient.", "#b8923f", "/banners/forge.jpg", "obsidian", "POWER_TONE",
        ["obsidian", "hematite", "tiger-eye", "goldstone", "lava", "smoky"],
        ["silver-hex", "gold-hex", "gold-pixiu", "silver-tiger-spacer"],
        ["travel-compass", "compass", "arrow", "key"],
-       [("focal", 16, 2, 0, "polar-night", "Polar Night", "Obsidian and hematite. All black, no softening."),
-        ("duo", 16.5, 2, 1, "decisive-investor", "The Decisive", "Tiger eye and goldstone. For calling it."),
-        ("chunky", 17, 2, 2, "heavy-bedrock", "Heavy Ground", "20mm hematite. Weight you can feel."),
-        ("uniform", 16, 2, 2, "iron-will", "Iron Will", "Hematite throughout. Nothing decorative."),
-        ("focal", 16.5, 2, 1, "pixiu-fortune", "Pixiu Fortune", "Gold pixiu against black stone."),
-        ("focal", 16, 2, 1, "tiger-market", "Tiger Market", "Tiger eye, for reading the room."),
-        ("uniform", 17, 2, 2, "lava-warrior", "Lava Warrior", "Matte volcanic rock. Heat under the surface."),
-        ("uniform", 16, 2, 3, "steady-control", "Steady Hand", "Smoky quartz. Holds the line."),
-        ("duo", 16.5, 2, 1, "black-gold", "Black Gold", "Obsidian with gold hardware."),
-        ("focal", 16, 2, 0, "dawn-expedition", "Dawn Expedition", "Lapis and labradorite. Built to travel."),
-        ("delicate", 16, 3, None, "minimal-black", "Minimal Black", "8mm. The quietest way to wear it."),
-        ("chunky", 17, 2, 2, "forge-manifesto", "Forge Manifesto", "Two focal stones. The series, stated.")])
+       [("focal", 0, 2, 0, "polar-night", "Polar Night", "20mm obsidian focal. All black, no softening."),
+        ("delicate", 1, 2, 3, "minimal-black", "Minimal Black", "8mm hematite. The quietest way to wear it."),
+        ("chunky", 4, 2, 2, "lava-warrior", "Lava Warrior", "All 20mm matte lava. Heat under the surface."),
+        ("graduated", 2, 2, 1, "tiger-market", "Tiger Market", "Tiger eye narrowing down, for reading the room.")])
 
 series("bedrock", "BEDROCK", "WEIGHT & ANCHOR", "men",
        "Built on 20mm stone. The weight is the point.",
-       "Mostly 20mm. Weight above everything.", "#5f6b70", "/banners/bedrock.jpg", "hematite", "POWER_TONE",
+       "All-20mm hematite, 10mm smoky quartz, a labradorite focal, and a lava gradient.", "#5f6b70", "/banners/bedrock.jpg", "hematite", "POWER_TONE",
        ["hematite", "obsidian", "smoky", "lava", "tourmaline", "labradorite"],
        ["silver-cube", "silver-rivet", "silver-groove", "silver-shield"],
        ["arrow", "cross", "travel-compass"],
-       [("chunky", 17, 2, None, "true-bedrock", "True Bedrock", "All 20mm hematite. Pure weight."),
-        ("chunky", 16.5, 2, 0, "obsidian-rock", "Obsidian Rock", "Black, at full scale."),
-        ("chunky", 17, 2, None, "sunken-heart", "Sunken Core", "Smoky quartz at the centre, dark around it."),
-        ("chunky", 16.5, 2, 2, "lava-block", "Lava Block", "Matte and heavy. No shine at all."),
-        ("chunky", 17, 2, 1, "iron-wall", "Iron Wall", "Hematite, shoulder to shoulder."),
-        ("duo", 16.5, 2, 0, "twin-rock", "Twin Rock", "Two focal stones. Both of them large."),
-        ("graduated", 17, 2, 2, "strata", "Strata", "Graduated, like layers in a cliff face."),
-        ("uniform", 16, 2, 1, "bedrock-daily", "Bedrock Daily", "10mm. Bedrock, for a working week."),
-        ("chunky", 17, 2, 0, "polar-bedrock", "Polar Bedrock", "Tourmaline and hematite. Coldest of the line."),
-        ("focal", 16, 2, 2, "glint-in-stone", "Glint", "Labradorite — the one flash of light."),
-        ("chunky", 16.5, 2, None, "rivet-heavy", "Rivet", "Silver rivets between 20mm stone."),
-        ("chunky", 17, 2, 1, "bedrock-manifesto", "Bedrock Manifesto", "The heaviest thing we will make you.")])
+       [("chunky", 0, 2, None, "true-bedrock", "True Bedrock", "All 20mm hematite. Pure weight."),
+        ("uniform", 2, 2, 1, "bedrock-daily", "Bedrock Daily", "10mm smoky quartz. Bedrock, for a working week."),
+        ("focal", 5, 2, 2, "glint-in-stone", "Glint", "20mm labradorite focal — the one flash of light."),
+        ("graduated", 3, 2, 0, "strata", "Strata", "Lava stepping down, like layers in a cliff face.")])
 
 series("velocity", "VELOCITY", "FOCUS & MOTION", "men",
        "Light, fine, quick. Made for long hours of focus.",
-       "Mostly 8mm and 10mm, chasing lightness.", "#2f6f7a", "/banners/velocity.jpg", "lapis", "POWER_TONE",
+       "Fine lapis, a hematite focal, 10mm clear quartz, and a sunstone gradient.", "#2f6f7a", "/banners/velocity.jpg", "lapis", "POWER_TONE",
        ["lapis", "clear", "tiger-eye", "smoky", "hematite", "sunstone"],
        ["silver-groove", "silver-chain", "silver-hex"],
        ["arrow", "key", "star-charm"],
-       [("delicate", 16, 2, None, "fine-line", "Fine Line", "8mm lapis. Won't move when you run."),
-        ("uniform", 16, 2, None, "blue-steel", "Blue Steel", "Lapis and hematite. Cool and quick."),
-        ("delicate", 15.5, 3, None, "clear-view", "Clear View", "Clear quartz. Nothing in the way."),
-        ("uniform", 16, 2, 0, "sharp-call", "Sharp Call", "Tiger eye, for the fast decision."),
-        ("delicate", 16, 2, None, "silent-focus", "Silent Focus", "Smoky quartz. Hours of it."),
-        ("uniform", 16.5, 2, 1, "deep-tempo", "Deep Tempo", "Lapis at 10mm. A steady beat."),
-        ("graduated", 16.5, 2, 2, "accel-gradient", "Acceleration", "Graduated, building as it goes."),
-        ("delicate", 16, 3, None, "chain-minimal", "Chain Minimal", "Silver links, 8mm stone."),
-        ("focal", 16, 2, 0, "solar-sprint", "Solar Sprint", "Sunstone. Heat for the last kilometre."),
-        ("delicate", 16.5, 2, None, "light-rig", "Light Rig", "The lightest in the men's line."),
-        ("uniform", 16, 2, None, "core-focus", "Core Focus", "Lapis focal. One thing at a time."),
-        ("focal", 17, 2, 1, "velocity-manifesto", "Velocity Manifesto", "The series, at speed.")])
+       [("delicate", 0, 2, None, "fine-line", "Fine Line", "8mm lapis. It will not move when you run."),
+        ("focal", 4, 2, 0, "core-focus", "Core Focus", "20mm hematite focal. One thing at a time."),
+        ("uniform", 1, 2, 2, "deep-tempo", "Deep Tempo", "Even 10mm clear quartz. A steady beat."),
+        ("graduated", 5, 2, 1, "accel-gradient", "Acceleration", "Sunstone building as it goes.")])
 
 
 STYLE_LABEL = {"focal": "Focal", "duo": "Twin", "uniform": "10mm",
                "delicate": "8mm", "chunky": "20mm", "graduated": "Grad"}
 
 head = '''// Ready-to-wear collections. Each series has its own banner, theme and
-// construction character; the twelve products inside it deliberately do NOT
-// all follow one recipe — a series mixes 主石款 (one 20mm focal), 正常款
-// (all 10mm), 細繩款 (all 8mm), 大顆款 (all 20mm), 雙主石 and 漸層款 so the
-// grid reads like a real collection rather than one design recoloured.
+// construction character; the four products inside it are deliberately as
+// unalike as the palette allows — each takes a different construction (one
+// 20mm focal, all-10mm, all-8mm, all-20mm or graduated) AND a different stone
+// in the hero slot, so the grid reads like a real collection rather than one
+// design recoloured four times.
 //
 // Specs use the compact notation parseSpec() reads: `.x` = 20mm, `.s` = 8mm,
 // bare/`.l` = 10mm, and any accessory id drops in as a spacer or charm.

@@ -100,7 +100,7 @@ function HeroMedia() {
 }
 
 const FEATURES = [
-  { en: "Chosen for you", title: "Someone has already thought it through", body: "Eight collections, ninety-six compositions, 8mm fine through 20mm bold. When you don’t know where to begin, begin somewhere already considered." },
+  { en: "Chosen for you", title: "Someone has already thought it through", body: "Eight collections of four, 8mm fine through 20mm bold — no two alike. When you don’t know where to begin, begin somewhere already considered." },
   { en: "Made by your hand", title: "Or compose it yourself", body: "Twenty-one natural stones, thirty-seven spacers and charms, arranged however you like. Which stone sits against the inside of your wrist is yours alone to know." },
   { en: "Seen, not guessed", title: "Intention you can read", body: "Wealth, love, healing, protection, focus, power — six dimensions, computed live. What you care about is legible before you ever put it on." },
 ] as const;
@@ -140,7 +140,7 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
         <p>Rituals for becoming</p>
         <h1>WEAR YOUR<br />BECOMING</h1>
         <span className="hero-lede">Wear the woman you are becoming.</span>
-        <span>Healing is not repair. It is putting the light you already carry back where you can see it. Eight collections, ninety-six pieces already composed — or string your own, stone by stone.</span>
+        <span>Healing is not repair. It is putting the light you already carry back where you can see it. Eight collections, thirty-two pieces already composed — or string your own, stone by stone.</span>
         <div className="landing-hero-actions">
           <button className="landing-cta" onClick={() => onShop()}>The collections <i>→</i></button>
           <button className="landing-cta ghost" onClick={onStart}>Make your own</button>
@@ -168,7 +168,7 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
           <span className="lsr-theme">{s.theme}</span>
           <b>{s.en}</b>
           <p>{s.craft}</p>
-          <span className="lsr-arrow">12 pieces →</span>
+          <span className="lsr-arrow">4 pieces →</span>
         </button>)}
       </div>
     </section>

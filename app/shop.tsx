@@ -80,7 +80,7 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
     <section className="shop-intro">
       <p className="landing-eyebrow">The collections</p>
       <h1>Take one as it is,<br />or make the proportions yours</h1>
-      <span>Eight collections, twelve pieces in each, every one composed in the atelier — 8mm fine, 10mm uniform, 20mm bold. Order any of them as they are. Or press <em>Customise</em> and carry it through to the atelier to change the stones, the length, the wrist.</span>
+      <span>Eight collections, four pieces in each — and inside a collection no two share a construction or a leading stone. Order any of them as they are. Or press <em>Customise</em> and carry it through to the atelier to change the stones, the length, the wrist.</span>
     </section>
 
     <div className="series-tabs" role="tablist" aria-label="Collections">
