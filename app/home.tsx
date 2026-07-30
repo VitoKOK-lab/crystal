@@ -1,26 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { stonePhotos } from "./catalog";
+import { byStone, stonePhotos } from "./catalog";
 import { SERIES } from "./series";
 
 // Crystal thumbnails used purely for the showcase strip below the fold.
 // Paths come from the catalogue so men's-line and shared assets resolve
 // correctly without this file tracking which lives where.
-const SHOWCASE = [
-  ["rose", "粉水晶", "愛情"],
-  ["aqua", "海藍寶", "療癒"],
-  ["amethyst", "紫水晶", "守護"],
-  ["citrine", "黃水晶", "財富"],
-  ["moon", "月光石", "療癒"],
-  ["labradorite", "拉長石", "守護"],
-  ["obsidian", "切面黑曜石", "守護"],
-  ["tiger-eye", "切面虎眼石", "財富"],
-  ["hematite", "切面赤鐵礦", "守護"],
-  ["goldstone", "切面金沙石", "財富"],
-  ["garnet", "石榴石", "力量"],
-  ["lava", "圓珠消光火山岩", "力量"],
-] as const;
+const SHOWCASE = ["rose", "aqua", "amethyst", "citrine", "moon", "labradorite",
+  "obsidian", "tiger-eye", "hematite", "goldstone", "garnet", "lava"] as const;
 
 // Women's clip leads, then the second women's, then the men's. Each still is
 // the exact frame its clip opens on, so a swap never flashes a different scene.
@@ -86,7 +74,7 @@ function HeroMedia() {
   // underneath, instead of stacking type over the bracelet. On wide viewports
   // it just fills the hero, so the overlay layout is unchanged.
   return <div className="landing-hero-media">
-    <img src={portrait ? HERO_CLIPS[0].stillV : HERO_CLIPS[0].still} alt="OMA CRYSTAL 水晶手鍊，溪邊自然情境" />
+    <img src={portrait ? HERO_CLIPS[0].stillV : HERO_CLIPS[0].still} alt="An OMA Crystal bracelet resting in a sunlit stream" />
     {HERO_CLIPS.map((c, i) => <video
       key={c.id}
       ref={(el) => { refs.current[i] = el; }}
@@ -112,9 +100,9 @@ function HeroMedia() {
 }
 
 const FEATURES = [
-  { en: "CHOSEN FOR YOU", title: "已經替你想過了", body: "八個系列、96 款配置，從 8mm 細繩到 20mm 大顆。不知道從哪裡開始的時候，就從別人替你想過的地方開始。" },
-  { en: "MADE BY YOUR HAND", title: "也可以親手為自己串", body: "21 款天然礦石、37 款隔珠與吊飾自由重組。哪一顆貼著手腕內側只有你知道——那是給自己的，不是給別人看的。" },
-  { en: "SEEN, NOT GUESSED", title: "心願看得見", body: "財富、愛情、療癒、守護、專注、力量，六個維度即時運算。你在意什麼，戴上之前就看得出來。" },
+  { en: "Chosen for you", title: "Someone has already thought it through", body: "Eight collections, ninety-six compositions, 8mm fine through 20mm bold. When you don’t know where to begin, begin somewhere already considered." },
+  { en: "Made by your hand", title: "Or compose it yourself", body: "Twenty-one natural stones, thirty-seven spacers and charms, arranged however you like. Which stone sits against the inside of your wrist is yours alone to know." },
+  { en: "Seen, not guessed", title: "Intention you can read", body: "Wealth, love, healing, protection, focus, power — six dimensions, computed live. What you care about is legible before you ever put it on." },
 ] as const;
 
 // Fades + lifts each [data-reveal] section in as it enters the viewport —
@@ -141,30 +129,30 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     <header className="landing-nav">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
       <div className="landing-nav-links">
-        <button className="landing-nav-quiet" onClick={() => onShop()}>系列商品</button>
-        <button className="landing-nav-cta" onClick={onStart}>開始設計</button>
+        <button className="landing-nav-quiet" onClick={() => onShop()}>Collections</button>
+        <button className="landing-nav-cta" onClick={onStart}>Atelier</button>
       </div>
     </header>
 
     <section className="landing-hero" id="landing-top">
       <HeroMedia />
       <div className="landing-hero-copy">
-        <p>RITUALS FOR BECOMING · 成為的儀式</p>
+        <p>Rituals for becoming</p>
         <h1>WEAR YOUR<br />BECOMING</h1>
-        <span className="hero-lede">戴上你正在成為的那個自己</span>
-        <span>療癒不是把自己修好，是把本來就在的光重新戴回身上。八個系列、96 款已經配好的能量手鍊，挑一條開始，或親手為自己串一條。</span>
+        <span className="hero-lede">Wear the woman you are becoming.</span>
+        <span>Healing is not repair. It is putting the light you already carry back where you can see it. Eight collections, ninety-six pieces already composed — or string your own, stone by stone.</span>
         <div className="landing-hero-actions">
-          <button className="landing-cta" onClick={() => onShop()}>探索系列 <i>→</i></button>
-          <button className="landing-cta ghost" onClick={onStart}>親手為自己串一條</button>
+          <button className="landing-cta" onClick={() => onShop()}>The collections <i>→</i></button>
+          <button className="landing-cta ghost" onClick={onStart}>Make your own</button>
         </div>
       </div>
       <div className="landing-scroll-hint"><i /></div>
     </section>
 
     <section className="landing-series" data-reveal>
-      <p className="landing-eyebrow">THE COLLECTIONS · 八個系列</p>
-      <h2>每個系列，<br />對應你正在經歷的一種狀態</h2>
-      <span className="ls-note">有的替你擋掉不屬於你的雜訊，有的陪你把心慢慢軟下來。可以直接帶走一條，也可以進工作室改成只屬於你的比例。</span>
+      <p className="landing-eyebrow">The collections</p>
+      <h2>Eight collections,<br />each for a state you are in</h2>
+      <span className="ls-note">Some turn away what isn’t yours. Some sit with you while you soften. Take one as it is, or carry it into the atelier and change the proportions until it is yours.</span>
       <div className="landing-series-grid">
         {SERIES.map((s) => <button
           className="lsr-card"
@@ -176,20 +164,19 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
             <img src={s.banner} alt="" />
             <img src={stonePhotos[s.swatch]} alt="" className="lsr-swatch" />
           </span>
-          <span className="lsr-badge">{s.audience === "men" ? "FOR HIM 男款" : "FOR HER 女款"}</span>
-          <span className="lsr-theme">{s.themeEn} · {s.theme}</span>
-          <b>{s.zh}</b>
-          <i>{s.en}</i>
+          <span className="lsr-badge">{s.audience === "men" ? "FOR HIM" : "FOR HER"}</span>
+          <span className="lsr-theme">{s.theme}</span>
+          <b>{s.en}</b>
           <p>{s.craft}</p>
-          <span className="lsr-arrow">12 款配置 →</span>
+          <span className="lsr-arrow">12 pieces →</span>
         </button>)}
       </div>
     </section>
 
     <section className="landing-features" data-reveal>
       <div className="landing-features-head">
-        <p className="landing-eyebrow">WHY OMA · 為什麼是 OMA</p>
-        <h2>不只是配飾，<br />是每天對自己的一次確認</h2>
+        <p className="landing-eyebrow">Why OMA</p>
+        <h2>Not an accessory.<br />A daily act of choosing yourself</h2>
       </div>
       <div className="landing-feature-list">
         {FEATURES.map((f, i) => <div className="landing-feature-row" key={f.title}>
@@ -200,21 +187,21 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     </section>
 
     <section className="landing-showcase" data-reveal>
-      <p className="landing-eyebrow">THE MATERIALS · 21 款天然礦石</p>
-      <h2>每一顆，<br />都帶著自己的紋理來</h2>
+      <p className="landing-eyebrow">The materials</p>
+      <h2>Twenty-one stones,<br />each arriving with its own grain</h2>
       <div className="landing-showcase-grid">
-        {SHOWCASE.map(([id, zh, group]) => <div className="ls-item" key={id}>
-          <img src={stonePhotos[id]} alt={zh} />
-          <b>{zh}</b>
-          <span>{group}</span>
+        {SHOWCASE.map((id) => <div className="ls-item" key={id}>
+          <img src={stonePhotos[id]} alt={byStone[id].en} />
+          <b>{byStone[id].en}</b>
+          <span>{byStone[id].group}</span>
         </div>)}
       </div>
     </section>
 
     <section className="landing-quote" data-reveal>
-      <p>THE OMA ATELIER · 手作工坊</p>
-      <h2>慢一點，<br />讓每天的配戴成為一次回到自己。</h2>
-      <button className="landing-cta light" onClick={() => onShop()}>探索系列 <i>→</i></button>
+      <p>The OMA atelier</p>
+      <h2>Slower.<br />So that wearing it returns you to yourself.</h2>
+      <button className="landing-cta light" onClick={() => onShop()}>The collections <i>→</i></button>
     </section>
 
     <footer className="landing-footer">

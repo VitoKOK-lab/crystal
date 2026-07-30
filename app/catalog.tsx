@@ -18,15 +18,15 @@
 export type EnergyType = "wealth" | "love" | "healing" | "protection" | "focus" | "power";
 export type Rarity = "common" | "rare" | "legendary";
 export type BeadSize = "xlarge" | "large" | "small";
-export type Stone = { id: string; zh: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
-export type Accessory = { id: string; zh: string; en: string; type: "spacer" | "charm"; shape: string; metal: "gold" | "silver"; price: number; note: string };
+export type Stone = { id: string; en: string; group: string; color: string; light: string; deep: string; price: number; note: string; energy: Record<EnergyType, number> };
+export type Accessory = { id: string; en: string; type: "spacer" | "charm"; shape: string; metal: "gold" | "silver"; price: number; note: string };
 export type DesignItem = { kind: "stone" | "accessory"; id: string; size?: BeadSize; uid?: number };
 
 // Rarity is derived from price rather than hand-tagged per item — keeps the
 // tier consistent as the catalogue grows instead of drifting out of sync.
 const RARITY_TIER = { common: 280, rare: 450 } as const;
 export function rarityOf(price: number): Rarity { return price <= RARITY_TIER.common ? "common" : price <= RARITY_TIER.rare ? "rare" : "legendary"; }
-export const RARITY_LABEL: Record<Rarity, string> = { common: "普通", rare: "稀有", legendary: "傳說" };
+export const RARITY_LABEL: Record<Rarity, string> = { common: "Common", rare: "Rare", legendary: "Legendary" };
 
 // Stable per-placement identity so live drag-reordering keeps DOM nodes (and
 // their pointer capture) alive while the array order changes underneath.
@@ -34,77 +34,77 @@ let uidSeq = 0;
 export const nextUid = () => ++uidSeq;
 
 export const ENERGY_META = [
-  { key: "wealth", zh: "財富", en: "WEALTH", color: "#c9a355" },
-  { key: "love", zh: "愛情", en: "LOVE", color: "#e88aa8" },
-  { key: "healing", zh: "療癒", en: "HEALING", color: "#7ec8a5" },
-  { key: "protection", zh: "守護", en: "PROTECTION", color: "#7d8896" },
-  { key: "focus", zh: "專注", en: "FOCUS", color: "#72c7d6" },
-  { key: "power", zh: "力量", en: "POWER", color: "#e0885a" },
-] as const satisfies readonly { key: EnergyType; zh: string; en: string; color: string }[];
+  { key: "wealth", en: "WEALTH", color: "#c9a355" },
+  { key: "love", en: "LOVE", color: "#e88aa8" },
+  { key: "healing", en: "HEALING", color: "#7ec8a5" },
+  { key: "protection", en: "PROTECTION", color: "#7d8896" },
+  { key: "focus", en: "FOCUS", color: "#72c7d6" },
+  { key: "power", en: "POWER", color: "#e0885a" },
+] as const satisfies readonly { key: EnergyType; en: string; color: string }[];
 
 export const stones: Stone[] = ([
-  ["obsidian","切面黑曜石","Faceted Black Obsidian","守護","#232323","#5c5c5c","#0a0a0a",280,"深邃切面，隔絕雜訊，穩住心神",{wealth:3,love:2,healing:5,protection:10,focus:6,power:6}],
-  ["tiger-eye","切面虎眼石","Faceted Tiger Eye","財富","#a9762f","#e8c876","#4a2f0c",290,"琥珀光澤流動，帶來判斷力與行動的勇氣",{wealth:8,love:3,healing:5,protection:5,focus:7,power:7}],
-  ["hematite","切面赤鐵礦","Faceted Hematite","守護","#71757a","#c7ccd1","#2b2d30",260,"金屬光澤沉穩接地，強化意志與防禦",{wealth:3,love:3,healing:6,protection:8,focus:5,power:7}],
-  ["smoky","圓珠茶晶","Round Smoky Quartz","專注","#5f4a3a","#a8876a","#241a12",250,"沉穩落地，釋放雜訊，收束專注力",{wealth:4,love:3,healing:7,protection:7,focus:9,power:5}],
-  ["lava","圓珠消光火山岩","Round Matte Lava Rock","力量","#1c1c1c","#3f3f3f","#050505",220,"原始火山岩質地，釋放爆發力",{wealth:2,love:2,healing:5,protection:5,focus:4,power:10}],
-  ["goldstone","切面金沙石","Faceted Blue Goldstone","財富","#1d2b45","#5878ad","#0a1220",310,"深藍夜空中的金色星芒，象徵野心與機運",{wealth:10,love:4,healing:4,protection:3,focus:5,power:7}],
-  ["rose","粉水晶","Rose Quartz","愛情","#df9baa","#fff3f4","#a65364",260,"溫柔、親密與自我接納",{wealth:2,love:9,healing:7,protection:3,focus:4,power:5}],
-  ["clear","白水晶","Clear Quartz","專注","#d4e2e4","#ffffff","#8ba3a7",230,"清晰思緒，放大你的意圖",{wealth:6,love:5,healing:6,protection:7,focus:10,power:8}],
-  ["amethyst","紫水晶","Amethyst","守護","#8868b3","#eee5ff","#4e2c80",280,"安定心緒，保持內在平衡",{wealth:4,love:6,healing:8,protection:9,focus:9,power:7}],
-  ["citrine","黃水晶","Citrine","財富","#e1b254","#fff7c5","#9d6a11",300,"邀請豐盛與自信前來",{wealth:10,love:4,healing:5,protection:4,focus:6,power:8}],
-  ["aqua","海藍寶","Aquamarine","療癒","#7fc6d4","#efffff","#337b8c",360,"像海一樣清澈、自在",{wealth:3,love:8,healing:9,protection:5,focus:8,power:6}],
-  ["tourmaline","黑碧璽","Black Tourmaline","守護","#282a2c","#74777a","#060708",290,"穩定界線，沉靜守護",{wealth:2,love:3,healing:6,protection:10,focus:5,power:5}],
-  ["sunstone","太陽石","Sunstone","力量","#ce7b4f","#ffd4ad","#813820",330,"把勇氣帶到每一步",{wealth:7,love:5,healing:8,protection:4,focus:6,power:9}],
-  ["moon","月光石","Moonstone","療癒","#bbc6e1","#ffffff","#6d78a3",320,"柔和直覺，照亮新開始",{wealth:3,love:7,healing:8,protection:6,focus:7,power:6}],
-  ["moss","苔蘚瑪瑙","Moss Agate","療癒","#779b78","#e5f3d8","#31563a",290,"穩定生長，回到自己的節奏",{wealth:6,love:4,healing:9,protection:7,focus:5,power:5}],
-  ["lapis","青金石","Lapis Lazuli","專注","#315b94","#a7d9f3","#122654",330,"誠實表達，連結內在智慧",{wealth:5,love:6,healing:7,protection:8,focus:8,power:7}],
-  ["garnet","石榴石","Garnet","力量","#9d3753","#ffc2cb","#4d1025",310,"熱情與持續前進的力量",{wealth:7,love:7,healing:6,protection:5,focus:4,power:10}],
-  ["tiger","圓珠虎眼石","Round Tiger Eye","財富","#ae7927","#ffdf84","#55340c",260,"圓潤金棕紋理，專注果斷不拖泥帶水",{wealth:8,love:3,healing:7,protection:6,focus:7,power:7}],
-  ["fluorite","螢石","Fluorite","專注","#79b69f","#e3ffe7","#3d7461",320,"整理思緒，溫柔淨化",{wealth:3,love:5,healing:8,protection:7,focus:9,power:6}],
-  ["rhodonite","薔薇輝石","Rhodonite","愛情","#b96f82","#ffd8e0","#6e3445",350,"修復關係與勇敢去愛",{wealth:2,love:10,healing:7,protection:5,focus:5,power:6}],
-  ["labradorite","拉長石","Labradorite","守護","#557883","#bfeef2","#263e55",380,"低調光芒，守護你的能量",{wealth:4,love:5,healing:6,protection:10,focus:7,power:7}],
-] as const).map(([id,zh,en,group,color,light,deep,price,note,energy]) => ({ id,zh,en,group,color,light,deep,price,note,energy } as Stone));
+  ["obsidian","Faceted Black Obsidian","PROTECTION","#232323","#5c5c5c","#0a0a0a",280,"Deep faceted black. Cuts the noise and steadies the mind.",{wealth:3,love:2,healing:5,protection:10,focus:6,power:6}],
+  ["tiger-eye","Faceted Tiger Eye","WEALTH","#a9762f","#e8c876","#4a2f0c",290,"Amber light in motion. For judgement, and the nerve to act on it.",{wealth:8,love:3,healing:5,protection:5,focus:7,power:7}],
+  ["hematite","Faceted Hematite","PROTECTION","#71757a","#c7ccd1","#2b2d30",260,"Metallic and grounding. Fortifies will and guards the edges.",{wealth:3,love:3,healing:6,protection:8,focus:5,power:7}],
+  ["smoky","Round Smoky Quartz","FOCUS","#5f4a3a","#a8876a","#241a12",250,"Settles you down, lets the static go, gathers focus.",{wealth:4,love:3,healing:7,protection:7,focus:9,power:5}],
+  ["lava","Round Matte Lava Rock","POWER","#1c1c1c","#3f3f3f","#050505",220,"Raw volcanic stone. Holds heat, releases it when you need it.",{wealth:2,love:2,healing:5,protection:5,focus:4,power:10}],
+  ["goldstone","Faceted Blue Goldstone","WEALTH","#1d2b45","#5878ad","#0a1220",310,"Gold flecks across a midnight field — ambition and good fortune.",{wealth:10,love:4,healing:4,protection:3,focus:5,power:7}],
+  ["rose","Rose Quartz","LOVE","#df9baa","#fff3f4","#a65364",260,"Tenderness, closeness, and accepting yourself first.",{wealth:2,love:9,healing:7,protection:3,focus:4,power:5}],
+  ["clear","Clear Quartz","FOCUS","#d4e2e4","#ffffff","#8ba3a7",230,"Clears the thinking. Amplifies whatever you point it at.",{wealth:6,love:5,healing:6,protection:7,focus:10,power:8}],
+  ["amethyst","Amethyst","PROTECTION","#8868b3","#eee5ff","#4e2c80",280,"Quiets the noise inside and keeps the balance.",{wealth:4,love:6,healing:8,protection:9,focus:9,power:7}],
+  ["citrine","Citrine","WEALTH","#e1b254","#fff7c5","#9d6a11",300,"An invitation. Abundance and self-belief arrive together.",{wealth:10,love:4,healing:5,protection:4,focus:6,power:8}],
+  ["aqua","Aquamarine","HEALING","#7fc6d4","#efffff","#337b8c",360,"Clear as open water, and just as unhurried.",{wealth:3,love:8,healing:9,protection:5,focus:8,power:6}],
+  ["tourmaline","Black Tourmaline","PROTECTION","#282a2c","#74777a","#060708",290,"Holds the boundary. A quiet, unmoving guard.",{wealth:2,love:3,healing:6,protection:10,focus:5,power:5}],
+  ["sunstone","Sunstone","POWER","#ce7b4f","#ffd4ad","#813820",330,"Carries courage into every step you take.",{wealth:7,love:5,healing:8,protection:4,focus:6,power:9}],
+  ["moon","Moonstone","HEALING","#bbc6e1","#ffffff","#6d78a3",320,"Soft intuition. Light for a beginning.",{wealth:3,love:7,healing:8,protection:6,focus:7,power:6}],
+  ["moss","Moss Agate","HEALING","#779b78","#e5f3d8","#31563a",290,"Steady growth. Returns you to your own pace.",{wealth:6,love:4,healing:9,protection:7,focus:5,power:5}],
+  ["lapis","Lapis Lazuli","FOCUS","#315b94","#a7d9f3","#122654",330,"Honest speech, and a line back to your own wisdom.",{wealth:5,love:6,healing:7,protection:8,focus:8,power:7}],
+  ["garnet","Garnet","POWER","#9d3753","#ffc2cb","#4d1025",310,"Heat, appetite, and the will to keep going.",{wealth:7,love:7,healing:6,protection:5,focus:4,power:10}],
+  ["tiger","Round Tiger Eye","WEALTH","#ae7927","#ffdf84","#55340c",260,"Round golden-brown banding. Decisive, without hesitation.",{wealth:8,love:3,healing:7,protection:6,focus:7,power:7}],
+  ["fluorite","Fluorite","FOCUS","#79b69f","#e3ffe7","#3d7461",320,"Orders the mind. Cleanses gently.",{wealth:3,love:5,healing:8,protection:7,focus:9,power:6}],
+  ["rhodonite","Rhodonite","LOVE","#b96f82","#ffd8e0","#6e3445",350,"Mends what matters, and dares you to love anyway.",{wealth:2,love:10,healing:7,protection:5,focus:5,power:6}],
+  ["labradorite","Labradorite","PROTECTION","#557883","#bfeef2","#263e55",380,"A low flash of light that guards your energy.",{wealth:4,love:5,healing:6,protection:10,focus:7,power:7}],
+] as const).map(([id,en,group,color,light,deep,price,note,energy]) => ({ id,en,group,color,light,deep,price,note,energy } as Stone));
 
 export const accessories: Accessory[] = ([
-  ["gold-hex","金色六角框隔珠","Gold Hex Frame Spacer","spacer","hex","gold",150,"俐落線條，界定每段能量"],
-  ["silver-hex","銀色六角框隔珠","Silver Hex Frame Spacer","spacer","hex","silver",140,"冷冽金屬感，中和石材重量"],
-  ["compass","金色羅盤吊飾","Gold Compass Charm","charm","compass","gold",460,"讓決斷始終指向目標"],
-  ["arrow","金屬箭頭吊飾","Metal Arrow Charm","charm","arrow","gold",420,"直線前進，象徵意志與力量"],
-  ["silver-round","銀圓隔珠","Sterling Silver Round","spacer","round","silver",90,"鏡面拋光，簡練俐落的分段"],
-  ["silver-heart","銀立體隔珠","Sterling Silver Heart","spacer","heart","silver",160,"低調立體造型，作為視覺焦點"],
-  ["gold-rondelle","鍍金方鑽隔珠","Gold Crystal Rondelle","spacer","rondelle","gold",140,"光線下細微閃爍，增添層次"],
-  ["silver-flower","銀雕花隔珠","Silver Filigree","spacer","flower","silver",120,"手工雕花紋理，粗獷中見細節"],
-  ["gold-knot","金繩結隔珠","Gold Knot Spacer","spacer","knot","gold",130,"繩結造型，象徵牢牢守住的目標"],
-  ["silver-star","銀星芒隔珠","Silver Star Spacer","spacer","star","silver",120,"細小星芒，暗夜中的座標"],
-  ["gold-crown","金皇冠隔珠","Gold Crown Spacer","spacer","crown","gold",160,"皇冠輪廓，為主石留出焦點"],
-  ["silver-cube","銀方塊隔珠","Silver Cube Spacer","spacer","cube","silver",110,"俐落切角，穩固不晃動的存在感"],
-  ["silver-groove","銀刻紋隔珠","Silver Ridged Spacer","spacer","groove","silver",90,"簡練刻紋，低調卻紮實的存在"],
-  ["silver-rivet","銀鉚釘隔珠","Silver Rivet Spacer","spacer","rivet","silver",100,"工業鉚釘感，粗獷中透出精工"],
-  ["silver-chain","銀鏈環隔珠","Silver Chain-Link Spacer","spacer","chain","silver",130,"鏈環相扣，穩穩串起每一段決心"],
-  ["silver-shield","銀盾牌隔珠","Silver Shield Spacer","spacer","shield","silver",150,"盾形輪廓，象徵扛下風浪的肩膀"],
-  ["silver-dragon","銀鱗紋隔珠","Silver Dragon-Scale Spacer","spacer","dragon","silver",170,"鱗紋刻痕，蓄勢待發的沉穩力量"],
-  ["silver-skull","銀骷髏隔珠","Silver Skull Spacer","spacer","skull","silver",180,"強悍圖騰，提醒自己無畏向前"],
-  ["silver-tiger-spacer","銀虎首隔珠","Silver Tiger Head Spacer","spacer","tigerhead","silver",190,"虎首鎮守，果斷出擊不留餘地"],
-  ["silver-pixiu","銀貔貅隔珠","Silver Pixiu Spacer","spacer","pixiu","silver",220,"招財神獸，只進不出的守財象徵"],
-  ["gold-pixiu","金貔貅隔珠","Gold Pixiu Spacer","spacer","pixiu","gold",240,"金色神獸，鎮守財路的低調宣言"],
-  ["leaf","金葉吊飾","Golden Leaf Charm","charm","leaf","gold",390,"破土而生的姿態，象徵持續成長"],
-  ["moon-charm","月亮吊飾","Moon Charm","charm","moon","silver",390,"夜行者的座標，沉靜中蓄積力量"],
-  ["lotus","蓮花吊飾","Lotus Charm","charm","lotus","gold",490,"泥中不染，淬鍊後的從容"],
-  ["heart","赤誠吊飾","Heart Charm","charm","heart","gold",420,"純粹的初衷，提醒自己為何出發"],
-  ["cross","守護十字吊飾","Cross Charm","charm","cross","silver",490,"低調堅定，扛住每一次風浪"],
-  ["key","掌控鑰匙吊飾","Lucky Key Charm","charm","key","gold",450,"掌握開啟下一步的主動權"],
-  ["butterfly","蛻變吊飾","Butterfly Charm","charm","butterfly","gold",520,"破繭姿態，提醒自己敢於蛻變"],
-  ["evil-eye","守護之眼吊飾","Evil Eye Charm","charm","evil-eye","silver",480,"警醒之眼，阻擋來自四面的干擾"],
-  ["sun-charm","太陽吊飾","Sunray Charm","charm","sun","gold",470,"每天為自己點亮一次氣場"],
-  ["star-charm","目標星吊飾","Wish Star Charm","charm","wish-star","silver",430,"把目標釘進日常，時刻可見"],
-  ["shell","遠航貝殼吊飾","Seashell Charm","charm","shell","gold",460,"見過風浪，依然自在前行"],
-  ["travel-compass","旅行羅盤吊飾","Travel Compass Charm","charm","compass","silver",540,"無論走到哪，心裡有一個方向"],
-  ["angel-wing","守護之翼吊飾","Angel Wing Charm","charm","wing","silver",510,"低調的後盾，安靜地在背後撐著"],
-  ["clover","幸運草吊飾","Four Leaf Clover Charm","charm","clover","gold",500,"收下恰到好處的運氣，其餘靠實力"],
-  ["lock","承諾鎖頭吊飾","Love Lock Charm","charm","lock","gold",490,"鎖住說出口的承諾"],
-  ["hamsa","平安手掌吊飾","Hamsa Charm","charm","hamsa","silver",520,"掌心向外，擋下多餘的雜訊"],
-] as const).map(([id,zh,en,type,shape,metal,price,note]) => ({ id,zh,en,type,shape,metal,price,note } as Accessory));
+  ["gold-hex","Gold Hex Frame Spacer","spacer","hex","gold",150,"Clean geometry that measures out each passage."],
+  ["silver-hex","Silver Hex Frame Spacer","spacer","hex","silver",140,"Cool metal to balance the weight of stone."],
+  ["compass","Gold Compass Charm","charm","compass","gold",460,"Keeps the decision pointed at the destination."],
+  ["arrow","Metal Arrow Charm","charm","arrow","gold",420,"Straight ahead. Will, made into a shape."],
+  ["silver-round","Sterling Silver Round","spacer","round","silver",90,"Mirror-polished. The simplest possible break."],
+  ["silver-heart","Sterling Silver Heart","spacer","heart","silver",160,"Quietly dimensional — a place for the eye to rest."],
+  ["gold-rondelle","Gold Crystal Rondelle","spacer","rondelle","gold",140,"Catches the light in small increments."],
+  ["silver-flower","Silver Filigree","spacer","flower","silver",120,"Hand-cut filigree. Detail inside something sturdy."],
+  ["gold-knot","Gold Knot Spacer","spacer","knot","gold",130,"A knot. For holding on to what you named."],
+  ["silver-star","Silver Star Spacer","spacer","star","silver",120,"A small burst of light. A marker in the dark."],
+  ["gold-crown","Gold Crown Spacer","spacer","crown","gold",160,"A crown's outline, clearing the stage for the focal stone."],
+  ["silver-cube","Silver Cube Spacer","spacer","cube","silver",110,"Cut corners, no movement, all presence."],
+  ["silver-groove","Silver Ridged Spacer","spacer","groove","silver",90,"Plain ridging. Understated and solid."],
+  ["silver-rivet","Silver Rivet Spacer","spacer","rivet","silver",100,"Industrial rivet — rough on the surface, precise underneath."],
+  ["silver-chain","Silver Chain-Link Spacer","spacer","chain","silver",130,"Interlocking links, strung through every resolve."],
+  ["silver-shield","Silver Shield Spacer","spacer","shield","silver",150,"A shield's profile. Shoulders for the weather."],
+  ["silver-dragon","Silver Dragon-Scale Spacer","spacer","dragon","silver",170,"Scale-cut. Power held in reserve."],
+  ["silver-skull","Silver Skull Spacer","spacer","skull","silver",180,"A hard totem. A reminder to go on unafraid."],
+  ["silver-tiger-spacer","Silver Tiger Head Spacer","spacer","tigerhead","silver",190,"The tiger stands watch. Decisive, and final."],
+  ["silver-pixiu","Silver Pixiu Spacer","spacer","pixiu","silver",220,"The wealth beast. It takes in and never lets go."],
+  ["gold-pixiu","Gold Pixiu Spacer","spacer","pixiu","gold",240,"Gold guardian, standing over the money road."],
+  ["leaf","Golden Leaf Charm","charm","leaf","gold",390,"The gesture of breaking through soil. Growth that keeps going."],
+  ["moon-charm","Moon Charm","charm","moon","silver",390,"A night traveller's marker, gathering strength in the quiet."],
+  ["lotus","Lotus Charm","charm","lotus","gold",490,"Unstained by the mud it came from. Ease, earned."],
+  ["heart","Heart Charm","charm","heart","gold",420,"The original reason. A reminder of why you set out."],
+  ["cross","Cross Charm","charm","cross","silver",490,"Quiet and certain. Takes the weather as it comes."],
+  ["key","Lucky Key Charm","charm","key","gold",450,"The right to open whatever is next."],
+  ["butterfly","Butterfly Charm","charm","butterfly","gold",520,"Out of the cocoon. Permission to change."],
+  ["evil-eye","Evil Eye Charm","charm","evil-eye","silver",480,"A watchful eye, turning away the interference."],
+  ["sun-charm","Sunray Charm","charm","sun","gold",470,"Lights your own field, once a day."],
+  ["star-charm","Wish Star Charm","charm","wish-star","silver",430,"Pins the intention somewhere you'll see it."],
+  ["shell","Seashell Charm","charm","shell","gold",460,"It has seen weather, and travels easy anyway."],
+  ["travel-compass","Travel Compass Charm","charm","compass","silver",540,"Wherever you go, a direction you already hold."],
+  ["angel-wing","Angel Wing Charm","charm","wing","silver",510,"The quiet backing, holding steady behind you."],
+  ["clover","Four Leaf Clover Charm","charm","clover","gold",500,"Takes the luck it's owed. The rest is yours."],
+  ["lock","Love Lock Charm","charm","lock","gold",490,"Locks the promise you said out loud."],
+  ["hamsa","Hamsa Charm","charm","hamsa","silver",520,"Palm outward, turning away what isn't yours."],
+] as const).map(([id,en,type,shape,metal,price,note]) => ({ id,en,type,shape,metal,price,note } as Accessory));
 
 export const byStone = Object.fromEntries(stones.map((x) => [x.id, x])) as Record<string, Stone>;
 export const byAccessory = Object.fromEntries(accessories.map((x) => [x.id, x])) as Record<string, Accessory>;
@@ -186,8 +186,8 @@ export const PCT_PER_MM = 0.95;
 
 export function itemMM(item: DesignItem) { if (item.kind === "stone") return BEAD_MM[item.size ?? "large"]; return byAccessory[item.id].type === "spacer" ? 5 : 3; }
 export function itemPrice(item: DesignItem) { if (item.kind === "accessory") return byAccessory[item.id].price; const base = byStone[item.id].price; return base + (item.size === "xlarge" ? 320 : item.size === "small" ? 0 : 80); }
-export function label(item: DesignItem) { return item.kind === "stone" ? byStone[item.id].zh : byAccessory[item.id].zh; }
-export function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "20mm 特大主珠" : size === "large" ? "10mm 大珠" : "8mm 中珠"; }
+export function label(item: DesignItem) { return item.kind === "stone" ? byStone[item.id].en : byAccessory[item.id].en; }
+export function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "20mm focal" : size === "large" ? "10mm" : "8mm"; }
 
 // Bigger beads carry more of the stone's energy into the design.
 export function energyScores(items: DesignItem[]) {
@@ -244,12 +244,12 @@ export function decodeDesign(code: string): { wrist: number; items: DesignItem[]
 // stream (firing pointercancel) and kills bead drag-reordering.
 export function Crystal({ stone, size = "large" }: { stone: Stone; size?: BeadSize }) {
   const photo = stonePhotos[stone.id];
-  if (photo) return <span className={`crystal photo ${size}`}><img src={photo} alt={`${stone.zh} 正面實物圖`} draggable={false} /></span>;
+  if (photo) return <span className={`crystal photo ${size}`}><img src={photo} alt={`${stone.en}, front view`} draggable={false} /></span>;
   return <span className={`crystal ${size}`} style={{ "--c": stone.color, "--l": stone.light, "--d": stone.deep } as React.CSSProperties}><i /><b /><em /></span>;
 }
 export function Hardware({ a, small = false }: { a: Accessory; small?: boolean }) {
   const photo = accessoryPhotos[a.id];
-  if (photo) return <span className={`hardware photo ${a.type} ${small ? "small" : ""}`}><img src={photo} alt={`${a.zh} 正面實物圖`} draggable={false} /></span>;
+  if (photo) return <span className={`hardware photo ${a.type} ${small ? "small" : ""}`}><img src={photo} alt={`${a.en}, front view`} draggable={false} /></span>;
   return <span className={`hardware ${a.metal} ${a.type} shape-${a.shape} ${small ? "small" : ""}`}><i /><b /></span>;
 }
 export function ItemVisual({ item, small = false }: { item: DesignItem; small?: boolean }) {

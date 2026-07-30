@@ -4,14 +4,14 @@ import { useState } from "react";
 import { playConfirmBoom } from "./ui-sound";
 
 export type OrderLine = { key: string; visual: React.ReactNode; name: string; sub: string; qty: number; unit: number };
-type EnergyInfo = { zh: string; en: string; color: string };
+type EnergyInfo = { en: string; color: string };
 
 // Wrist sizes offered at checkout: 13–22 cm in half-centimetre steps.
 const WRIST_SIZES = Array.from({ length: 19 }, (_, i) => (13 + i * 0.5).toFixed(1).replace(/\.0$/, ""));
 const PAYMENTS = [
-  { id: "card", name: "信用卡", note: "VISA / Master / JCB" },
-  { id: "linepay", name: "LINE Pay", note: "行動支付快速結帳" },
-  { id: "cod", name: "貨到付款", note: "宅配到府，取貨付款" },
+  { id: "card", name: "Card", note: "Visa · Mastercard · JCB" },
+  { id: "linepay", name: "LINE Pay", note: "Mobile checkout" },
+  { id: "cod", name: "Cash on delivery", note: "Pay when it arrives" },
 ] as const;
 
 export default function Checkout({ lines, baseFee, dominant, totalEnergy, initialWrist, onBack }: {
@@ -36,10 +36,10 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
 
   const submit = () => {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = "請填寫收件人姓名";
-    if (!/^09\d{8}$/.test(form.phone.trim())) errs.phone = "請填寫正確的手機號碼（09 開頭共 10 碼）";
-    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email.trim())) errs.email = "Email 格式不正確";
-    if (!form.address.trim()) errs.address = "請填寫收件地址";
+    if (!form.name.trim()) errs.name = "Please enter a name";
+    if (!/^09\d{8}$/.test(form.phone.trim())) errs.phone = "Enter a valid mobile number (10 digits, starting 09)";
+    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email.trim())) errs.email = "That email doesn’t look right";
+    if (!form.address.trim()) errs.address = "Please enter a delivery address";
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setOrderId(`OMA-${Date.now().toString(36).toUpperCase()}`);
@@ -49,46 +49,46 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
   };
 
   const orderText = () => [
-    `OMA CRYSTAL 訂單 ${orderId}`,
-    `主屬性：${dominant.zh} ${dominant.en}（總能量 ${totalEnergy.toLocaleString()}）`,
-    ...lines.map((l) => `・${l.name} ${l.sub}｜${l.qty} 顆 × NT$${l.unit}`),
-    `設計串製費 NT$${baseFee}`,
-    shipping ? `運費 NT$${shipping}` : "免運費",
-    `合計 NT$${grand.toLocaleString()}`,
-    `收件人：${form.name}／${form.phone}`,
-    `手圍：${form.wrist} cm`,
-    `地址：${form.address}`,
+    `OMA CRYSTAL order ${orderId}`,
+    `Dominant: ${dominant.en} (total ${totalEnergy.toLocaleString()})`,
+    ...lines.map((l) => `- ${l.name} ${l.sub} | ${l.qty} x NT$${l.unit}`),
+    `Making fee NT$${baseFee}`,
+    shipping ? `Shipping NT$${shipping}` : "Free shipping",
+    `Total NT$${grand.toLocaleString()}`,
+    `Recipient: ${form.name} / ${form.phone}`,
+    `Wrist: ${form.wrist} cm`,
+    `Address: ${form.address}`,
   ].join("\n");
 
   if (step === "done") return <section className="checkout done-view">
     <div className="done-card">
       <div className="forge-flash" />
       <div className="done-mark">✓</div>
-      <p className="done-eyebrow">RITUAL COMPLETE · 圓滿</p>
-      <h1>你的手鍊，開始成形了</h1>
+      <p className="done-eyebrow">Ritual complete</p>
+      <h1>Your piece has begun</h1>
       <div className="done-order-id">{orderId}</div>
-      <p className="done-note">謝謝你把這條交給我們。珠寶顧問會在 1 個工作天內與你確認手圍、付款與出貨細節——在那之前，什麼都還可以改。</p>
+      <p className="done-note">Thank you for trusting us with this one. A jewellery adviser will confirm your wrist size, payment and delivery within one working day. Until then, nothing is fixed.</p>
       <div className="done-summary">
         {lines.map((l) => <div className="done-line" key={l.key}><span className="dl-visual">{l.visual}</span><span className="dl-name">{l.name}<i>{l.sub}</i></span><span className="dl-qty">× {l.qty}</span><b>NT$ {(l.unit * l.qty).toLocaleString()}</b></div>)}
-        <div className="done-line fee"><span /><span className="dl-name">設計串製費</span><span /><b>NT$ {baseFee.toLocaleString()}</b></div>
-        <div className="done-line fee"><span /><span className="dl-name">運費</span><span /><b>{shipping ? `NT$ ${shipping}` : "免運"}</b></div>
-        <div className="done-line total"><span /><span className="dl-name">合計</span><span /><b>NT$ {grand.toLocaleString()}</b></div>
+        <div className="done-line fee"><span /><span className="dl-name">Making fee</span><span /><b>NT$ {baseFee.toLocaleString()}</b></div>
+        <div className="done-line fee"><span /><span className="dl-name">Shipping</span><span /><b>{shipping ? `NT$ ${shipping}` : "Free"}</b></div>
+        <div className="done-line total"><span /><span className="dl-name">Total</span><span /><b>NT$ {grand.toLocaleString()}</b></div>
       </div>
-      <div className="done-energy">此手鍊的主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b>・總能量 <em>{totalEnergy.toLocaleString()}</em></div>
+      <div className="done-energy">Dominant energy <b style={{ color: dominant.color }}>{dominant.en}</b> · total <em>{totalEnergy.toLocaleString()}</em></div>
       <div className="done-actions">
-        <button className="co-secondary" onClick={() => navigator.clipboard?.writeText(orderText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "已複製 ✓" : "複製訂單明細"}</button>
-        <button className="co-primary" onClick={onBack}>回到工作室</button>
+        <button className="co-secondary" onClick={() => navigator.clipboard?.writeText(orderText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "Copied ✓" : "Copy order details"}</button>
+        <button className="co-primary" onClick={onBack}>Back to the atelier</button>
       </div>
     </div>
   </section>;
 
   return <section className="checkout">
-    <button className="co-back" onClick={onBack}>← 回去再調整</button>
+    <button className="co-back" onClick={onBack}>← Keep adjusting</button>
     <div className="co-grid">
       <aside className="co-summary">
         <p className="co-eyebrow">ORDER SUMMARY</p>
-        <h2>為你而生的這一條</h2>
-        <div className="co-energy-chip">主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b><em>TOTAL ENERGY {totalEnergy.toLocaleString()}</em></div>
+        <h2>Your piece</h2>
+        <div className="co-energy-chip">Dominant <b style={{ color: dominant.color }}>{dominant.en}</b><em>TOTAL ENERGY {totalEnergy.toLocaleString()}</em></div>
         <div className="co-lines">
           {lines.map((l) => <div className="co-line" key={l.key}>
             <span className="co-visual">{l.visual}</span>
@@ -98,31 +98,31 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
           </div>)}
         </div>
         <div className="co-fees">
-          <div><span>素材小計</span><b>NT$ {itemsTotal.toLocaleString()}</b></div>
-          <div><span>設計串製費</span><b>NT$ {baseFee.toLocaleString()}</b></div>
-          <div><span>運費{shipping === 0 ? "（滿 NT$3,000 免運）" : ""}</span><b>{shipping ? `NT$ ${shipping}` : "免運"}</b></div>
-          <div className="co-grand"><span>合計</span><b>NT$ {grand.toLocaleString()}</b></div>
+          <div><span>Materials</span><b>NT$ {itemsTotal.toLocaleString()}</b></div>
+          <div><span>Making fee</span><b>NT$ {baseFee.toLocaleString()}</b></div>
+          <div><span>Shipping{shipping === 0 ? " (free over NT$3,000)" : ""}</span><b>{shipping ? `NT$ ${shipping}` : "Free"}</b></div>
+          <div className="co-grand"><span>Total</span><b>NT$ {grand.toLocaleString()}</b></div>
         </div>
       </aside>
       <div className="co-form">
-        <p className="co-eyebrow">02 — CHECKOUT · 完成訂購</p>
-        <h2>寄到哪裡 Delivery</h2>
+        <p className="co-eyebrow">02 — Checkout</p>
+        <h2>Delivery</h2>
         <div className="co-fields">
-          <label className={errors.name ? "err" : ""}><span>收件人姓名 *</span><input value={form.name} onChange={set("name")} placeholder="王小明" autoComplete="name" />{errors.name && <em>{errors.name}</em>}</label>
-          <label className={errors.phone ? "err" : ""}><span>手機號碼 *</span><input value={form.phone} onChange={set("phone")} placeholder="0912345678" inputMode="numeric" autoComplete="tel" />{errors.phone && <em>{errors.phone}</em>}</label>
-          <label className={errors.email ? "err" : ""}><span>Email（選填）</span><input value={form.email} onChange={set("email")} placeholder="you@example.com" inputMode="email" autoComplete="email" />{errors.email && <em>{errors.email}</em>}</label>
-          <label><span>手圍尺寸</span><select value={form.wrist} onChange={set("wrist")}>{WRIST_SIZES.map((w) => <option key={w} value={w}>{w} cm</option>)}<option value="unsure">不確定，請顧問協助</option></select></label>
-          <label className={`co-wide ${errors.address ? "err" : ""}`}><span>收件地址 *</span><input value={form.address} onChange={set("address")} placeholder="縣市、區、路街巷弄門牌樓層" autoComplete="street-address" />{errors.address && <em>{errors.address}</em>}</label>
-          <label className="co-wide"><span>備註（選填）</span><textarea value={form.note} onChange={set("note")} rows={2} placeholder="包裝需求、指定到貨時段…" /></label>
+          <label className={errors.name ? "err" : ""}><span>Name *</span><input value={form.name} onChange={set("name")} placeholder="Full name" autoComplete="name" />{errors.name && <em>{errors.name}</em>}</label>
+          <label className={errors.phone ? "err" : ""}><span>Mobile *</span><input value={form.phone} onChange={set("phone")} placeholder="0912345678" inputMode="numeric" autoComplete="tel" />{errors.phone && <em>{errors.phone}</em>}</label>
+          <label className={errors.email ? "err" : ""}><span>Email (optional)</span><input value={form.email} onChange={set("email")} placeholder="you@example.com" inputMode="email" autoComplete="email" />{errors.email && <em>{errors.email}</em>}</label>
+          <label><span>Wrist size</span><select value={form.wrist} onChange={set("wrist")}>{WRIST_SIZES.map((w) => <option key={w} value={w}>{w} cm</option>)}<option value="unsure">Not sure — please advise</option></select></label>
+          <label className={`co-wide ${errors.address ? "err" : ""}`}><span>Delivery address *</span><input value={form.address} onChange={set("address")} placeholder="Street, district, city, postcode" autoComplete="street-address" />{errors.address && <em>{errors.address}</em>}</label>
+          <label className="co-wide"><span>Notes (optional)</span><textarea value={form.note} onChange={set("note")} rows={2} placeholder="Gift wrapping, preferred delivery window…" /></label>
         </div>
-        <h2 className="co-pay-title">付款方式 Payment</h2>
+        <h2 className="co-pay-title">Payment</h2>
         <div className="co-payments">
           {PAYMENTS.map((p) => <button key={p.id} type="button" className={`co-pay ${payment === p.id ? "active" : ""}`} onClick={() => setPayment(p.id)}>
             <b>{p.name}</b><i>{p.note}</i>
           </button>)}
         </div>
-        <button className="co-primary co-submit" onClick={submit}>確認下單 · NT$ {grand.toLocaleString()} <span>→</span></button>
-        <p className="co-tip">送出後由珠寶顧問與你確認細節，確認前不會請款。慢慢想，不急。</p>
+        <button className="co-primary co-submit" onClick={submit}>Place order · NT$ {grand.toLocaleString()} <span>→</span></button>
+        <p className="co-tip">An adviser confirms the details before anything is charged. Take your time.</p>
       </div>
     </div>
   </section>;

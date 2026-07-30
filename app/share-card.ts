@@ -3,7 +3,7 @@
 // radar, pricing, and the shareable design link.
 
 export type SharePiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean };
-export type ShareEnergy = { zh: string; en: string; color: string; score: number };
+export type ShareEnergy = { en: string; color: string; score: number };
 
 const loadImage = (src: string) => new Promise<HTMLImageElement | null>((resolve) => {
   const im = new Image();
@@ -144,7 +144,7 @@ export async function generateShareCard(opts: {
     const [x, y] = pt(i, rr + 34);
     ctx.fillStyle = e.color;
     ctx.font = "600 22px Arial, sans-serif";
-    ctx.fillText(e.zh, x, y);
+    ctx.fillText(e.en, x, y);
     ctx.fillStyle = "#6b6b6b";
     ctx.font = "500 17px Arial, sans-serif";
     ctx.fillText(e.score.toLocaleString(), x, y + 24);
@@ -171,7 +171,7 @@ export async function generateShareCard(opts: {
   ctx.fillText(`NT$ ${priceNTD.toLocaleString()}`, tx, 1152);
   ctx.fillStyle = "#6b6b6b";
   ctx.font = "500 22px Arial, sans-serif";
-  ctx.fillText(`手圍 ${wristCm} cm`, tx, 1192);
+  ctx.fillText(`${wristCm} cm wrist`, tx, 1192);
 
   // footer link bar
   const fy = 1246, fh = 64;
@@ -182,7 +182,7 @@ export async function generateShareCard(opts: {
   ctx.fillStyle = "#c9a355";
   ctx.font = "600 21px Arial, sans-serif";
   const shortUrl = url.replace(/^https?:\/\//, "");
-  ctx.fillText(`打造你的同款 → ${shortUrl.length > 62 ? shortUrl.slice(0, 60) + "…" : shortUrl}`, W / 2, fy + 40);
+  ctx.fillText(`Compose your own → ${shortUrl.length > 62 ? shortUrl.slice(0, 60) + "…" : shortUrl}`, W / 2, fy + 40);
 
   return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"));
 }

@@ -8,28 +8,28 @@ export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onCl
   const steps = [
     {
       title: "Begin With One",
-      subtitle: "從一顆開始",
-      description: "不用先想好整條的樣子。挑一顆你此刻想要的，其餘的會慢慢長出來。"
+      subtitle: "One stone at a time",
+      description: "You don't need the whole piece in mind. Choose the one you want right now; the rest will follow."
     },
     {
-      title: "Choose Your Stones",
-      subtitle: "選你想要的礦石",
-      description: "21 款天然礦石、37 款隔珠與吊飾。每一種的稀有度與能量強度都不一樣，喜歡的就先放上去。"
+      title: "Choose The Stones",
+      subtitle: "Twenty-one naturals",
+      description: "Plus thirty-seven spacers and charms. Each carries its own rarity and its own strength — add whichever you are drawn to."
     },
     {
-      title: "Move Them Around",
-      subtitle: "換到對的位置",
-      description: "按住珠子拖曳就能換位置。哪一顆貼著手腕內側，只有你會知道——那是給自己留的。"
+      title: "Set The Order",
+      subtitle: "Until it reads right",
+      description: "Hold a stone and drag it anywhere on the strand. Which one sits against the inside of your wrist is yours alone to know."
     },
     {
-      title: "See What You're Wearing",
-      subtitle: "看見你戴的是什麼",
-      description: "六個維度即時運算：財富、愛情、療癒、守護、專注、力量。你在意什麼，戴上之前就看得出來。"
+      title: "See What You Wear",
+      subtitle: "Six dimensions, live",
+      description: "Six dimensions, computed live: wealth, love, healing, protection, focus, power. What you care about is legible before you put it on."
     },
     {
       title: "Keep It, Or Share It",
-      subtitle: "留著，或送出去",
-      description: "配好之後可以直接下單，也可以把設計連結分享出去——讓在意你的人知道你正在往哪裡走。"
+      subtitle: "However you like",
+      description: "Order it as it stands, or share the link — so the people who care about you can see where you are headed."
     }
   ];
 

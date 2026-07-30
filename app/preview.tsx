@@ -286,9 +286,9 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
     };
   }, [pieces, capacityMM]);
 
-  return <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽">
-    <div className="pv-head"><b>✨ 360° PREVIEW</b><span>繞一圈看看</span><button className="pv-sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? "開啟碰撞音效" : "關閉碰撞音效"}>{muted ? "🔇" : "🔊"}</button><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
+  return <div className="preview-overlay" role="dialog" aria-label="360-degree preview">
+    <div className="pv-head"><b>360° PREVIEW</b><span>Turn it around</span><button className="pv-sound" onClick={() => setMuted((m) => !m)} aria-label={muted ? "Turn on bead sound" : "Turn off bead sound"}>{muted ? "🔇" : "🔊"}</button><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
     <canvas ref={canvasRef} className="pv-canvas" />
-    <div className="pv-hint">往任意方向拖曳 · 無限翻轉 · 甩一下，聽珠子互相碰的聲音</div>
+    <div className="pv-hint">Drag in any direction · unlimited rotation · flick it and hear the beads meet</div>
   </div>;
 }

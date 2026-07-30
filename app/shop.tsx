@@ -73,17 +73,17 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
   return <div className="shop" style={{ "--series-accent": series.accent } as React.CSSProperties}>
     <header className="shop-head">
       <button className="wordmark" onClick={onHome}>OMA <span>CRYSTAL</span></button>
-      <div className="head-note">READY-TO-WEAR · 為你配好的系列</div>
-      <div className="head-actions"><button className="quiet" onClick={onBlankStudio}>親手串一條 →</button></div>
+      <div className="head-note">Ready to wear</div>
+      <div className="head-actions"><button className="quiet" onClick={onBlankStudio}>Make your own →</button></div>
     </header>
 
     <section className="shop-intro">
-      <p className="landing-eyebrow">THE COLLECTIONS · 八個系列</p>
-      <h1>挑一條直接帶走，<br />或改成只屬於你的比例</h1>
-      <span>八個系列、每個系列 12 款，都由 OMA 事先為你配好——從 8mm 細繩、10mm 正常款到 20mm 大顆款。看上就能直接下單；想調整就按「微客制」進工作室換石頭、加珠子、改手圍，它會慢慢變成你的。</span>
+      <p className="landing-eyebrow">The collections</p>
+      <h1>Take one as it is,<br />or make the proportions yours</h1>
+      <span>Eight collections, twelve pieces in each, every one composed in the atelier — 8mm fine, 10mm uniform, 20mm bold. Order any of them as they are. Or press <em>Customise</em> and carry it through to the atelier to change the stones, the length, the wrist.</span>
     </section>
 
-    <div className="series-tabs" role="tablist" aria-label="系列">
+    <div className="series-tabs" role="tablist" aria-label="Collections">
       {SERIES.map((s) => <button
         key={s.id}
         role="tab"
@@ -92,17 +92,16 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
         style={{ "--tab-accent": s.accent } as React.CSSProperties}
         onClick={() => onSelectSeries(s.id)}
       >
-        <b>{s.zh}</b>
-        <i>{s.en}</i>
-        <em>{s.audience === "men" ? "FOR HIM" : "FOR HER"}</em>
+        <b>{s.en}</b>
+        <em>{s.audience === "men" ? "For him" : "For her"}</em>
       </button>)}
     </div>
 
     <section className="series-banner" key={series.id}>
-      <img src={series.banner} alt={`${series.zh} ${series.en} 系列`} />
+      <img src={series.banner} alt={`The ${series.en} collection`} />
       <div className="sb-copy">
-        <p className="sb-theme">{series.themeEn} · {series.theme}</p>
-        <h2>{series.zh} <i>{series.en}</i></h2>
+        <p className="sb-theme">{series.theme}</p>
+        <h2>{series.en}</h2>
         <span className="sb-tagline">{series.tagline}</span>
         <span className="sb-craft">{series.craft}</span>
       </div>
@@ -116,22 +115,22 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
           <b className="sc-name">{product.name}</b>
           <span className="sc-tagline">{product.tagline}</span>
           <span className="sc-meta">
-            <em style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</em>
-            <i>{beads} 顆礦石 · 手圍 {product.wrist} cm</i>
+            <em style={{ color: dominant.color }}>{dominant.en}</em>
+            <i>{beads} stones · {product.wrist} cm wrist</i>
           </span>
           <span className="sc-price">NT$ {price.toLocaleString()}</span>
         </div>
         <div className="sc-actions">
-          <button className="sc-buy" onClick={() => onBuy(series.id, product.id)}>直接購買</button>
-          <button className="sc-custom" onClick={() => onCustomize(series.id, product.id)}>微客制</button>
+          <button className="sc-buy" onClick={() => onBuy(series.id, product.id)}>Order</button>
+          <button className="sc-custom" onClick={() => onCustomize(series.id, product.id)}>Customise</button>
         </div>
       </article>)}
     </div>
 
     <section className="shop-foot">
-      <h2>都還不夠像你嗎？</h2>
-      <span>21 款天然礦石、37 款隔珠與吊飾全部開放。從一顆開始就好，剩下的慢慢來。</span>
-      <button className="landing-cta" onClick={onBlankStudio}>親手為自己串一條 <i>→</i></button>
+      <h2>None of them quite you?</h2>
+      <span>Twenty-one natural stones, thirty-seven spacers and charms, all of it open. Begin with one. The rest can take its time.</span>
+      <button className="landing-cta" onClick={onBlankStudio}>Make your own <i>→</i></button>
     </section>
   </div>;
 }
