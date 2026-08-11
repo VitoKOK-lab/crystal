@@ -74,7 +74,7 @@ function HeroMedia() {
   // underneath, instead of stacking type over the bracelet. On wide viewports
   // it just fills the hero, so the overlay layout is unchanged.
   return <div className="landing-hero-media">
-    <img src={portrait ? HERO_CLIPS[0].stillV : HERO_CLIPS[0].still} alt="An OMA Crystal bracelet resting in a sunlit stream" />
+    <img src={portrait ? HERO_CLIPS[0].stillV : HERO_CLIPS[0].still} alt="OMA CRYSTAL 水晶手鍊，溪畔自然情境" />
     {HERO_CLIPS.map((c, i) => <video
       key={c.id}
       ref={(el) => { refs.current[i] = el; }}
@@ -100,9 +100,9 @@ function HeroMedia() {
 }
 
 const FEATURES = [
-  { en: "Chosen for you", title: "Someone has already thought it through", body: "Eight collections of four, 8mm fine through 20mm bold — no two alike. When you don’t know where to begin, begin somewhere already considered." },
-  { en: "Made by your hand", title: "Or compose it yourself", body: "Twenty-one natural stones, thirty-seven spacers and charms, arranged however you like. Which stone sits against the inside of your wrist is yours alone to know." },
-  { en: "Seen, not guessed", title: "Intention you can read", body: "Wealth, love, healing, protection, focus, power — six dimensions, computed live. What you care about is legible before you ever put it on." },
+  { en: "CHOSEN FOR YOU", title: "已為你設想過", body: "八個系列、各四款，從 8mm 細繩到 20mm 大顆，無一重複。不知從何開始時，就從已經被想過的地方開始。" },
+  { en: "MADE BY YOUR HAND", title: "或親手完成", body: "二十一種天然礦石、三十七款隔珠與吊飾，任你排列。哪一顆貼著腕內側，只有你知道。" },
+  { en: "SEEN, NOT GUESSED", title: "心之所向，看得見", body: "財富、愛情、療癒、守護、專注、力量——六個維度即時運算。戴上之前，就已經看見。" },
 ] as const;
 
 // Fades + lifts each [data-reveal] section in as it enters the viewport —
@@ -129,30 +129,30 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     <header className="landing-nav">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
       <div className="landing-nav-links">
-        <button className="landing-nav-quiet" onClick={() => onShop()}>Collections</button>
-        <button className="landing-nav-cta" onClick={onStart}>Atelier</button>
+        <button className="landing-nav-quiet" onClick={() => onShop()}>系列</button>
+        <button className="landing-nav-cta" onClick={onStart}>工作室</button>
       </div>
     </header>
 
     <section className="landing-hero" id="landing-top">
       <HeroMedia />
       <div className="landing-hero-copy">
-        <p>Rituals for becoming</p>
-        <h1>WEAR YOUR<br />BECOMING</h1>
-        <span className="hero-lede">Wear the woman you are becoming.</span>
-        <span>Healing is not repair. It is putting the light you already carry back where you can see it. Eight collections, thirty-two pieces already composed — or string your own, stone by stone.</span>
+        <p>RITUALS FOR BECOMING</p>
+        <h1>戴上，<br />你正在成為的樣子</h1>
+        <span className="hero-lede">Wear your becoming</span>
+        <span>療癒不是修補，而是把本就屬於你的光，重新戴回身上。八個系列、三十二款已為你配好；或者，親手為自己串一條。</span>
         <div className="landing-hero-actions">
-          <button className="landing-cta" onClick={() => onShop()}>The collections <i>→</i></button>
-          <button className="landing-cta ghost" onClick={onStart}>Make your own</button>
+          <button className="landing-cta" onClick={() => onShop()}>探索系列 <i>→</i></button>
+          <button className="landing-cta ghost" onClick={onStart}>親手串一條</button>
         </div>
       </div>
       <div className="landing-scroll-hint"><i /></div>
     </section>
 
     <section className="landing-series" data-reveal>
-      <p className="landing-eyebrow">The collections</p>
-      <h2>Eight collections,<br />each for a state you are in</h2>
-      <span className="ls-note">Some turn away what isn’t yours. Some sit with you while you soften. Take one as it is, or carry it into the atelier and change the proportions until it is yours.</span>
+      <p className="landing-eyebrow">THE COLLECTIONS</p>
+      <h2>八個系列，<br />各自對應一種狀態</h2>
+      <span className="ls-note">有的替你擋下雜訊，有的陪你緩緩落地。可以直接帶走，也可以進工作室，改成只屬於你的比例。</span>
       <div className="landing-series-grid">
         {SERIES.map((s) => <button
           className="lsr-card"
@@ -164,19 +164,20 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
             <img src={s.banner} alt="" />
             <img src={stonePhotos[s.swatch]} alt="" className="lsr-swatch" />
           </span>
-          <span className="lsr-badge">{s.audience === "men" ? "FOR HIM" : "FOR HER"}</span>
+          <span className="lsr-badge">{s.audience === "men" ? "男款" : "女款"}</span>
           <span className="lsr-theme">{s.theme}</span>
-          <b>{s.en}</b>
+          <b>{s.zh}</b>
+          <i>{s.en}</i>
           <p>{s.craft}</p>
-          <span className="lsr-arrow">4 pieces →</span>
+          <span className="lsr-arrow">四款配置 →</span>
         </button>)}
       </div>
     </section>
 
     <section className="landing-features" data-reveal>
       <div className="landing-features-head">
-        <p className="landing-eyebrow">Why OMA</p>
-        <h2>Not an accessory.<br />A daily act of choosing yourself</h2>
+        <p className="landing-eyebrow">WHY OMA</p>
+        <h2>不是配飾，<br />是每日對自己的確認</h2>
       </div>
       <div className="landing-feature-list">
         {FEATURES.map((f, i) => <div className="landing-feature-row" key={f.title}>
@@ -187,21 +188,21 @@ export default function Home({ onStart, onShop }: { onStart: () => void; onShop:
     </section>
 
     <section className="landing-showcase" data-reveal>
-      <p className="landing-eyebrow">The materials</p>
-      <h2>Twenty-one stones,<br />each arriving with its own grain</h2>
+      <p className="landing-eyebrow">THE MATERIALS</p>
+      <h2>二十一種礦石，<br />各自帶著紋理而來</h2>
       <div className="landing-showcase-grid">
         {SHOWCASE.map((id) => <div className="ls-item" key={id}>
-          <img src={stonePhotos[id]} alt={byStone[id].en} />
-          <b>{byStone[id].en}</b>
+          <img src={stonePhotos[id]} alt={byStone[id].zh} />
+          <b>{byStone[id].zh}</b>
           <span>{byStone[id].group}</span>
         </div>)}
       </div>
     </section>
 
     <section className="landing-quote" data-reveal>
-      <p>The OMA atelier</p>
-      <h2>Slower.<br />So that wearing it returns you to yourself.</h2>
-      <button className="landing-cta light" onClick={() => onShop()}>The collections <i>→</i></button>
+      <p>THE OMA ATELIER</p>
+      <h2>慢一點。<br />讓每日的配戴，成為回到自己的途徑。</h2>
+      <button className="landing-cta light" onClick={() => onShop()}>探索系列 <i>→</i></button>
     </section>
 
     <footer className="landing-footer">

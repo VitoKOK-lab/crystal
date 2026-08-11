@@ -100,105 +100,105 @@ def build(style, wrist, pal, spacers, charm, rot=0):
 # (style, palette-rotation, spacer-count, charm-index, id, name, tagline)
 S = []
 
-def series(sid, en, theme, audience, tagline, craft, accent, banner, swatch, tone, pal, sps, charms, rows):
+def series(sid, zh, en, theme, audience, tagline, craft, accent, banner, swatch, tone, pal, sps, charms, rows):
     prods = []
     for i, (style, rot, nsp, charm_i, pid, name, tag) in enumerate(rows):
         wrist = DEFAULT_WRIST
         spacers = [sps[(i + k) % len(sps)] for k in range(nsp)]
         charm = charms[charm_i] if charm_i is not None else None
         prods.append((pid, name, tag, style, wrist, build(style, wrist, pal, spacers, charm, rot)))
-    S.append(dict(id=sid, en=en, theme=theme, audience=audience,
+    S.append(dict(id=sid, zh=zh, en=en, theme=theme, audience=audience,
                   tagline=tagline, craft=craft, accent=accent, banner=banner, swatch=swatch,
                   tone=tone, products=prods))
 
 
-series("bloom", "BLOOM", "LOVE & RELATING", "women",
-       "Rose quartz and rhodonite. For anyone willing to be gentle with herself first.",
-       "A 20mm rose focal, a fine moonstone strand, all-20mm rhodonite, and a graduated fade.", "#c9738e", "/banners/bloom.jpg", "rose", "ENERGY_TONE",
+series("bloom", "綻放", "BLOOM", "愛與關係", "women",
+       "粉晶與薔薇輝石。寫給願意先善待自己的人。",
+       "20mm 粉晶主石、細繩月光石、全 20mm 薔薇輝石，與一條白水晶漸層。", "#c9738e", "/banners/bloom.jpg", "rose", "ENERGY_TONE",
        ["rose", "rhodonite", "moon", "clear", "garnet", "aqua"],
        ["silver-round", "gold-rondelle", "gold-knot", "silver-flower"],
        ["heart", "lock", "butterfly", "lotus", "clover"],
-       [("focal", 0, 2, 0, "first-love", "First Confession", "20mm rose quartz focal. The very beginning of wanting someone."),
-        ("delicate", 2, 3, 2, "soft-secret", "Soft Secret", "8mm moonstone, pale and fine. A whisper under a shirt cuff."),
-        ("chunky", 1, 2, 4, "full-bloom", "Full Bloom", "All 20mm rhodonite. Deep pink, and it speaks before you do."),
-        ("graduated", 3, 2, 3, "fading-words", "Fading Words", "Clear quartz tapering small, pink surfacing through it.")])
+       [("focal", 0, 2, 0, "first-love", "初戀告白", "20mm 粉水晶主石。心動剛剛開始。"),
+        ("delicate", 2, 3, 2, "soft-secret", "細語心事", "8mm 月光石，淡而細。襯衫袖口下的低語。"),
+        ("chunky", 1, 2, 4, "full-bloom", "盛放宣言", "全 20mm 薔薇輝石。深粉色，開口前就先說了話。"),
+        ("graduated", 3, 2, 3, "fading-words", "漸層告白", "白水晶逐漸收細，粉色自其中浮現。")])
 
-series("serene", "SERENE", "HEALING & BREATH", "women",
-       "Aquamarine, clear quartz and fluorite. For the days you only want to breathe.",
-       "Even 10mm aquamarine, fine clear quartz, bold amethyst, and a fluorite gradient.", "#3f9aab", "/banners/serene.jpg", "aqua", "ENERGY_TONE",
+series("serene", "澄澈", "SERENE", "療癒與呼吸", "women",
+       "海藍寶、白水晶與螢石。給只想好好呼吸的日子。",
+       "10mm 海藍寶、細繩白水晶、全 20mm 紫水晶，與螢石漸層。", "#3f9aab", "/banners/serene.jpg", "aqua", "ENERGY_TONE",
        ["aqua", "clear", "fluorite", "moon", "moss", "amethyst"],
        ["silver-round", "silver-star", "silver-flower"],
        ["shell", "angel-wing", "moon-charm", "star-charm", "leaf"],
-       [("uniform", 0, 2, 0, "deep-breath", "Deep Breath", "Even 10mm aquamarine, loosening you the way the sea does."),
-        ("delicate", 1, 3, 2, "morning-clarity", "Morning Clarity", "8mm clear quartz. The first air of the day."),
-        ("chunky", 5, 2, 1, "deep-pool", "Deep Pool", "All 20mm amethyst. Quiet, and impossible to miss."),
-        ("graduated", 2, 2, 4, "breath-gradient", "Breath Gradient", "Fluorite thinning out, like a long exhale.")])
+       [("uniform", 0, 2, 0, "deep-breath", "深海呼吸", "10mm 海藍寶。像海一樣把人鬆開。"),
+        ("delicate", 1, 3, 2, "morning-clarity", "晨霧清明", "8mm 白水晶。清晨的第一口空氣。"),
+        ("chunky", 5, 2, 1, "deep-pool", "深潭沉靜", "全 20mm 紫水晶。安靜，卻無法忽視。"),
+        ("graduated", 2, 2, 4, "breath-gradient", "澄心漸層", "螢石逐漸收細，像一次長長的吐納。")])
 
-series("aurora", "AURORA", "PROTECTION & INTUITION", "women",
-       "Labradorite and amethyst, dark and shifting. Turns away what isn't yours.",
-       "A labradorite focal, fine moonstone, all-20mm obsidian, and a lapis gradient.", "#6b5bb0", "/banners/aurora.jpg", "labradorite", "ENERGY_TONE",
+series("aurora", "極光", "AURORA", "守護與直覺", "women",
+       "拉長石與紫水晶的暗色流光。擋下不屬於你的雜訊。",
+       "拉長石主石、細繩月光石、全 20mm 黑曜石，與青金石漸層。", "#6b5bb0", "/banners/aurora.jpg", "labradorite", "ENERGY_TONE",
        ["labradorite", "amethyst", "tourmaline", "moon", "lapis", "obsidian"],
        ["silver-hex", "silver-round", "silver-cube"],
        ["evil-eye", "hamsa", "cross", "angel-wing", "moon-charm"],
-       [("focal", 0, 2, 0, "aurora-guard", "Aurora Guard", "20mm labradorite focal. Understated, and immovable."),
-        ("delicate", 3, 3, 4, "stardust", "Stardust", "8mm moonstone. Worn close, like an amulet."),
-        ("chunky", 5, 2, 2, "night-shield", "Night Shield", "All 20mm obsidian. The hardest wall we make."),
-        ("graduated", 4, 2, 1, "flowing-gradient", "Flowing Gradient", "Lapis deepening to fine, the way an aurora opens.")])
+       [("focal", 0, 2, 0, "aurora-guard", "極光守護", "20mm 拉長石主石。低調，且不可撼動。"),
+        ("delicate", 3, 3, 4, "stardust", "星塵細語", "8mm 月光石。貼身佩戴，如同護符。"),
+        ("chunky", 5, 2, 2, "night-shield", "暗夜之盾", "全 20mm 黑曜石。最硬的一道牆。"),
+        ("graduated", 4, 2, 1, "flowing-gradient", "流光漸層", "青金石由深轉細，像極光緩緩散開。")])
 
-series("abundance", "ABUNDANCE", "ABUNDANCE & FLOW", "women",
-       "Citrine, tiger eye and goldstone. No need to be coy about what you want.",
-       "All-20mm citrine, fine clear quartz on gold, a tiger eye focal, and a goldstone gradient.", "#c8912f", "/banners/abundance.jpg", "citrine", "ENERGY_TONE",
+series("abundance", "豐盈", "ABUNDANCE", "豐盛與流動", "women",
+       "黃水晶、虎眼石與金沙石。值得的，不必說得含蓄。",
+       "全 20mm 黃水晶、金飾細繩白水晶、虎眼石主石，與金沙石漸層。", "#c8912f", "/banners/abundance.jpg", "citrine", "ENERGY_TONE",
        ["citrine", "tiger", "goldstone", "sunstone", "clear", "rose"],
        ["gold-crown", "gold-rondelle", "gold-knot", "gold-pixiu"],
        ["sun-charm", "key", "clover", "compass"],
-       [("chunky", 0, 2, 0, "golden-fortune", "Golden Fortune", "All 20mm citrine. Not being coy about it."),
-        ("delicate", 4, 2, 3, "fine-gold", "Fine Gold", "8mm clear quartz on gold. Wealth, worn lightly."),
-        ("focal", 1, 2, 1, "tiger-decision", "Tiger's Call", "20mm tiger eye focal, for the decision you keep postponing."),
-        ("graduated", 2, 2, 2, "rising-road", "Rising Road", "Goldstone stepping down. Midnight blue, flecked gold.")])
+       [("chunky", 0, 2, 0, "golden-fortune", "金石開運", "全 20mm 黃水晶。不必含蓄。"),
+        ("delicate", 4, 2, 3, "fine-gold", "細金流年", "8mm 白水晶配金飾。豐盛，輕輕地戴。"),
+        ("focal", 1, 2, 1, "tiger-decision", "虎眼決斷", "20mm 虎眼石主石。為那個一直拖延的決定。"),
+        ("graduated", 2, 2, 2, "rising-road", "上行之路", "金沙石逐級收細。深藍夜色，散著金點。")])
 
-series("whisper", "WHISPER", "EVERYDAY LAYERS", "women",
-       "Fine 8mm strands. Light enough to forget, and always still there.",
-       "Fine moonstone, fine aquamarine, 10mm rose quartz, and an amethyst fade. Nothing heavier.", "#a88b7a", "/banners/whisper.jpg", "moon", "ENERGY_TONE",
+series("whisper", "細語", "WHISPER", "日常疊戴", "women",
+       "以 8mm 為主的細繩款。輕得會忘記，卻始終都在。",
+       "細繩月光石、細繩海藍寶、10mm 粉晶，與紫水晶漸層。無一更重。", "#a88b7a", "/banners/whisper.jpg", "moon", "ENERGY_TONE",
        ["moon", "rose", "clear", "aqua", "fluorite", "amethyst"],
        ["silver-round", "silver-star"],
        ["star-charm", "moon-charm"],
-       [("delicate", 0, 2, None, "plain-days", "Plain Days", "8mm moonstone. The most ordinary one, on purpose."),
-        ("delicate", 3, 2, 1, "sea-breeze", "Sea Breeze", "8mm aquamarine. Cool, and easy to forget."),
-        ("uniform", 1, 2, 0, "soft-weight", "Soft Weight", "10mm rose quartz, for when 8mm is not quite enough."),
-        ("graduated", 5, 2, 1, "two-tone", "Two Tone", "Amethyst falling away to nothing.")])
+       [("delicate", 0, 2, None, "plain-days", "素日細語", "8mm 月光石。刻意做成最平常的一條。"),
+        ("delicate", 3, 2, 1, "sea-breeze", "海風輕拂", "8mm 海藍寶。清涼，容易忘記。"),
+        ("uniform", 1, 2, 0, "soft-weight", "微重之感", "10mm 粉水晶。當 8mm 還差一點的時候。"),
+        ("graduated", 5, 2, 1, "two-tone", "雙色淡出", "紫水晶一路淡去，直到消失。")])
 
-series("forge", "FORGE", "STRENGTH & GUARD", "men",
-       "Obsidian, hematite and pixiu spacers. Solid, quiet, unexplained.",
-       "An obsidian focal, fine hematite, all-20mm lava, and a tiger eye gradient.", "#b8923f", "/banners/forge.jpg", "obsidian", "POWER_TONE",
+series("forge", "曜石", "FORGE", "力量與守護", "men",
+       "黑曜石、赤鐵礦與貔貅隔珠。扎實、安靜，無需解釋。",
+       "黑曜石主石、細繩赤鐵礦、全 20mm 火山岩，與虎眼石漸層。", "#b8923f", "/banners/forge.jpg", "obsidian", "POWER_TONE",
        ["obsidian", "hematite", "tiger-eye", "goldstone", "lava", "smoky"],
        ["silver-hex", "gold-hex", "gold-pixiu", "silver-tiger-spacer"],
        ["travel-compass", "compass", "arrow", "key"],
-       [("focal", 0, 2, 0, "polar-night", "Polar Night", "20mm obsidian focal. All black, no softening."),
-        ("delicate", 1, 2, 3, "minimal-black", "Minimal Black", "8mm hematite. The quietest way to wear it."),
-        ("chunky", 4, 2, 2, "lava-warrior", "Lava Warrior", "All 20mm matte lava. Heat under the surface."),
-        ("graduated", 2, 2, 1, "tiger-market", "Tiger Market", "Tiger eye narrowing down, for reading the room.")])
+       [("focal", 0, 2, 0, "polar-night", "極夜守護", "20mm 黑曜石主石。全黑，不作緩和。"),
+        ("delicate", 1, 2, 3, "minimal-black", "極簡黑", "8mm 赤鐵礦。最安靜的戴法。"),
+        ("chunky", 4, 2, 2, "lava-warrior", "熔岩戰士", "全 20mm 消光火山岩。表面之下有熱度。"),
+        ("graduated", 2, 2, 1, "tiger-market", "虎視市場", "虎眼石逐漸收細。為了讀懂局勢。")])
 
-series("bedrock", "BEDROCK", "WEIGHT & ANCHOR", "men",
-       "Built on 20mm stone. The weight is the point.",
-       "All-20mm hematite, 10mm smoky quartz, a labradorite focal, and a lava gradient.", "#5f6b70", "/banners/bedrock.jpg", "hematite", "POWER_TONE",
+series("bedrock", "磐岩", "BEDROCK", "沉穩與定錨", "men",
+       "以 20mm 大顆為底。重量本身即是安定。",
+       "全 20mm 赤鐵礦、10mm 茶晶、拉長石主石，與火山岩漸層。", "#5f6b70", "/banners/bedrock.jpg", "hematite", "POWER_TONE",
        ["hematite", "obsidian", "smoky", "lava", "tourmaline", "labradorite"],
        ["silver-cube", "silver-rivet", "silver-groove", "silver-shield"],
        ["arrow", "cross", "travel-compass"],
-       [("chunky", 0, 2, None, "true-bedrock", "True Bedrock", "All 20mm hematite. Pure weight."),
-        ("uniform", 2, 2, 1, "bedrock-daily", "Bedrock Daily", "10mm smoky quartz. Bedrock, for a working week."),
-        ("focal", 5, 2, 2, "glint-in-stone", "Glint", "20mm labradorite focal — the one flash of light."),
-        ("graduated", 3, 2, 0, "strata", "Strata", "Lava stepping down, like layers in a cliff face.")])
+       [("chunky", 0, 2, None, "true-bedrock", "磐岩本色", "全 20mm 赤鐵礦。純粹的重量。"),
+        ("uniform", 2, 2, 1, "bedrock-daily", "日常磐岩", "10mm 茶晶。磐岩，給一週的工作日。"),
+        ("focal", 5, 2, 2, "glint-in-stone", "石中微光", "20mm 拉長石主石——唯一的一道光。"),
+        ("graduated", 3, 2, 0, "strata", "岩層", "火山岩逐級收細，像崖壁上的層理。")])
 
-series("velocity", "VELOCITY", "FOCUS & MOTION", "men",
-       "Light, fine, quick. Made for long hours of focus.",
-       "Fine lapis, a hematite focal, 10mm clear quartz, and a sunstone gradient.", "#2f6f7a", "/banners/velocity.jpg", "lapis", "POWER_TONE",
+series("velocity", "疾行", "VELOCITY", "專注與行動", "men",
+       "輕、細、俐落。為長時間的專注而配。",
+       "細繩青金石、赤鐵礦主石、10mm 白水晶，與太陽石漸層。", "#2f6f7a", "/banners/velocity.jpg", "lapis", "POWER_TONE",
        ["lapis", "clear", "tiger-eye", "smoky", "hematite", "sunstone"],
        ["silver-groove", "silver-chain", "silver-hex"],
        ["arrow", "key", "star-charm"],
-       [("delicate", 0, 2, None, "fine-line", "Fine Line", "8mm lapis. It will not move when you run."),
-        ("focal", 4, 2, 0, "core-focus", "Core Focus", "20mm hematite focal. One thing at a time."),
-        ("uniform", 1, 2, 2, "deep-tempo", "Deep Tempo", "Even 10mm clear quartz. A steady beat."),
-        ("graduated", 5, 2, 1, "accel-gradient", "Acceleration", "Sunstone building as it goes.")])
+       [("delicate", 0, 2, None, "fine-line", "疾行細線", "8mm 青金石。跑起來也不會晃。"),
+        ("focal", 4, 2, 0, "core-focus", "核心專注", "20mm 赤鐵礦主石。一次只做一件事。"),
+        ("uniform", 1, 2, 2, "deep-tempo", "沉穩節奏", "10mm 白水晶。穩定的節拍。"),
+        ("graduated", 5, 2, 1, "accel-gradient", "加速漸層", "太陽石一路推進。")])
 
 
 STYLE_LABEL = {"focal": "Focal", "duo": "Twin", "uniform": "10mm",
@@ -221,25 +221,28 @@ head = '''// Ready-to-wear collections. Each series has its own banner, theme an
 export type SeriesTone = {
   fab: string;        // collapsed radar button label
   matrixEn: string;   // radar panel heading
+  matrixZh: string;
   totalEn: string;    // running total caption
   dominantEn: string; // bracelet-centre caption
+  dominantZh: string;
 };
 
 // The women's series speak in 能量 (energy); the men's lines keep the 戰力
 // (power/gear) framing the original men's site was built around.
-const ENERGY_TONE: SeriesTone = { fab: "ENERGY", matrixEn: "ENERGY MATRIX", totalEn: "TOTAL ENERGY", dominantEn: "DOMINANT ENERGY" };
-const POWER_TONE: SeriesTone = { fab: "POWER", matrixEn: "POWER MATRIX", totalEn: "TOTAL POWER", dominantEn: "DOMINANT POWER" };
+const ENERGY_TONE: SeriesTone = { fab: "能量", matrixEn: "ENERGY MATRIX", matrixZh: "能量矩陣", totalEn: "TOTAL ENERGY", dominantEn: "DOMINANT ENERGY", dominantZh: "主能量" };
+const POWER_TONE: SeriesTone = { fab: "戰力", matrixEn: "POWER MATRIX", matrixZh: "戰力矩陣", totalEn: "TOTAL POWER", dominantEn: "DOMINANT POWER", dominantZh: "主屬性" };
 export const NEUTRAL_TONE = ENERGY_TONE;
 
 export type ConstructionStyle = "focal" | "duo" | "uniform" | "delicate" | "chunky" | "graduated";
 export const STYLE_LABEL: Record<ConstructionStyle, string> = {
-  focal: "Single Focal", duo: "Twin Focal", uniform: "Uniform 10mm",
-  delicate: "Fine 8mm", chunky: "Bold 20mm", graduated: "Graduated",
+  focal: "主石款", duo: "雙主石", uniform: "正常款",
+  delicate: "細繩款", chunky: "大顆款", graduated: "漸層款",
 };
 
 export type Product = { id: string; name: string; tagline: string; style: ConstructionStyle; wrist: number; spec: string };
 export type Series = {
   id: string;
+  zh: string;
   en: string;
   theme: string;
   audience: "women" | "men";
@@ -258,7 +261,7 @@ export const SERIES: Series[] = [
 body = []
 for s in S:
     body.append("  {")
-    body.append(f'    id: "{s["id"]}", en: "{s["en"]}", theme: "{s["theme"]}", audience: "{s["audience"]}",')
+    body.append(f'    id: "{s["id"]}", zh: "{s["zh"]}", en: "{s["en"]}", theme: "{s["theme"]}", audience: "{s["audience"]}",')
     body.append(f'    accent: "{s["accent"]}", banner: "{s["banner"]}", swatch: "{s["swatch"]}",')
     body.append(f'    tagline: "{s["tagline"]}",')
     body.append(f'    craft: "{s["craft"]}",')
@@ -284,4 +287,4 @@ for s in S:
     styles = {}
     for _, _, _, st, _, _ in s["products"]:
         styles[STYLE_LABEL[st]] = styles.get(STYLE_LABEL[st], 0) + 1
-    print(f"  {s['en']:10s} {s['audience']:5s} " + " ".join(f"{k}×{v}" for k, v in sorted(styles.items())))
+    print(f"  {s['zh']:4s} {s['en']:10s} {s['audience']:5s} " + " ".join(f"{k}×{v}" for k, v in sorted(styles.items())))

@@ -73,14 +73,14 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
   return <div className="shop" style={{ "--series-accent": series.accent } as React.CSSProperties}>
     <header className="shop-head">
       <button className="wordmark" onClick={onHome}>OMA <span>CRYSTAL</span></button>
-      <div className="head-note">Ready to wear</div>
-      <div className="head-actions"><button className="quiet" onClick={onBlankStudio}>Make your own →</button></div>
+      <div className="head-note">READY TO WEAR</div>
+      <div className="head-actions"><button className="quiet" onClick={onBlankStudio}>親手串一條 →</button></div>
     </header>
 
     <section className="shop-intro">
-      <p className="landing-eyebrow">The collections</p>
-      <h1>Take one as it is,<br />or make the proportions yours</h1>
-      <span>Eight collections, four pieces in each — and inside a collection no two share a construction or a leading stone. Order any of them as they are. Or press <em>Customise</em> and carry it through to the atelier to change the stones, the length, the wrist.</span>
+      <p className="landing-eyebrow">THE COLLECTIONS</p>
+      <h1>直接帶走，<br />或調成你的比例</h1>
+      <span>八個系列，各四款，皆於工作室配置完成——同一系列之中，沒有兩款共用相同的結構與主石。看上即可下單；或按「微客制」進入工作室，更換礦石、長度與手圍。</span>
     </section>
 
     <div className="series-tabs" role="tablist" aria-label="Collections">
@@ -92,16 +92,17 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
         style={{ "--tab-accent": s.accent } as React.CSSProperties}
         onClick={() => onSelectSeries(s.id)}
       >
-        <b>{s.en}</b>
-        <em>{s.audience === "men" ? "For him" : "For her"}</em>
+        <b>{s.zh}</b>
+        <i>{s.en}</i>
+        <em>{s.audience === "men" ? "男款" : "女款"}</em>
       </button>)}
     </div>
 
     <section className="series-banner" key={series.id}>
-      <img src={series.banner} alt={`The ${series.en} collection`} />
+      <img src={series.banner} alt={`${series.zh} ${series.en} 系列`} />
       <div className="sb-copy">
         <p className="sb-theme">{series.theme}</p>
-        <h2>{series.en}</h2>
+        <h2>{series.zh} <i>{series.en}</i></h2>
         <span className="sb-tagline">{series.tagline}</span>
         <span className="sb-craft">{series.craft}</span>
       </div>
@@ -115,22 +116,22 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
           <b className="sc-name">{product.name}</b>
           <span className="sc-tagline">{product.tagline}</span>
           <span className="sc-meta">
-            <em style={{ color: dominant.color }}>{dominant.en}</em>
-            <i>{beads} stones · {product.wrist} cm wrist</i>
+            <em style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</em>
+            <i>{beads} 顆礦石 · 手圍 {product.wrist} cm</i>
           </span>
           <span className="sc-price">NT$ {price.toLocaleString()}</span>
         </div>
         <div className="sc-actions">
-          <button className="sc-buy" onClick={() => onBuy(series.id, product.id)}>Order</button>
-          <button className="sc-custom" onClick={() => onCustomize(series.id, product.id)}>Customise</button>
+          <button className="sc-buy" onClick={() => onBuy(series.id, product.id)}>直接購買</button>
+          <button className="sc-custom" onClick={() => onCustomize(series.id, product.id)}>微客制</button>
         </div>
       </article>)}
     </div>
 
     <section className="shop-foot">
-      <h2>None of them quite you?</h2>
-      <span>Twenty-one natural stones, thirty-seven spacers and charms, all of it open. Begin with one. The rest can take its time.</span>
-      <button className="landing-cta" onClick={onBlankStudio}>Make your own <i>→</i></button>
+      <h2>都還不夠像你？</h2>
+      <span>二十一種天然礦石、三十七款隔珠與吊飾，全數開放。從一顆開始就好，其餘慢慢來。</span>
+      <button className="landing-cta" onClick={onBlankStudio}>親手串一條 <i>→</i></button>
     </section>
   </div>;
 }

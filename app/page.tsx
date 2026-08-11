@@ -35,12 +35,12 @@ export const DEFAULT_WRIST = 14;
 // One-tap recipes: stones weighted toward each intention's energy profile,
 // padded with the theme stone to fill the wearer's wrist.
 const PRESETS = {
-  power: { name: "Standing Firm", pad: "obsidian", spec: [["obsidian","xlarge"],["lava","large"],["obsidian","large"],["hematite","large"],["gold-hex"],["obsidian","large"],["lava","large"],["obsidian","large"],["gold-hex"],["hematite","large"],["obsidian","large"],["lava","large"],["arrow"]] as [string, BeadSize?][] },
-  wealth: { name: "Abundance in Motion", pad: "goldstone", spec: [["goldstone","xlarge"],["tiger-eye","large"],["goldstone","large"],["citrine","large"],["gold-hex"],["goldstone","large"],["tiger-eye","large"],["goldstone","large"],["gold-hex"],["citrine","large"],["goldstone","large"],["tiger-eye","large"],["compass"]] as [string, BeadSize?][] },
-  focus: { name: "Settling", pad: "smoky", spec: [["tiger-eye","xlarge"],["smoky","large"],["clear","large"],["smoky","large"],["silver-hex"],["tiger-eye","large"],["smoky","large"],["clear","large"],["silver-hex"],["smoky","large"],["tiger-eye","large"],["smoky","large"],["compass"]] as [string, BeadSize?][] },
-  gym: { name: "Strength of Body", pad: "lava", spec: [["garnet","xlarge"],["lava","large"],["sunstone","large"],["hematite","large"],["gold-hex"],["garnet","large"],["lava","large"],["sunstone","large"],["gold-hex"],["hematite","large"],["garnet","large"],["lava","large"],["arrow"]] as [string, BeadSize?][] },
-  office: { name: "Weekday Boundaries", pad: "lapis", spec: [["lapis","xlarge"],["moon","large"],["clear","large"],["lapis","large"],["silver-hex"],["moon","large"],["lapis","large"],["clear","large"],["silver-hex"],["lapis","large"],["moon","large"],["lapis","large"],["key"]] as [string, BeadSize?][] },
-  travel: { name: "Company on the Road", pad: "labradorite", spec: [["labradorite","xlarge"],["tourmaline","large"],["amethyst","large"],["labradorite","large"],["silver-hex"],["tourmaline","large"],["labradorite","large"],["amethyst","large"],["silver-hex"],["labradorite","large"],["tourmaline","large"],["labradorite","large"],["travel-compass"]] as [string, BeadSize?][] },
+  power: { name: "站穩自己", pad: "obsidian", spec: [["obsidian","xlarge"],["lava","large"],["obsidian","large"],["hematite","large"],["gold-hex"],["obsidian","large"],["lava","large"],["obsidian","large"],["gold-hex"],["hematite","large"],["obsidian","large"],["lava","large"],["arrow"]] as [string, BeadSize?][] },
+  wealth: { name: "豐盛流動", pad: "goldstone", spec: [["goldstone","xlarge"],["tiger-eye","large"],["goldstone","large"],["citrine","large"],["gold-hex"],["goldstone","large"],["tiger-eye","large"],["goldstone","large"],["gold-hex"],["citrine","large"],["goldstone","large"],["tiger-eye","large"],["compass"]] as [string, BeadSize?][] },
+  focus: { name: "靜下來", pad: "smoky", spec: [["tiger-eye","xlarge"],["smoky","large"],["clear","large"],["smoky","large"],["silver-hex"],["tiger-eye","large"],["smoky","large"],["clear","large"],["silver-hex"],["smoky","large"],["tiger-eye","large"],["smoky","large"],["compass"]] as [string, BeadSize?][] },
+  gym: { name: "身體的力量", pad: "lava", spec: [["garnet","xlarge"],["lava","large"],["sunstone","large"],["hematite","large"],["gold-hex"],["garnet","large"],["lava","large"],["sunstone","large"],["gold-hex"],["hematite","large"],["garnet","large"],["lava","large"],["arrow"]] as [string, BeadSize?][] },
+  office: { name: "工作日的界線", pad: "lapis", spec: [["lapis","xlarge"],["moon","large"],["clear","large"],["lapis","large"],["silver-hex"],["moon","large"],["lapis","large"],["clear","large"],["silver-hex"],["lapis","large"],["moon","large"],["lapis","large"],["key"]] as [string, BeadSize?][] },
+  travel: { name: "路上有人陪", pad: "labradorite", spec: [["labradorite","xlarge"],["tourmaline","large"],["amethyst","large"],["labradorite","large"],["silver-hex"],["tourmaline","large"],["labradorite","large"],["amethyst","large"],["silver-hex"],["labradorite","large"],["tourmaline","large"],["labradorite","large"],["travel-compass"]] as [string, BeadSize?][] },
 } as const;
 
 // Animates a number toward its target so energy totals count up smoothly.
@@ -75,10 +75,10 @@ function EnergyPanel({ scores, total, dominant, open, onToggle, tone }: { scores
   };
   const ringPoints = (r: number) => ENERGY_META.map((_, i) => point(i, r).join(",")).join(" ");
   const valuePoints = ENERGY_META.map((m, i) => point(i, 8 + (scores[m.key] / max) * (R - 8)));
-  if (!open) return <button className="energy-fab" onClick={onToggle} aria-label={`Open the ${tone.matrixEn.toLowerCase()}`}><span>{tone.fab}</span></button>;
+  if (!open) return <button className="energy-fab" onClick={onToggle} aria-label={`展開${tone.matrixZh}`}><span>{tone.fab}</span></button>;
   return <div className="energy-panel">
-    <div className="ep-head"><b>{tone.matrixEn}</b><button onClick={onToggle} aria-label={`Collapse the ${tone.matrixEn.toLowerCase()}`}>▾</button></div>
-    <svg viewBox="0 0 220 186" className="ep-chart" role="img" aria-label={`Six-dimension ${tone.fab.toLowerCase()} radar`}>
+    <div className="ep-head"><b>{tone.matrixEn}</b><span>{tone.matrixZh}</span><button onClick={onToggle} aria-label={`收合${tone.matrixZh}`}>▾</button></div>
+    <svg viewBox="0 0 220 186" className="ep-chart" role="img" aria-label={`六維${tone.fab}雷達圖`}>
       <defs>
         <linearGradient id="epFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#ffd76a" stopOpacity=".5" />
@@ -93,12 +93,12 @@ function EnergyPanel({ scores, total, dominant, open, onToggle, tone }: { scores
         const [x, y] = point(i, R + 16);
         const anchor = Math.abs(x - cx) < 8 ? "middle" : x > cx ? "start" : "end";
         return <g key={m.key} textAnchor={anchor}>
-          <text x={x} y={y - 1} fontSize="9" fill={m.color} fontWeight="700" letterSpacing=".08em">{m.en}</text>
+          <text x={x} y={y - 1} fontSize="9" fill={m.color} fontWeight="700" letterSpacing=".08em">{m.zh}</text>
           <text x={x} y={y + 9.5} fontSize="8" fill="#cfe4e0">{scores[m.key].toLocaleString()}</text>
         </g>;
       })}
     </svg>
-    <div className="ep-dominant">{tone.dominantEn} <b style={{ color: dominant.color }}>{dominant.en}</b></div>
+    <div className="ep-dominant">{tone.dominantZh} <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b></div>
     <div className="ep-total"><span>{tone.totalEn}</span><b>{displayTotal.toLocaleString()}</b></div>
   </div>;
 }
@@ -143,7 +143,7 @@ export default function Home() {
     if (!decoded) return;
     setItems(decoded.items);
     setWristCm(decoded.wrist);
-    showNotice("Design loaded — adjust it or go straight to checkout");
+    showNotice("已載入這條設計，可直接調整或結帳");
     setView("studio");
   }, []);
   // Ready-to-wear products are re-parsed from their spec on click rather than
@@ -156,12 +156,12 @@ export default function Home() {
     setItems(parseSpec(product.spec));
     setWristCm(product.wrist);
     setView(mode === "buy" ? "checkout" : "studio");
-    showNotice(mode === "buy" ? "" : `${product.name} loaded — it is yours from here`);
+    showNotice(mode === "buy" ? "" : `已載入「${product.name}」，接下來由你決定`);
     window.scrollTo({ top: 0 });
   };
   const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
-  const visible = library.filter((x) => x.en.toLowerCase().includes(query.toLowerCase()));
+  const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
   const strandMM = useMemo(() => items.reduce((sum, it) => sum + itemMM(it), 0), [items]);
   const capacityMM = wristCm * 10;
   // The wrist is a hard limit, never something adding a bead can move. It used
@@ -175,29 +175,29 @@ export default function Home() {
       const next = WRIST_CHOICES.find((c) => c * 10 >= needMM);
       setWristAlert(true);
       showNotice(next
-        ? `${label(item)} won’t fit on ${wristCm} cm — change the wrist to ${next} cm, or take something off`
-        : `${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm is the largest wrist, and ${label(item)} won’t fit — take something off first`);
+        ? `${wristCm} cm 放不下${label(item)}了 — 請先把手圍改成 ${next} cm，或移除一些素材`
+        : `已達最大手圍 ${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm，放不下${label(item)}了，請先移除部分素材`);
       return;
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
     playClaspClick(true);
-    showNotice(`Added ${label(placed)}${placed.kind === "stone" ? ` · ${sizeLabel(placed.size)}` : ""} · ${(needMM / 10).toFixed(1)} of ${wristCm} cm strung`);
+    showNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${(needMM / 10).toFixed(1)} / ${wristCm} cm`);
   };
   const shareDesign = async () => {
-    if (!items.length) { showNotice("Add a few stones first, then share it"); return; }
-    showNotice("Making your share card…");
+    if (!items.length) { showNotice("先加幾顆，再把它分享出去"); return; }
+    showNotice("正在產生分享卡…");
     const url = `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(encodeDesign(items, wristCm))}`;
     try {
       const blob = await generateShareCard({
         pieces: previewPieces, capacityMM,
-        energies: ENERGY_META.map((m) => ({ en: m.en, color: m.color, score: scores[m.key] })),
-        dominant: { en: dominant.en, color: dominant.color, score: scores[dominant.key] },
+        energies: ENERGY_META.map((m) => ({ zh: m.zh, en: m.en, color: m.color, score: scores[m.key] })),
+        dominant: { zh: dominant.zh, en: dominant.en, color: dominant.color, score: scores[dominant.key] },
         totalEnergy, priceNTD: total, wristCm, beads, url,
       });
       const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `My OMA Crystal bracelet ${url}`, url });
-        showNotice("Share sheet open");
+        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ${url}`, url });
+        showNotice("已開啟分享面板");
       } else {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -205,12 +205,12 @@ export default function Home() {
         a.click();
         URL.revokeObjectURL(a.href);
         await navigator.clipboard?.writeText(url);
-        showNotice("Card downloaded and link copied — send it to anyone");
+        showNotice("分享卡已下載，連結已複製 — 貼給朋友就能看到同款");
       }
     } catch (error) {
       if ((error as Error).name === "AbortError") { setNotice(""); return; }
       await navigator.clipboard?.writeText(url).catch(() => {});
-      showNotice("Couldn’t make the card — copied the design link instead");
+      showNotice("分享卡產生失敗，已改為複製設計連結");
     }
   };
   const applyPreset = (key: keyof typeof PRESETS) => {
@@ -222,15 +222,15 @@ export default function Home() {
     while (mm + 8 <= cm * 10 && mm < cm * 10 * 0.85) { built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() }); mm += 8; }
     if (cm !== wristCm) setWristCm(cm);
     setItems(built);
-    showNotice(`${preset.name} composed for you — now make it yours`);
+    showNotice(`已為你配好「${preset.name}」，再調成你的樣子`);
   };
   useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(""), 3000); return () => clearTimeout(t); }, [notice, noticeSeq]);
   useEffect(() => { if (!wristAlert) return; const t = setTimeout(() => setWristAlert(false), 2000); return () => clearTimeout(t); }, [wristAlert]);
   const changeWrist = (cm: number) => {
-    if (strandMM > cm * 10) { showNotice(`${(strandMM / 10).toFixed(1)} cm is already strung, past what a ${cm} cm wrist holds — take something off first`); return; }
-    setWristCm(cm); setWristAlert(false); showNotice(`Wrist set to ${cm} cm`);
+    if (strandMM > cm * 10) { showNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材`); return; }
+    setWristCm(cm); setWristAlert(false); showNotice(`手圍已設定為 ${cm} cm`);
   };
-  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`Removed ${label(item)}`); } };
+  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`已移除 ${label(item)}`); } };
   const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
   // Live reorder while dragging: map the pointer angle to a millimetre
   // position along the strand and insert the bead between the pieces whose
@@ -265,7 +265,7 @@ export default function Home() {
       key, qty,
       unit: itemPrice(item),
       name: label(item),
-      sub: item.kind === "stone" ? sizeLabel(item.size) : (byAccessory[item.id] as Accessory).type === "spacer" ? "Spacer" : "Charm",
+      sub: item.kind === "stone" ? sizeLabel(item.size) : (byAccessory[item.id] as Accessory).type === "spacer" ? "精緻隔珠" : "垂墜吊飾",
       visual: <ItemVisual item={item} small />,
     }));
   }, [items]);
@@ -293,48 +293,48 @@ export default function Home() {
     onBuy={(sid, pid) => openProduct(sid, pid, "buy")}
     onCustomize={(sid, pid) => openProduct(sid, pid, "customize")}
     onHome={() => { setView("home"); window.scrollTo({ top: 0 }); }}
-    onBlankStudio={() => { setItems([]); setView("studio"); showNotice("A blank strand — choose your first stone on the right"); window.scrollTo({ top: 0 }); }}
+    onBlankStudio={() => { setItems([]); setView("studio"); showNotice("空白的手鍊 — 從右側挑第一顆礦石開始"); window.scrollTo({ top: 0 }); }}
   />;
   return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`} style={activeSeries ? { "--series-accent": activeSeries.accent } as React.CSSProperties : undefined}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     {previewOpen && <Preview pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />}
-    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>Collections</button><button className="quiet" onClick={() => setShowGuide(true)}>? Guide</button><button className="quiet" onClick={() => { setItems([]); showNotice("Cleared — begin again whenever"); }}>Clear</button></div></header>
+    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
-        <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>Wrist size</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="Choose wrist size">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>Strung</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="Length strung"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span>{nearFull && <button className="wrist-hint" onClick={() => changeWrist(nextWrist as number)}>Nearly full · try {nextWrist} cm</button>}</span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span>{nearFull && <button className="wrist-hint" onClick={() => changeWrist(nextWrist as number)}>快滿了 · 改 {nextWrist} cm</button>}</span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
-          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const sizePct = isCharm ? 10.5 : arcs[i].w * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) showNotice("Position adjusted"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "Tap to remove the charm, hold and drag to move it" : "Tap to remove, hold and drag to move"} title="Tap to remove · hold and drag to move" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
+          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const sizePct = isCharm ? 10.5 : arcs[i].w * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) showNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
           {beads > 0
             ? <div className="center-intention"><small>{tone.dominantEn}</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
-            : <div className="center-intention"><small>OMA CRYSTAL</small><b>BEGIN WITH ONE</b><span className="ci-note">Begin with one — choose a stone on the right</span></div>}
-          <div className="stage-tip">Tap to remove · hold and drag to move</div>
+            : <div className="center-intention"><small>OMA CRYSTAL</small><b>BEGIN WITH ONE</b><span className="ci-note">從一顆開始 · 右側挑你的第一顆礦石</span></div>}
+          <div className="stage-tip">輕點移除 · 按住拖曳調整位置</div>
         </div>
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("Cleared — begin again whenever"); }}>Clear all</button><button onClick={shareDesign}>Share</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("Add a few stones first — nothing to turn yet"); return; } setPreviewOpen(true); }}>360° view</button><button className="primary" onClick={() => { if (!items.length) { showNotice("The strand is empty — choose a few stones first"); return; } if (fillRatio < 0.8) { showNotice(`Only ${strung} cm of a ${wristCm} cm wrist is strung. A piece needs at least 80% (${(wristCm * 0.8).toFixed(1)} cm) to sit properly — add a few more.`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Checkout <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <aside className={`materials-panel ${drawerOpen ? "" : "collapsed"}`}>
-        <button className="drawer-handle" onClick={() => setDrawerOpen((v) => !v)} aria-expanded={drawerOpen} aria-label={drawerOpen ? "Collapse the materials panel" : "Open the materials panel"}><i /><span>{drawerOpen ? "Close" : "Choose stones & details"}</span></button>
+        <button className="drawer-handle" onClick={() => setDrawerOpen((v) => !v)} aria-expanded={drawerOpen} aria-label={drawerOpen ? "收起素材選擇區" : "展開素材選擇區"}><i /><span>{drawerOpen ? "收起選項" : "選擇礦石與配件"}</span></button>
         <div className="drawer-body">
-        <div className="materials-head"><p>01 — Choose material</p><h1>Compose your<br /><em>Crystal Ritual</em></h1><span>Tap to add a stone to the strand. No two are veined alike, so no second piece will be the same as yours.</span></div>
-        <div className="preset-row" aria-label="Compositions"><span>Start<br />from</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].name}</button>)}</div>
-        <div className="tabs" aria-label="Material categories">{([["crystal","Stones"],["spacer","Spacers"],["charm","Charms"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => { setTab(id); setQuery(""); }}>{name}</button>)}</div>
-        <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "crystal" ? "Search stones…" : "Search details…"} /></label>
-        <div className="library-label"><span>{tab === "crystal" ? "Choose a size" : tab === "spacer" ? "Spacers" : "Charms"}</span><b>{visible.length} pieces</b></div>
+        <div className="materials-head"><p>01 — CHOOSE MATERIAL</p><h1>為自己串一條<br /><em>Crystal Ritual</em></h1><span>點選素材加入手鍊。每一顆天然晶石的紋理都不相同，不會有第二條與你這條一樣。</span></div>
+        <div className="preset-row" aria-label="一鍵搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].name}</button>)}</div>
+        <div className="tabs" aria-label="素材分類">{([["crystal","天然水晶"],["spacer","精緻隔珠"],["charm","專屬吊飾"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => { setTab(id); setQuery(""); }}>{name}</button>)}</div>
+        <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "crystal" ? "搜尋水晶名稱…" : "搜尋配件名稱…"} /></label>
+        <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>
         <div className="material-grid" key={`${tab}-${query}`}>{visible.length ? visible.map((x: Stone | Accessory) => {
           const item: DesignItem = tab === "crystal" ? { kind: "stone", id: x.id, size: "large" } : { kind: "accessory", id: x.id };
           const tier = rarityOf(x.price);
-          if (tab === "crystal") return <article className={`material-card crystal-card rarity-${tier} ${selected.id === item.id ? "selected" : ""}`} key={x.id}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><button className="card-main" onClick={() => add(item)} aria-label={`Add ${x.en}, 10mm`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.en}</b><em>NT$ {itemPrice(item)}</em></button><div className="size-actions"><button onClick={() => add({ kind: "stone", id: x.id, size: "xlarge" })} aria-label="Add a 20mm focal stone">20mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "large" })} aria-label="Add a 10mm stone">10mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "small" })} aria-label="Add an 8mm stone">8mm</button></div></article>;
-          return <button className={`material-card rarity-${tier} ${selected.id === item.id ? "selected" : ""}`} key={x.id} onClick={() => add(item)}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.en}</b><em>NT$ {x.price}</em><i>{(x as Accessory).type === "spacer" ? "Spacer" : "Charm"}</i></button>;
-        }) : <div className="empty-library"><b>Nothing here matches</b><span>Clear the search, or try another category.</span></div>}</div>
-        <div className="selected-detail"><div className="detail-visual"><ItemVisual item={selected} /></div><div><p>{selected.kind === "stone" ? "NATURAL STONE" : "JEWELRY DETAIL"} · <span className={`sd-rarity rarity-${rarityOf(selectedInfo.price)}`}>{RARITY_LABEL[rarityOf(selectedInfo.price)]}</span></p><b>{selectedInfo.en}</b><span>{selectedInfo.note}</span></div><button onClick={() => add(selected)}>Add <strong>+</strong></button></div>
+          if (tab === "crystal") return <article className={`material-card crystal-card rarity-${tier} ${selected.id === item.id ? "selected" : ""}`} key={x.id}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} 10mm 大珠`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {itemPrice(item)}</em></button><div className="size-actions"><button onClick={() => add({ kind: "stone", id: x.id, size: "xlarge" })} aria-label="加入 20mm 特大主珠">20mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "large" })} aria-label="加入 10mm 大珠">10mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "small" })} aria-label="加入 8mm 中珠">8mm</button></div></article>;
+          return <button className={`material-card rarity-${tier} ${selected.id === item.id ? "selected" : ""}`} key={x.id} onClick={() => add(item)}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {x.price}</em><i>{(x as Accessory).type === "spacer" ? "精緻小隔珠" : "垂墜吊飾"}</i></button>;
+        }) : <div className="empty-library"><b>這裡暫時沒有符合的素材</b><span>清除搜尋文字，或換一個分類看看。</span></div>}</div>
+        <div className="selected-detail"><div className="detail-visual"><ItemVisual item={selected} /></div><div><p>{selected.kind === "stone" ? "NATURAL STONE" : "JEWELRY DETAIL"} · <span className={`sd-rarity rarity-${rarityOf(selectedInfo.price)}`}>{RARITY_LABEL[rarityOf(selectedInfo.price)]}</span></p><b>{selectedInfo.zh}</b><span>{selectedInfo.note}</span></div><button onClick={() => add(selected)}>加入 <strong>＋</strong></button></div>
         </div>
       </aside>
     </section>
-    <section className="atelier-note"><p>The OMA atelier</p><h2>String what you want now<br />into light you can wear daily.</h2><span>Every stone, spacer and charm can be rearranged as often as you like. When you are done, an adviser confirms the wrist size and the details with you — nothing is charged before that.</span></section>
+    <section className="atelier-note"><p>THE OMA ATELIER</p><h2>把此刻的心願，<br />串成每日戴得住的光。</h2><span>所有礦石、隔珠與吊飾都能自由重排，想改幾次都可以。完成後由專人與你確認手圍與細節，確認前不會請款。</span></section>
     </>}
   </main>;
 }
