@@ -22,18 +22,19 @@ export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "si
 // on its own.
 const TRANSLUCENT_STONES = new Set(["clear", "amethyst", "citrine", "rose", "aqua", "smoky", "fluorite", "moon"]);
 
-// Stones whose real-world identity lives in a surface pattern that flat PBR
-// colour cannot carry (chatoyant silk, labradorescence, dendritic
-// inclusions) get an AI-generated seamless albedo texture wrapped around the
-// sphere instead — a texture map with the lighting deliberately flat, so the
-// 3D engine's own lights and reflections stay free to move as the bead
-// rotates. This is distinct from the shop's product PHOTOS, which have baked
-// lighting and would break under rotation. Textures live under
-// public/materials/textures/ and are generated per-stone.
-const STONE_TEXTURES: Record<string, string> = {
-  "tiger-eye": "/materials/textures/tiger-eye.png",
-  labradorite: "/materials/textures/labradorite.png",
-};
+// Every stone gets an AI-generated seamless albedo texture wrapped around
+// the sphere — a texture map with the lighting deliberately flat, so the 3D
+// engine's own lights and reflections stay free to move as the bead
+// rotates. This is distinct from the shop's product PHOTOS, which have
+// baked lighting and would break under rotation. Flat PBR colour alone made
+// every bead read as a plastic candy ball; real mineral character (silk
+// banding, pyrite flecks, dendritic moss, colour zoning) lives in these
+// maps. Textures live under public/materials/textures/, one per stone id.
+const STONE_TEXTURES: Record<string, string> = Object.fromEntries([
+  "obsidian", "tiger-eye", "hematite", "smoky", "lava", "goldstone", "rose",
+  "clear", "amethyst", "citrine", "aqua", "tourmaline", "sunstone", "moon",
+  "moss", "lapis", "garnet", "tiger", "fluorite", "rhodonite", "labradorite",
+].map((id) => [id, `/materials/textures/${id}.png`]));
 
 // World units per physical millimetre — chosen so a typical 14cm-wrist
 // strand (~140mm circumference) renders at a comfortable viewing radius.
@@ -69,8 +70,15 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.anisotropy = 4;
     // The texture carries the stone's true colour; keep the base white so it
-    // isn't tinted twice, and let clearcoat supply the polish.
-    const mat = new THREE.MeshPhysicalMaterial({ map, color: "#ffffff", roughness: 0.22, metalness: 0.02, clearcoat: 0.8, clearcoatRoughness: 0.12 });
+    // isn't tinted twice, and let clearcoat supply the polish. The quartz
+    // family keeps a milky translucency underneath its texture — that depth
+    // is what separates crystal from painted ceramic.
+    const translucent = TRANSLUCENT_STONES.has(piece.id);
+    const mat = new THREE.MeshPhysicalMaterial({
+      map, color: "#ffffff", roughness: translucent ? 0.14 : 0.22, metalness: 0.02,
+      clearcoat: translucent ? 1 : 0.8, clearcoatRoughness: 0.12,
+      ...(translucent ? { transmission: 0.3, thickness: sizeUnits * 2, ior: 1.54 } : {}),
+    });
     // Sphere UVs pinch any texture into a starburst at the two poles, and on
     // a strand some pole always ends up on some bead's visible silhouette.
     // Replace the UV lookup with object-space triplanar projection: the
@@ -96,7 +104,7 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     // All beads share one shader program; only the uniforms differ.
     mat.customProgramCacheKey = () => "triplanar-bead";
     return mat;
-  }, [texture, sizeUnits]);
+  }, [texture, sizeUnits, piece.id]);
   return <mesh position={position} quaternion={quaternion} material={material} castShadow receiveShadow>
     <sphereGeometry args={[sizeUnits / 2, 48, 48]} />
   </mesh>;
