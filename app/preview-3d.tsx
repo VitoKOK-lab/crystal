@@ -1,6 +1,6 @@
 "use client";
 
-import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
+import { Environment, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useMemo } from "react";
 import * as THREE from "three";
@@ -103,13 +103,21 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
   // inside the smallest ones. A tightly-strung real bracelet hides its
   // elastic almost entirely anyway — omitting it is the more honest result,
   // not a shortcut.
+  //
+  // No ground-plane contact shadow either, for the same kind of reason:
+  // this preview orbits freely in every direction, so there's no fixed
+  // "resting surface" a shadow could sit on — an invisible shadow-catcher
+  // plane low enough to stay hidden at the default angle became a visible
+  // floating grey smear once the camera tilted enough to look down into the
+  // ring's open centre. The beads' own castShadow/receiveShadow already
+  // give believable contact shadows at their touch points, and that holds
+  // up from any angle since it isn't anchored to an invisible floor.
   return <>
     <StudioEnvironment />
     <ambientLight intensity={0.35} />
     <directionalLight position={[4, 6, 3]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
     <directionalLight position={[-3, 2, -4]} intensity={0.35} />
     {pieces.map((p, i) => <Bead key={i} piece={p} angle={angles[i]} radiusUnits={radiusUnits} />)}
-    <ContactShadows position={[0, -radiusUnits - 0.3, 0]} opacity={0.35} scale={radiusUnits * 4} blur={2.4} far={radiusUnits * 2} />
     <OrbitControls enablePan={false} minDistance={radiusUnits * 1.4} maxDistance={radiusUnits * 6} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
   </>;
 }
