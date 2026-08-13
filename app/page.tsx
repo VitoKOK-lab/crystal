@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import BraceletStage from "./bracelet-stage";
 import Checkout, { type OrderLine } from "./checkout";
 import DesignGuide from "./design-guide";
@@ -13,7 +13,7 @@ import EnergyPanel, { useCountUp } from "./energy-panel";
 // hard browser-tab crash) instead of the intended landing page.
 import LandingHome from "./home";
 import MaterialLibrary from "./material-library";
-import Preview, { type PreviewPiece } from "./preview";
+import type { PreviewPiece } from "./preview-3d";
 import { PRESETS } from "./presets";
 import { generateShareCard } from "./share-card";
 import { playClaspClick } from "./ui-sound";
@@ -35,6 +35,11 @@ const initial: DesignItem[] = buildSpec(initialSpec);
 // The most common wrist size, so both the studio and every ready-to-wear
 // product in series.ts are configured around it.
 export const DEFAULT_WRIST = 14;
+
+// Three.js + fiber + drei add ~1MB to the bundle — code-split behind the
+// 360° preview button so that weight only loads for visitors who actually
+// open it, instead of on every studio page view.
+const Preview3D = lazy(() => import("./preview-3d"));
 
 export default function Home() {
   const [items, setItems] = useState<DesignItem[]>(initial);
@@ -164,8 +169,8 @@ export default function Home() {
   const dominant = dominantOf(scores);
   const dominantDisplay = useCountUp(scores[dominant.key]);
   const previewPieces = useMemo<PreviewPiece[]>(() => items.map((it) => it.kind === "stone"
-    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false }
-    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm" }), [items]);
+    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const }
+    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const }), [items]);
   const orderLines = useMemo<OrderLine[]>(() => {
     const grouped = new Map<string, { item: DesignItem; qty: number }>();
     items.forEach((item) => { const key = `${item.kind}-${item.id}-${item.size ?? ""}`; const entry = grouped.get(key); if (entry) entry.qty += 1; else grouped.set(key, { item, qty: 1 }); });
@@ -205,7 +210,13 @@ export default function Home() {
   />;
   return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`} style={activeSeries ? { "--series-accent": activeSeries.accent } as React.CSSProperties : undefined}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
-    {previewOpen && <Preview pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />}
+    {previewOpen && <Suspense fallback={
+      <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽載入中">
+        <div className="pv-head"><b>360° PREVIEW</b><span>載入中…</span><button className="pv-close" onClick={() => setPreviewOpen(false)} aria-label="關閉預覽">✕</button></div>
+      </div>
+    }>
+      <Preview3D pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />
+    </Suspense>}
     <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
     <section className="studio-shell" id="top">

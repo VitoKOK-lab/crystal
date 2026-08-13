@@ -30,8 +30,16 @@ echo "Rewrote root-absolute asset paths under $DIST to $BASE/…"
 # /crystal/ project-path prefix. Scan the built output for any quoted asset
 # path that still isn't rooted at $BASE and fail loudly instead.
 ASSET_EXT='png|jpe?g|svg|webp|mp4|webm|woff2?|gif|ico'
+# /px.png /nx.png /py.png /ny.png /pz.png /nz.png: @react-three/drei's
+# useEnvironment() default `files` fallback (its six-face cubemap
+# convention) — a literal array in its source, bundled whether or not it's
+# ever used. Verified unreachable for every <Environment> usage in this
+# app: every call passes `children`, which drei's own dispatcher routes to
+# a different code path that never touches this default. Re-check this
+# exemption if a future <Environment> call omits children/map/files/preset.
+DREI_ENV_DEFAULTS='/px.png|/nx.png|/py.png|/ny.png|/pz.png|/nz.png'
 leftover=$(grep -rhoE "[\"'\`](/[A-Za-z0-9_./-]+\.($ASSET_EXT))[\"'\`]" "$DIST" --include='*.js' --include='*.css' \
-  | tr -d "\"'\`" | grep -v "^$BASE/" | sort -u || true)
+  | tr -d "\"'\`" | grep -v "^$BASE/" | grep -vE "^($DREI_ENV_DEFAULTS)\$" | sort -u || true)
 if [[ -n "$leftover" ]]; then
   echo "fix-pages-base.sh: found root-absolute asset paths not under $BASE/ — these will 404 on GitHub Pages:" >&2
   echo "$leftover" >&2
