@@ -58,6 +58,10 @@ def main() -> None:
         data = fetch(url.group(1))
         (OUT / f"{name}.woff2").write_bytes(data)
         print(f"  {name}.woff2  {len(data) // 1024:3d} KB")
+    # Record exactly which characters this subset covers so
+    # scripts/check-cjk-coverage.py can catch a forgotten re-run after a
+    # copy change, without needing to parse the woff2 files themselves.
+    (OUT / ".cjk-glyphs").write_text(text, encoding="utf-8")
     print(f"subset to {len(text)} glyphs")
 
 

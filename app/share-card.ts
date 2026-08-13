@@ -2,6 +2,8 @@
 // the bracelet at true bead proportions, dominant energy, a mini energy
 // radar, pricing, and the shareable design link.
 
+import { anglesForWidths } from "./catalog";
+
 export type SharePiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean };
 export type ShareEnergy = { zh: string; en: string; color: string; score: number };
 
@@ -62,11 +64,9 @@ export async function generateShareCard(opts: {
   ctx.arc(cx, cy, R, 0, Math.PI * 2);
   ctx.stroke();
 
-  let cum = 0;
+  const angles = anglesForWidths(pieces.map((p) => p.mm), capacityMM);
   pieces.forEach((p, i) => {
-    const center = cum + p.mm / 2;
-    cum += p.mm;
-    const a = (center / capacityMM) * Math.PI * 2 - Math.PI / 2;
+    const a = angles[i];
     const img = images[i];
     ctx.save();
     if (p.isCharm) {

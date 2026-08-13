@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { ItemVisual, byAccessory, dominantOf, energyScores, itemMM, itemPrice, parseSpec, type DesignItem } from "./catalog";
+import { BASE_FEE, ItemVisual, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, type DesignItem } from "./catalog";
 import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
-
-const BASE_FEE = 680;
 
 // A miniature of the real strand, using the studio's tangent-circle
 // placement so a card can never show beads the build doesn't contain.
@@ -20,15 +18,8 @@ function BraceletThumb({ items, wrist }: { items: DesignItem[]; wrist: number })
   const maxMM = Math.max(...items.map(itemMM), 1);
   const k = 92 / (strandMM / Math.PI + maxMM);
   const r = (strandMM / (Math.PI * 2)) * k;
-  let cum = 0;
-  const placed = items.map((it, i) => {
-    const w = itemMM(it);
-    const centreMM = cum + w / 2;
-    cum += w;
-    const angle = -Math.PI / 2 + (centreMM / strandMM) * Math.PI * 2;
-    const isCharm = it.kind === "accessory" && byAccessory[it.id].type === "charm";
-    return { key: it.uid ?? i, it, angle, sizePct: isCharm ? 11 : w * k, orbit: isCharm ? r + 5 : r };
-  });
+  const placed = layoutStrand(items, strandMM).map(({ item: it, mm, angle, isCharm }, i) =>
+    ({ key: it.uid ?? i, it, angle, sizePct: isCharm ? 11 : mm * k, orbit: isCharm ? r + 5 : r }));
   return <div className="shop-thumb" aria-hidden="true">
     <span className="st-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
     {placed.map(({ key, it, angle, sizePct, orbit }) => <span
