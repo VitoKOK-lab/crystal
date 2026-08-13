@@ -10,10 +10,15 @@ silver-star, gold-knot, several of the original women's stones) up to 100%
 (leaf, cross, key). The tangent math was correct; the assets violated its
 assumption, so "touching" beads visibly floated apart by the padding gap.
 
-Crop each image to its opaque bounding box plus a small uniform margin
-(for the existing drop-shadow filter to have room), padded back out to a
-square canvas so circular crops stay circular. Run once; re-run only if a
-new photo is added or replaced with one that has different padding.
+Crop each image to its opaque bounding box plus a hairline margin (just
+enough to avoid clipping anti-aliased edge pixels), padded back out to a
+square canvas so circular crops stay circular. The rendering wrapper
+(.crystal / .hardware) has overflow:hidden, which already clips the CSS
+drop-shadow filter to the circular mask regardless of how much padding the
+source image has — so there is no reason to leave shadow "room" in the
+image itself; the tighter the crop, the closer adjacent tangent-placed
+beads come to actually touching. Run once; re-run only if a new photo is
+added or replaced with one that has different padding.
 
     python3 scripts/tighten-material-photos.py [--dry-run]
 """
@@ -24,7 +29,7 @@ import sys
 from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MARGIN = 0.035  # fraction of the tightest dimension, kept around the content
+MARGIN = 0.006  # fraction of the tightest dimension, kept around the content
 
 
 def served_paths() -> list[str]:
@@ -51,8 +56,8 @@ def tighten(path: pathlib.Path) -> tuple[float, float] | None:
     canvas.save(path)
 
     after_bbox = canvas.getbbox()
-    ab = after_bbox[2] - after_bbox[0]
-    after = ab / canvas.size[0]
+    abw, abh = after_bbox[2] - after_bbox[0], after_bbox[3] - after_bbox[1]
+    after = max(abw / canvas.size[0], abh / canvas.size[1])
     return before, after
 
 
