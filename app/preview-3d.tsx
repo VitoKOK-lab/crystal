@@ -112,9 +112,13 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
     }
     const color = STONE_COLORS[piece.id] ?? "#a8a8a8";
     if (TRANSLUCENT_STONES.has(piece.id)) {
+      // Milky-translucent, not window-glass: at transmission 0.88 the white
+      // backdrop shone straight through and washed every quartz out to a
+      // pale ghost (and moonstone picked up its neighbours' colours like a
+      // lens). Real tumbled quartz scatters most of what enters it.
       return new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.05, transmission: 0.88, thickness: sizeUnits * 3, ior: 1.54,
-        clearcoat: 1, clearcoatRoughness: 0.08, attenuationColor: new THREE.Color(color), attenuationDistance: 0.4,
+        color, roughness: 0.16, transmission: 0.45, thickness: sizeUnits * 2, ior: 1.54,
+        clearcoat: 1, clearcoatRoughness: 0.08, attenuationColor: new THREE.Color(color), attenuationDistance: 0.25,
       });
     }
     return new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.05, clearcoat: 0.65, clearcoatRoughness: 0.18 });
@@ -172,8 +176,17 @@ function StudioEnvironment() {
 }
 
 function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: number }) {
-  const angles = useMemo(() => anglesForWidths(pieces.map((p) => p.mm), capacityMM), [pieces, capacityMM]);
-  const radiusUnits = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
+  // Spread the beads over the strand's own length rather than the wrist
+  // circumference, closing the loop — the same deliberate choice the shop
+  // thumbnails make, for the same reason. The studio's 2D ring leaves the
+  // unfilled arc visible on purpose (it's the "you have room for more"
+  // affordance), but this preview answers "what will the finished piece
+  // look like", and the finished piece is strung on elastic and pulled
+  // closed: a half-filled design shown as a broken C of floating beads
+  // reads as a rendering bug, not as a design in progress.
+  const strandMM = useMemo(() => pieces.reduce((sum, p) => sum + p.mm, 0) || capacityMM, [pieces, capacityMM]);
+  const angles = useMemo(() => anglesForWidths(pieces.map((p) => p.mm), strandMM), [pieces, strandMM]);
+  const radiusUnits = (strandMM / (Math.PI * 2)) * UNITS_PER_MM;
   // No visible connecting cord: every bead centre sits on the same radius,
   // but bead sizes vary a lot (5mm spacers next to 20mm focals), so no
   // single cord radius clears every sphere's volume without either piercing
@@ -200,19 +213,30 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
     <Suspense fallback={null}>
       {pieces.map((p, i) => <AnyBead key={i} piece={p} angle={angles[i]} radiusUnits={radiusUnits} />)}
     </Suspense>
-    <OrbitControls enablePan={false} minDistance={radiusUnits * 1.4} maxDistance={radiusUnits * 6} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
+    <OrbitControls enablePan={false} minDistance={frameRadius(pieces) * 1.2} maxDistance={frameRadius(pieces) * 8} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
   </>;
 }
 
+// The visual outer edge of the piece: ring radius plus the largest bead's
+// radius. Framing on the ring radius alone crops the beads themselves out of
+// frame on short strands, where a 20mm focal bead is nearly half the ring
+// radius on its own.
+function frameRadius(pieces: PreviewPiece[]) {
+  const strandMM = pieces.reduce((sum, p) => sum + p.mm, 0) || 140;
+  const ring = (strandMM / (Math.PI * 2)) * UNITS_PER_MM;
+  const maxBead = Math.max(...pieces.map((p) => Math.max(p.mm * UNITS_PER_MM, 0.03)), 0.03) / 2;
+  return ring + maxBead;
+}
+
 export default function Preview3D({ pieces, capacityMM, onClose }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void }) {
-  const radiusUnits = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
+  const R = frameRadius(pieces);
   return <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽">
     <div className="pv-head"><b>360° PREVIEW</b><span>拖曳旋轉 · 滾輪縮放</span><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
     <div className="pv-canvas" style={{ position: "relative" }}>
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [radiusUnits * 0.2, radiusUnits * 1.5, radiusUnits * 2.6], fov: 35 }}
+        camera={{ position: [R * 0.25, R * 1.7, R * 3.1], fov: 35 }}
         gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         style={{ position: "absolute", inset: 0 }}
       >
