@@ -176,60 +176,58 @@ function StudioEnvironment() {
 }
 
 function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: number }) {
-  // Spread the beads over the strand's own length rather than the wrist
-  // circumference, closing the loop — the same deliberate choice the shop
-  // thumbnails make, for the same reason. The studio's 2D ring leaves the
-  // unfilled arc visible on purpose (it's the "you have room for more"
-  // affordance), but this preview answers "what will the finished piece
-  // look like", and the finished piece is strung on elastic and pulled
-  // closed: a half-filled design shown as a broken C of floating beads
-  // reads as a rendering bug, not as a design in progress.
-  const strandMM = useMemo(() => pieces.reduce((sum, p) => sum + p.mm, 0) || capacityMM, [pieces, capacityMM]);
-  const angles = useMemo(() => anglesForWidths(pieces.map((p) => p.mm), strandMM), [pieces, strandMM]);
-  const radiusUnits = (strandMM / (Math.PI * 2)) * UNITS_PER_MM;
-  // No visible connecting cord: every bead centre sits on the same radius,
-  // but bead sizes vary a lot (5mm spacers next to 20mm focals), so no
-  // single cord radius clears every sphere's volume without either piercing
-  // the largest beads or reading as a disconnected ring floating well
-  // inside the smallest ones. A tightly-strung real bracelet hides its
-  // elastic almost entirely anyway — omitting it is the more honest result,
-  // not a shortcut.
+  // Mirror the 2D studio's metaphor exactly: the full wrist-circumference
+  // cord is always there as a complete ring, and beads occupy however much
+  // of it the design has filled so far. The exposed cord along the unfilled
+  // arc is the "you have room for more" affordance, same as the 2D ring —
+  // an earlier version compressed the strand into a closed loop instead,
+  // which read as a different bracelet size every time a bead was added.
+  const angles = useMemo(() => anglesForWidths(pieces.map((p) => p.mm), capacityMM), [pieces, capacityMM]);
+  const radiusUnits = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
+  // The cord threads bead CENTRES — through the drill holes, exactly like
+  // the real elastic — so inside a bead it's hidden (or a faint shadow
+  // inside the milkier quartzes, which real translucent beads show too),
+  // and it surfaces only in the wedge gaps between beads and along the
+  // whole unfilled arc. An early attempt looked broken not because of this
+  // but because heavy transmission (0.88) made it a hard dark band through
+  // every glassy bead; at the milky 0.45 the interior cord reads correctly.
+  const cordRadius = Math.max(radiusUnits * 0.014, 0.008);
   //
-  // No ground-plane contact shadow either, for the same kind of reason:
-  // this preview orbits freely in every direction, so there's no fixed
-  // "resting surface" a shadow could sit on — an invisible shadow-catcher
-  // plane low enough to stay hidden at the default angle became a visible
-  // floating grey smear once the camera tilted enough to look down into the
-  // ring's open centre. The beads' own castShadow/receiveShadow already
-  // give believable contact shadows at their touch points, and that holds
-  // up from any angle since it isn't anchored to an invisible floor.
+  // No ground-plane contact shadow: this preview orbits freely in every
+  // direction, so there's no fixed "resting surface" a shadow could sit on —
+  // an invisible shadow-catcher plane became a visible floating grey smear
+  // once the camera tilted enough to look down into the ring's open centre.
+  // The beads' own castShadow/receiveShadow already give believable contact
+  // shadows at their touch points, from any angle.
   return <>
     <StudioEnvironment />
     <ambientLight intensity={0.35} />
     <directionalLight position={[4, 6, 3]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
     <directionalLight position={[-3, 2, -4]} intensity={0.35} />
+    <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <torusGeometry args={[radiusUnits, cordRadius, 12, 128]} />
+      <meshStandardMaterial color="#b8ab93" roughness={0.7} metalness={0.05} />
+    </mesh>
     {/* Suspense inside the Canvas so a texture still fetching leaves the
         rest of the strand visible instead of blanking the whole overlay. */}
     <Suspense fallback={null}>
       {pieces.map((p, i) => <AnyBead key={i} piece={p} angle={angles[i]} radiusUnits={radiusUnits} />)}
     </Suspense>
-    <OrbitControls enablePan={false} minDistance={frameRadius(pieces) * 1.2} maxDistance={frameRadius(pieces) * 8} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
+    <OrbitControls enablePan={false} minDistance={frameRadius(pieces, capacityMM) * 1.2} maxDistance={frameRadius(pieces, capacityMM) * 8} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
   </>;
 }
 
 // The visual outer edge of the piece: ring radius plus the largest bead's
 // radius. Framing on the ring radius alone crops the beads themselves out of
-// frame on short strands, where a 20mm focal bead is nearly half the ring
-// radius on its own.
-function frameRadius(pieces: PreviewPiece[]) {
-  const strandMM = pieces.reduce((sum, p) => sum + p.mm, 0) || 140;
-  const ring = (strandMM / (Math.PI * 2)) * UNITS_PER_MM;
+// frame, where a 20mm focal bead is a large fraction of the ring radius.
+function frameRadius(pieces: PreviewPiece[], capacityMM: number) {
+  const ring = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
   const maxBead = Math.max(...pieces.map((p) => Math.max(p.mm * UNITS_PER_MM, 0.03)), 0.03) / 2;
   return ring + maxBead;
 }
 
 export default function Preview3D({ pieces, capacityMM, onClose }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void }) {
-  const R = frameRadius(pieces);
+  const R = frameRadius(pieces, capacityMM);
   return <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽">
     <div className="pv-head"><b>360° PREVIEW</b><span>拖曳旋轉 · 滾輪縮放</span><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
     <div className="pv-canvas" style={{ position: "relative" }}>
