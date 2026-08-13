@@ -183,6 +183,10 @@ export const WRIST_CHOICES = Array.from({ length: 19 }, (_, i) => 13 + i * 0.5);
 // bead diameters share it, so beads sit tangent along the cord — a 20mm bead
 // truly draws twice as wide as a 10mm one and neighbours never overlap.
 export const PCT_PER_MM = 0.95;
+// Design/stringing fee charged on every order regardless of materials —
+// the studio, shop cards and checkout all price off this one constant so a
+// displayed total can never drift from what checkout actually charges.
+export const BASE_FEE = 680;
 
 export function itemMM(item: DesignItem) { if (item.kind === "stone") return BEAD_MM[item.size ?? "large"]; return byAccessory[item.id].type === "spacer" ? 5 : 3; }
 export function itemPrice(item: DesignItem) { if (item.kind === "accessory") return byAccessory[item.id].price; const base = byStone[item.id].price; return base + (item.size === "xlarge" ? 320 : item.size === "small" ? 0 : 80); }
@@ -204,6 +208,34 @@ export function energyScores(items: DesignItem[]) {
 }
 export function dominantOf(scores: Record<EnergyType, number>) {
   return ENERGY_META.reduce((best, m) => (scores[m.key] > scores[best.key] ? m : best), ENERGY_META[0]);
+}
+
+// Strand geometry shared by every renderer that arranges items around a
+// ring: the studio stage, shop-card thumbnails, the share-card canvas and
+// the 360° preview. Converts cumulative widths into the angle each item's
+// centre falls at — the arithmetic that four call sites used to reimplement
+// (and drift on) independently. Scale, orbit radius and charm sizing stay
+// cosmetic choices local to each renderer.
+export function centersForWidths(widths: number[]): number[] {
+  let cum = 0;
+  return widths.map((mm) => { const center = cum + mm / 2; cum += mm; return center; });
+}
+export function anglesForWidths(widths: number[], capacityMM: number): number[] {
+  return centersForWidths(widths).map((center) => -Math.PI / 2 + (center / capacityMM) * Math.PI * 2);
+}
+
+// DesignItem-aware convenience wrapper for the studio stage and shop-card
+// thumbnails; share-card.ts and preview.tsx render already-decoupled
+// {mm, isCharm} tuples instead of DesignItem, so they call
+// anglesForWidths() directly.
+export type StrandPlacement = { item: DesignItem; mm: number; isCharm: boolean; angle: number };
+export function layoutStrand(items: DesignItem[], capacityMM: number): StrandPlacement[] {
+  const widths = items.map(itemMM);
+  const angles = anglesForWidths(widths, capacityMM);
+  return items.map((item, i) => ({
+    item, mm: widths[i], angle: angles[i],
+    isCharm: item.kind === "accessory" && byAccessory[item.id].type === "charm",
+  }));
 }
 
 export const buildSpec = (spec: [string, BeadSize?][]): DesignItem[] => spec.map(([id, size]) => byAccessory[id]

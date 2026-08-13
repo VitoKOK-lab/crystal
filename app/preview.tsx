@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { centersForWidths } from "./catalog";
 
 export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean };
 
@@ -74,8 +75,7 @@ export default function Preview({ pieces, capacityMM, onClose }: { pieces: Previ
     // ---- bead chain state (positions in mm along the cord) ----
     const n = pieces.length;
     const widths = pieces.map((p) => p.mm);
-    let cum = 0;
-    const home = pieces.map((p) => { const c = cum + p.mm / 2; cum += p.mm; return c; });
+    const home = centersForWidths(widths);
     const u = [...home];
     const v = new Array(n).fill(0);
     const hash = (i: number) => ((i * 7919 + 104729) % 997) / 997;

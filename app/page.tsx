@@ -16,9 +16,9 @@ import { playClaspClick } from "./ui-sound";
 
 import Shop from "./shop";
 import {
-  ENERGY_META, ItemVisual, RARITY_LABEL, WRIST_CHOICES, accessories, accessoryPhotos,
-  buildSpec, byAccessory, byStone, decodeDesign, encodeDesign, energyScores, itemMM,
-  itemPrice, label, nextUid, parseSpec, rarityOf, sizeLabel, stonePhotos, stones, PCT_PER_MM,
+  BASE_FEE, ENERGY_META, ItemVisual, RARITY_LABEL, WRIST_CHOICES, accessories, accessoryPhotos,
+  buildSpec, byAccessory, byStone, decodeDesign, dominantOf, encodeDesign, energyScores, itemMM,
+  itemPrice, label, layoutStrand, nextUid, parseSpec, rarityOf, sizeLabel, stonePhotos, stones, PCT_PER_MM,
   type Accessory, type BeadSize, type DesignItem, type EnergyType, type Stone,
 } from "./catalog";
 import { NEUTRAL_TONE, SERIES, bySeries, findProduct, type SeriesTone } from "./series";
@@ -250,10 +250,10 @@ export default function Home() {
     next.splice(target, 0, moving);
     return next.every((x, i) => x === current[i]) ? current : next;
   });
-  const total = useMemo(() => items.reduce((sum, item) => sum + itemPrice(item), 680), [items]);
+  const total = useMemo(() => items.reduce((sum, item) => sum + itemPrice(item), BASE_FEE), [items]);
   const scores = useMemo(() => energyScores(items), [items]);
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
-  const dominant = ENERGY_META.reduce((best, m) => (scores[m.key] > scores[best.key] ? m : best), ENERGY_META[0]);
+  const dominant = dominantOf(scores);
   const dominantDisplay = useCountUp(scores[dominant.key]);
   const previewPieces = useMemo<PreviewPiece[]>(() => items.map((it) => it.kind === "stone"
     ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false }
@@ -278,7 +278,7 @@ export default function Home() {
   const nextWrist = WRIST_CHOICES.find((c) => c > wristCm);
   const nearFull = fillRatio >= 0.88 && nextWrist !== undefined;
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
-  const arcs = useMemo(() => { let cum = 0; return items.map((it) => { const w = itemMM(it); const centerMM = cum + w / 2; cum += w; return { w, angle: -Math.PI / 2 + (centerMM / capacityMM) * Math.PI * 2 }; }); }, [items, capacityMM]);
+  const arcs = useMemo(() => layoutStrand(items, capacityMM), [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
   const activeSeries = seriesId ? bySeries[seriesId] : null;
   const tone: SeriesTone = activeSeries?.tone ?? NEUTRAL_TONE;
@@ -306,7 +306,7 @@ export default function Home() {
         <div className="bracelet-stage" ref={stageRef}>
           <div className="table-shadow" />
           <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
-          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = item.kind === "accessory" && (byAccessory[item.id] as Accessory).type === "charm"; const sizePct = isCharm ? 10.5 : arcs[i].w * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) showNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
+          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = arcs[i].isCharm; const sizePct = isCharm ? 10.5 : arcs[i].mm * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) showNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
           {beads > 0
             ? <div className="center-intention"><small>{tone.dominantEn}</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
             : <div className="center-intention"><small>OMA CRYSTAL</small><b>BEGIN WITH ONE</b><span className="ci-note">從一顆開始 · 右側挑你的第一顆礦石</span></div>}
@@ -324,7 +324,7 @@ export default function Home() {
         <div className="tabs" aria-label="素材分類">{([["crystal","天然水晶"],["spacer","精緻隔珠"],["charm","專屬吊飾"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => { setTab(id); setQuery(""); }}>{name}</button>)}</div>
         <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "crystal" ? "搜尋水晶名稱…" : "搜尋配件名稱…"} /></label>
         <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>
-        <div className="material-grid" key={`${tab}-${query}`}>{visible.length ? visible.map((x: Stone | Accessory) => {
+        <div className="material-grid" key={tab}>{visible.length ? visible.map((x: Stone | Accessory) => {
           const item: DesignItem = tab === "crystal" ? { kind: "stone", id: x.id, size: "large" } : { kind: "accessory", id: x.id };
           const tier = rarityOf(x.price);
           if (tab === "crystal") return <article className={`material-card crystal-card rarity-${tier} ${selected.id === item.id ? "selected" : ""}`} key={x.id}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} 10mm 大珠`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {itemPrice(item)}</em></button><div className="size-actions"><button onClick={() => add({ kind: "stone", id: x.id, size: "xlarge" })} aria-label="加入 20mm 特大主珠">20mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "large" })} aria-label="加入 10mm 大珠">10mm</button><button onClick={() => add({ kind: "stone", id: x.id, size: "small" })} aria-label="加入 8mm 中珠">8mm</button></div></article>;

@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { WRIST_CHOICES } from "./catalog";
 import { playConfirmBoom } from "./ui-sound";
 
 export type OrderLine = { key: string; visual: React.ReactNode; name: string; sub: string; qty: number; unit: number };
 type EnergyInfo = { zh: string; en: string; color: string };
 
-// Wrist sizes offered at checkout: 13–22 cm in half-centimetre steps.
-const WRIST_SIZES = Array.from({ length: 19 }, (_, i) => (13 + i * 0.5).toFixed(1).replace(/\.0$/, ""));
+// Same wrist sizes the studio offers, formatted as the plain "16" / "16.5"
+// strings this form's <select> uses.
+const WRIST_SIZES = WRIST_CHOICES.map((cm) => cm.toFixed(1).replace(/\.0$/, ""));
 const PAYMENTS = [
   { id: "card", name: "信用卡", note: "VISA / Master / JCB" },
   { id: "linepay", name: "LINE Pay", note: "行動支付快速結帳" },
