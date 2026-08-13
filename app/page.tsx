@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import BraceletStage from "./bracelet-stage";
 import Checkout, { type OrderLine } from "./checkout";
 import DesignGuide from "./design-guide";
 import EnergyPanel, { useCountUp } from "./energy-panel";
@@ -41,11 +42,6 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "obsidian", size: "large" });
-  // Drag logic lives in a ref so pointerup always sees the freshest state —
-  // reading it from React state raced the render loop and made quick drags
-  // register as taps (deleting the bead). dragView only drives rendering.
-  const dragRef = useRef<{ uid: number; startX: number; startY: number; moved: boolean } | null>(null);
-  const [dragView, setDragView] = useState<{ uid: number; angle: number } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
   const [view, setView] = useState<"home" | "shop" | "studio" | "checkout">("home");
@@ -91,7 +87,6 @@ export default function Home() {
     showNotice(mode === "buy" ? "" : `已載入「${product.name}」，接下來由你決定`);
     window.scrollTo({ top: 0 });
   };
-  const stageRef = useRef<HTMLDivElement>(null);
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
   const strandMM = useMemo(() => items.reduce((sum, it) => sum + itemMM(it), 0), [items]);
@@ -163,25 +158,6 @@ export default function Home() {
     setWristCm(cm); setWristAlert(false); showNotice(`手圍已設定為 ${cm} cm`);
   };
   const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`已移除 ${label(item)}`); } };
-  const angleForPointer = (clientX: number, clientY: number) => { const box = stageRef.current?.getBoundingClientRect(); if (!box) return 0; const x = (clientX - box.left) / box.width - .5; const y = (clientY - box.top) / box.height - .5; return Math.atan2(y, x); };
-  // Live reorder while dragging: map the pointer angle to a millimetre
-  // position along the strand and insert the bead between the pieces whose
-  // widths bracket it. Excluding the dragged bead keeps boundaries stable, so
-  // neighbours don't oscillate.
-  const moveToAngle = (uid: number, angle: number) => setItems((current) => {
-    const from = current.findIndex((x) => x.uid === uid);
-    if (from < 0 || current.length < 2) return current;
-    const moving = current[from];
-    const rest = current.filter((x) => x.uid !== uid);
-    const TAU = Math.PI * 2;
-    const frac = ((((angle + Math.PI / 2) % TAU) + TAU) % TAU) / TAU;
-    const p = frac * capacityMM;
-    let cum = 0, target = rest.length;
-    for (let i = 0; i < rest.length; i++) { const w = itemMM(rest[i]); if (p < cum + w / 2) { target = i; break; } cum += w; }
-    const next = [...rest];
-    next.splice(target, 0, moving);
-    return next.every((x, i) => x === current[i]) ? current : next;
-  });
   const total = useMemo(() => items.reduce((sum, item) => sum + itemPrice(item), BASE_FEE), [items]);
   const scores = useMemo(() => energyScores(items), [items]);
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
@@ -235,15 +211,19 @@ export default function Home() {
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span>{nearFull && <button className="wrist-hint" onClick={() => changeWrist(nextWrist as number)}>快滿了 · 改 {nextWrist} cm</button>}</span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
-        <div className="bracelet-stage" ref={stageRef}>
-          <div className="table-shadow" />
-          <div className="bracelet-string" style={{ left: `${50 - r}%`, top: `${50 - r}%`, width: `${r * 2}%`, height: `${r * 2}%` }} />
-          {items.map((item, i) => { const uid = item.uid as number; const isDragging = dragView?.uid === uid; const a = isDragging ? (dragView as { angle: number }).angle : arcs[i].angle; const isCharm = arcs[i].isCharm; const sizePct = isCharm ? 10.5 : arcs[i].mm * PCT_PER_MM; const orbit = isCharm ? r + 5 : r; const charmRotation = (a * 180 / Math.PI) - 90; const stoneRotation = (a * 180 / Math.PI) + 90; return <button key={uid} className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = { uid, startX: event.clientX, startY: event.clientY, moved: false }; }} onPointerMove={(event) => { const d = dragRef.current; if (!d || d.uid !== uid) return; if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) <= 9) return; d.moved = true; const angle = angleForPointer(event.clientX, event.clientY); setDragView({ uid, angle }); moveToAngle(uid, angle); }} onPointerUp={() => { const d = dragRef.current; if (!d || d.uid !== uid) return; dragRef.current = null; setDragView(null); if (d.moved) showNotice("已調整素材位置"); else removeByUid(uid); }} onPointerCancel={() => { dragRef.current = null; setDragView(null); }} aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"} title="輕點移除 · 按住拖曳調整位置" style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}><ItemVisual item={item} /><span className="remove-mark">−</span></button>; })}
-          {beads > 0
-            ? <div className="center-intention"><small>{tone.dominantEn}</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
-            : <div className="center-intention"><small>OMA CRYSTAL</small><b>BEGIN WITH ONE</b><span className="ci-note">從一顆開始 · 右側挑你的第一顆礦石</span></div>}
-          <div className="stage-tip">輕點移除 · 按住拖曳調整位置</div>
-        </div>
+        <BraceletStage
+          items={items}
+          setItems={setItems}
+          arcs={arcs}
+          r={r}
+          capacityMM={capacityMM}
+          beads={beads}
+          dominant={dominant}
+          dominantDisplay={dominantDisplay}
+          tone={tone}
+          showNotice={showNotice}
+          removeByUid={removeByUid}
+        />
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} />
         <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
