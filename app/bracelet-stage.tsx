@@ -68,7 +68,7 @@ export default function BraceletStage({
   // slight remaining overlap is fine, that's how a real charm cluster hangs.
   const displayAngles = useMemo(() => {
     const out = arcs.map((arc) => arc.angle);
-    const FAN_STEP = 0.19; // radians between neighbouring charms in a run
+    const FAN_STEP = 0.15; // radians between neighbouring charms in a run
     let runStart = -1;
     for (let i = 0; i <= arcs.length; i++) {
       const inRun = i < arcs.length && arcs[i].isCharm;
@@ -94,7 +94,11 @@ export default function BraceletStage({
       const a = isDragging ? (dragView as { angle: number }).angle : displayAngles[i];
       const isCharm = arcs[i].isCharm;
       const sizePct = isCharm ? 10.5 : arcs[i].mm * PCT_PER_MM;
-      const orbit = isCharm ? r + 5 : r;
+      // Charms hang with their jump ring at the photo's top edge (canonical
+      // orientation), rotated to point at the centre. The orbit is chosen so
+      // that ring sits ON the cord — the cord must read as passing through
+      // the ring, not merely grazing the charm's tip.
+      const orbit = isCharm ? r + 4.1 : r;
       const charmRotation = (a * 180 / Math.PI) - 90;
       const stoneRotation = (a * 180 / Math.PI) + 90;
       return <button
