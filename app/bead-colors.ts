@@ -9,7 +9,7 @@ export const STONE_COLORS: Record<string, string> = {
   "fluorite": "#a6afac",
   "garnet": "#5b1423",
   "goldstone": "#242636",
-  "hematite": "#84878a",
+  "hematite": "#7c7d85",
   "labradorite": "#6b7d76",
   "lapis": "#3b4b7e",
   "lava": "#353538",

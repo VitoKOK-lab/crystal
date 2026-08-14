@@ -21,7 +21,7 @@
 | 平台 | Cloudflare 全家桶（Workers + D1 + R2），初期與長期皆以此為準 |
 | 庫存粒度 | 每珠子 × 每尺寸記顆數；配件單獨記顆數；下單自動扣 |
 | 缺貨呈現 | 顯示但標「補貨中」，變灰、不可加入/下單 |
-| 後台登入 | Google 帳號登入（僅允許業主 Gmail 白名單） |
+| 後台登入 | Google 帳號登入，Email 白名單：luxkey.tw@gmail.com、agent@tzgrotw.tw |
 | 聯盟行銷 | 本次僅埋地基：推薦人表 + 訂單推薦碼欄位 + `?ref=` 捕捉 |
 | 後台範圍 | 珠子/配件 + 成品手鍊 + 系列 + 訂單 + 全站設定（工費、運費） |
 | 架構 | 做法 A：漸進式 — 前台既有程式不動，資料抽入 D1/R2，加 API 與後台 |
@@ -113,8 +113,8 @@ Google OAuth 登入，Email 白名單（環境變數），簽章 Cookie session�
 ## 10. 業主待辦（外部申請，可並行）
 
 1. 申請綠界會員與收款（個人賣家可申請）；核准後提供商店代號 / HashKey / HashIV
-2. 提供要作為後台登入的 Google 帳號 Email
-3. （可選）購買自有網域
+2. 後台登入 Google 帳號白名單：luxkey.tw@gmail.com、agent@tzgrotw.tw（已提供）
+3. 購買自有網域（業主已確認要買；建議於 Cloudflare Registrar 購買，成本價且零設定）
 
 ## 11. 非目標（本次不做）
 
