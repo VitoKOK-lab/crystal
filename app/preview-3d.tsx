@@ -1,8 +1,8 @@
 "use client";
 
 import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas, useLoader } from "@react-three/fiber";
-import { Suspense, useMemo } from "react";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { anglesForWidths } from "./catalog";
@@ -39,13 +39,15 @@ const STONE_TEXTURES: Record<string, string> = Object.fromEntries([
 // World units per physical millimetre — chosen so a typical 14cm-wrist
 // strand (~140mm circumference) renders at a comfortable viewing radius.
 const UNITS_PER_MM = 0.016;
-const CHARM_ORBIT_OFFSET_MM = 5;
+// Accessories occupy only 3-5mm of cord but their bodies draw wider, same
+// as the 2D studio's sprites: display sizes, not cord footprints.
+const SPACER_DISPLAY_MM = 9;
+const CHARM_DISPLAY_MM = 13;
 
 function beadPlacement(piece: PreviewPiece, angle: number, radiusUnits: number) {
-  const orbit = piece.isCharm ? radiusUnits + CHARM_ORBIT_OFFSET_MM * UNITS_PER_MM : radiusUnits;
   const sizeUnits = Math.max(piece.mm * UNITS_PER_MM, 0.03);
   return {
-    position: [Math.cos(angle) * orbit, piece.isCharm ? -sizeUnits * 0.6 : 0, Math.sin(angle) * orbit] as [number, number, number],
+    position: [Math.cos(angle) * radiusUnits, 0, Math.sin(angle) * radiusUnits] as [number, number, number],
     sizeUnits,
   };
 }
@@ -138,7 +140,46 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
   </mesh>;
 }
 
-function AnyBead(props: { piece: PreviewPiece; angle: number; radiusUnits: number }) {
+// Accessories (charms, spacers, figurine beads) are flat product cutouts,
+// not spheres — mapping their photo onto a ball made every compass a gold
+// marble. Render each as its transparent cutout on a plane that yaw-follows
+// the camera (Y-axis billboard): it stays upright like a real hanging piece
+// instead of tilting when the camera looks down, and the polar-angle limits
+// mean it's never seen edge-on. Charms hang below their cord point with the
+// bail overlapping the cord; spacers sit centred on the cord like beads.
+function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: PreviewPiece; angle: number; radiusUnits: number; cordRadius: number }) {
+  const texture = useLoader(THREE.TextureLoader, piece.src as string);
+  const map = useMemo(() => {
+    const t = texture.clone();
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, [texture]);
+  const side = (piece.isCharm ? CHARM_DISPLAY_MM : SPACER_DISPLAY_MM) * UNITS_PER_MM;
+  const x = Math.cos(angle) * radiusUnits;
+  const z = Math.sin(angle) * radiusUnits;
+  // Charm photos are canonical: bail ring at the top edge. Hang the plane so
+  // the bail sits on the cord (slight overlap reads as threaded).
+  const y = piece.isCharm ? -side / 2 + side * 0.13 : 0;
+  const groupRef = useRef<THREE.Group>(null);
+  useFrame(({ camera }) => {
+    const g = groupRef.current;
+    if (g) g.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);
+  });
+  return <group ref={groupRef} position={[x, y, z]}>
+    {/* Nudged toward the camera so the cord's front half doesn't slice
+        through the opaque part of the photo. */}
+    <mesh position={[0, 0, cordRadius * 1.6 + 0.002]}>
+      <planeGeometry args={[side, side]} />
+      {/* Basic material: the photo's lighting is already baked in; letting
+          scene lights re-light it would double-shade the metal. */}
+      <meshBasicMaterial map={map} transparent alphaTest={0.08} side={THREE.DoubleSide} toneMapped={false} />
+    </mesh>
+  </group>;
+}
+
+function AnyBead(props: { piece: PreviewPiece; angle: number; radiusUnits: number; cordRadius: number }) {
+  if (props.piece.kind === "accessory" && props.piece.src) return <AccessoryPiece {...props} />;
   const textureUrl = props.piece.kind === "stone" ? STONE_TEXTURES[props.piece.id] : undefined;
   if (textureUrl) return <TexturedStoneBead {...props} textureUrl={textureUrl} />;
   return <Bead {...props} />;
@@ -183,7 +224,34 @@ function StudioEnvironment() {
   return <Environment map={map} resolution={128} />;
 }
 
+// Place the camera so the ring's diameter spans ~60% of the viewport's
+// SMALLER dimension. The old fixed-distance camera was tuned on a landscape
+// desktop window; on a portrait phone the horizontal field of view is far
+// narrower, so the same distance overflowed the ring off both edges.
+const CAMERA_FOV = 35;
+const FRAME_FRACTION = 0.6;
+// Keep the original slightly-elevated viewing direction.
+const CAMERA_DIR = new THREE.Vector3(0.25, 1.7, 3.1).normalize();
+
+function fitDistance(R: number, width: number, height: number) {
+  const tanV = Math.tan((CAMERA_FOV * Math.PI) / 360);
+  const tanEff = Math.min(tanV, tanV * (width / Math.max(height, 1)));
+  return R / (FRAME_FRACTION * tanEff);
+}
+
+function CameraRig({ R }: { R: number }) {
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  useLayoutEffect(() => {
+    const d = fitDistance(R, size.width, size.height);
+    camera.position.copy(CAMERA_DIR.clone().multiplyScalar(d));
+    camera.lookAt(0, 0, 0);
+  }, [camera, R, size.width, size.height]);
+  return null;
+}
+
 function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: number }) {
+  const size = useThree((s) => s.size);
   // Mirror the 2D studio's metaphor exactly: the full wrist-circumference
   // cord is always there as a complete ring, and beads occupy however much
   // of it the design has filled so far. The exposed cord along the unfilled
@@ -191,6 +259,27 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
   // an earlier version compressed the strand into a closed loop instead,
   // which read as a different bracelet size every time a bead was added.
   const angles = useMemo(() => anglesForWidths(pieces.map((p) => p.mm), capacityMM), [pieces, capacityMM]);
+  // Same display-only charm fan as the 2D stage: consecutive charms occupy
+  // 3mm of cord each but draw ~13mm wide, so an unfanned run is a single
+  // indistinguishable pile. True mm positions are untouched.
+  const displayAngles = useMemo(() => {
+    const out = [...angles];
+    const FAN_STEP = 0.15;
+    let runStart = -1;
+    for (let i = 0; i <= pieces.length; i++) {
+      const inRun = i < pieces.length && pieces[i].isCharm;
+      if (inRun && runStart < 0) runStart = i;
+      if (!inRun && runStart >= 0) {
+        const len = i - runStart;
+        if (len > 1) {
+          const centre = (out[runStart] + out[i - 1]) / 2;
+          for (let j = 0; j < len; j++) out[runStart + j] = centre + (j - (len - 1) / 2) * FAN_STEP;
+        }
+        runStart = -1;
+      }
+    }
+    return out;
+  }, [angles, pieces]);
   const radiusUnits = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
   // The cord threads bead CENTRES — through the drill holes, exactly like
   // the real elastic — so inside a bead it's hidden (or a faint shadow
@@ -219,9 +308,16 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
     {/* Suspense inside the Canvas so a texture still fetching leaves the
         rest of the strand visible instead of blanking the whole overlay. */}
     <Suspense fallback={null}>
-      {pieces.map((p, i) => <AnyBead key={i} piece={p} angle={angles[i]} radiusUnits={radiusUnits} />)}
+      {pieces.map((p, i) => <AnyBead key={i} piece={p} angle={displayAngles[i]} radiusUnits={radiusUnits} cordRadius={cordRadius} />)}
     </Suspense>
-    <OrbitControls enablePan={false} minDistance={frameRadius(pieces, capacityMM) * 1.2} maxDistance={frameRadius(pieces, capacityMM) * 8} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
+    <CameraRig R={frameRadius(pieces, capacityMM)} />
+    <OrbitControls
+      enablePan={false}
+      minDistance={frameRadius(pieces, capacityMM) * 1.2}
+      maxDistance={fitDistance(frameRadius(pieces, capacityMM), size.width, size.height) * 2.2}
+      minPolarAngle={Math.PI * 0.15}
+      maxPolarAngle={Math.PI * 0.82}
+    />
   </>;
 }
 
@@ -242,7 +338,7 @@ export default function Preview3D({ pieces, capacityMM, onClose }: { pieces: Pre
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [R * 0.25, R * 1.7, R * 3.1], fov: 35 }}
+        camera={{ position: [R * 0.25, R * 1.7, R * 3.1], fov: CAMERA_FOV }}
         gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         style={{ position: "absolute", inset: 0 }}
       >
