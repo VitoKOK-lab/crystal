@@ -40,9 +40,11 @@ const STONE_TEXTURES: Record<string, string> = Object.fromEntries([
 // strand (~140mm circumference) renders at a comfortable viewing radius.
 const UNITS_PER_MM = 0.016;
 // Accessories occupy only 3-5mm of cord but their bodies draw wider, same
-// as the 2D studio's sprites: display sizes, not cord footprints.
-const SPACER_DISPLAY_MM = 9;
-const CHARM_DISPLAY_MM = 13;
+// as the 2D studio's sprites: display sizes, not cord footprints. Matched
+// to the 2D studio's proportions (spacer ≈ 0.55×, charm ≈ 0.74× of a 20mm
+// focal stone) so a piece reads the same in both previews.
+const SPACER_DISPLAY_MM = 11;
+const CHARM_DISPLAY_MM = 14.5;
 
 function beadPlacement(piece: PreviewPiece, angle: number, radiusUnits: number) {
   const sizeUnits = Math.max(piece.mm * UNITS_PER_MM, 0.03);
