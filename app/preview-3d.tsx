@@ -22,18 +22,19 @@ export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "si
 // on its own.
 const TRANSLUCENT_STONES = new Set(["clear", "amethyst", "citrine", "rose", "aqua", "smoky", "fluorite", "moon"]);
 
-// Stones whose real-world identity lives in a surface pattern that flat PBR
-// colour cannot carry (chatoyant silk, labradorescence, dendritic
-// inclusions) get an AI-generated seamless albedo texture wrapped around the
-// sphere instead — a texture map with the lighting deliberately flat, so the
-// 3D engine's own lights and reflections stay free to move as the bead
-// rotates. This is distinct from the shop's product PHOTOS, which have baked
-// lighting and would break under rotation. Textures live under
-// public/materials/textures/ and are generated per-stone.
-const STONE_TEXTURES: Record<string, string> = {
-  "tiger-eye": "/materials/textures/tiger-eye.png",
-  labradorite: "/materials/textures/labradorite.png",
-};
+// Every stone gets an AI-generated seamless albedo texture wrapped around
+// the sphere — a texture map with the lighting deliberately flat, so the 3D
+// engine's own lights and reflections stay free to move as the bead
+// rotates. This is distinct from the shop's product PHOTOS, which have
+// baked lighting and would break under rotation. Flat PBR colour alone made
+// every bead read as a plastic candy ball; real mineral character (silk
+// banding, pyrite flecks, dendritic moss, colour zoning) lives in these
+// maps. Textures live under public/materials/textures/, one per stone id.
+const STONE_TEXTURES: Record<string, string> = Object.fromEntries([
+  "obsidian", "tiger-eye", "hematite", "smoky", "lava", "goldstone", "rose",
+  "clear", "amethyst", "citrine", "aqua", "tourmaline", "sunstone", "moon",
+  "moss", "lapis", "garnet", "tiger", "fluorite", "rhodonite", "labradorite",
+].map((id) => [id, `/materials/textures/${id}.png`]));
 
 // World units per physical millimetre — chosen so a typical 14cm-wrist
 // strand (~140mm circumference) renders at a comfortable viewing radius.
@@ -69,8 +70,15 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.anisotropy = 4;
     // The texture carries the stone's true colour; keep the base white so it
-    // isn't tinted twice, and let clearcoat supply the polish.
-    const mat = new THREE.MeshPhysicalMaterial({ map, color: "#ffffff", roughness: 0.22, metalness: 0.02, clearcoat: 0.8, clearcoatRoughness: 0.12 });
+    // isn't tinted twice, and let clearcoat supply the polish. The quartz
+    // family keeps a milky translucency underneath its texture — that depth
+    // is what separates crystal from painted ceramic.
+    const translucent = TRANSLUCENT_STONES.has(piece.id);
+    const mat = new THREE.MeshPhysicalMaterial({
+      map, color: "#ffffff", roughness: translucent ? 0.14 : 0.22, metalness: 0.02,
+      clearcoat: translucent ? 1 : 0.8, clearcoatRoughness: 0.12,
+      ...(translucent ? { transmission: 0.3, thickness: sizeUnits * 2, ior: 1.54 } : {}),
+    });
     // Sphere UVs pinch any texture into a starburst at the two poles, and on
     // a strand some pole always ends up on some bead's visible silhouette.
     // Replace the UV lookup with object-space triplanar projection: the
@@ -96,7 +104,7 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     // All beads share one shader program; only the uniforms differ.
     mat.customProgramCacheKey = () => "triplanar-bead";
     return mat;
-  }, [texture, sizeUnits]);
+  }, [texture, sizeUnits, piece.id]);
   return <mesh position={position} quaternion={quaternion} material={material} castShadow receiveShadow>
     <sphereGeometry args={[sizeUnits / 2, 48, 48]} />
   </mesh>;
@@ -112,9 +120,13 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
     }
     const color = STONE_COLORS[piece.id] ?? "#a8a8a8";
     if (TRANSLUCENT_STONES.has(piece.id)) {
+      // Milky-translucent, not window-glass: at transmission 0.88 the white
+      // backdrop shone straight through and washed every quartz out to a
+      // pale ghost (and moonstone picked up its neighbours' colours like a
+      // lens). Real tumbled quartz scatters most of what enters it.
       return new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.05, transmission: 0.88, thickness: sizeUnits * 3, ior: 1.54,
-        clearcoat: 1, clearcoatRoughness: 0.08, attenuationColor: new THREE.Color(color), attenuationDistance: 0.4,
+        color, roughness: 0.16, transmission: 0.45, thickness: sizeUnits * 2, ior: 1.54,
+        clearcoat: 1, clearcoatRoughness: 0.08, attenuationColor: new THREE.Color(color), attenuationDistance: 0.25,
       });
     }
     return new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.05, clearcoat: 0.65, clearcoatRoughness: 0.18 });
@@ -172,47 +184,65 @@ function StudioEnvironment() {
 }
 
 function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: number }) {
+  // Mirror the 2D studio's metaphor exactly: the full wrist-circumference
+  // cord is always there as a complete ring, and beads occupy however much
+  // of it the design has filled so far. The exposed cord along the unfilled
+  // arc is the "you have room for more" affordance, same as the 2D ring —
+  // an earlier version compressed the strand into a closed loop instead,
+  // which read as a different bracelet size every time a bead was added.
   const angles = useMemo(() => anglesForWidths(pieces.map((p) => p.mm), capacityMM), [pieces, capacityMM]);
   const radiusUnits = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
-  // No visible connecting cord: every bead centre sits on the same radius,
-  // but bead sizes vary a lot (5mm spacers next to 20mm focals), so no
-  // single cord radius clears every sphere's volume without either piercing
-  // the largest beads or reading as a disconnected ring floating well
-  // inside the smallest ones. A tightly-strung real bracelet hides its
-  // elastic almost entirely anyway — omitting it is the more honest result,
-  // not a shortcut.
+  // The cord threads bead CENTRES — through the drill holes, exactly like
+  // the real elastic — so inside a bead it's hidden (or a faint shadow
+  // inside the milkier quartzes, which real translucent beads show too),
+  // and it surfaces only in the wedge gaps between beads and along the
+  // whole unfilled arc. An early attempt looked broken not because of this
+  // but because heavy transmission (0.88) made it a hard dark band through
+  // every glassy bead; at the milky 0.45 the interior cord reads correctly.
+  const cordRadius = Math.max(radiusUnits * 0.014, 0.008);
   //
-  // No ground-plane contact shadow either, for the same kind of reason:
-  // this preview orbits freely in every direction, so there's no fixed
-  // "resting surface" a shadow could sit on — an invisible shadow-catcher
-  // plane low enough to stay hidden at the default angle became a visible
-  // floating grey smear once the camera tilted enough to look down into the
-  // ring's open centre. The beads' own castShadow/receiveShadow already
-  // give believable contact shadows at their touch points, and that holds
-  // up from any angle since it isn't anchored to an invisible floor.
+  // No ground-plane contact shadow: this preview orbits freely in every
+  // direction, so there's no fixed "resting surface" a shadow could sit on —
+  // an invisible shadow-catcher plane became a visible floating grey smear
+  // once the camera tilted enough to look down into the ring's open centre.
+  // The beads' own castShadow/receiveShadow already give believable contact
+  // shadows at their touch points, from any angle.
   return <>
     <StudioEnvironment />
     <ambientLight intensity={0.35} />
     <directionalLight position={[4, 6, 3]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
     <directionalLight position={[-3, 2, -4]} intensity={0.35} />
+    <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <torusGeometry args={[radiusUnits, cordRadius, 12, 128]} />
+      <meshStandardMaterial color="#b8ab93" roughness={0.7} metalness={0.05} />
+    </mesh>
     {/* Suspense inside the Canvas so a texture still fetching leaves the
         rest of the strand visible instead of blanking the whole overlay. */}
     <Suspense fallback={null}>
       {pieces.map((p, i) => <AnyBead key={i} piece={p} angle={angles[i]} radiusUnits={radiusUnits} />)}
     </Suspense>
-    <OrbitControls enablePan={false} minDistance={radiusUnits * 1.4} maxDistance={radiusUnits * 6} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
+    <OrbitControls enablePan={false} minDistance={frameRadius(pieces, capacityMM) * 1.2} maxDistance={frameRadius(pieces, capacityMM) * 8} minPolarAngle={Math.PI * 0.15} maxPolarAngle={Math.PI * 0.82} />
   </>;
 }
 
+// The visual outer edge of the piece: ring radius plus the largest bead's
+// radius. Framing on the ring radius alone crops the beads themselves out of
+// frame, where a 20mm focal bead is a large fraction of the ring radius.
+function frameRadius(pieces: PreviewPiece[], capacityMM: number) {
+  const ring = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
+  const maxBead = Math.max(...pieces.map((p) => Math.max(p.mm * UNITS_PER_MM, 0.03)), 0.03) / 2;
+  return ring + maxBead;
+}
+
 export default function Preview3D({ pieces, capacityMM, onClose }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void }) {
-  const radiusUnits = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
+  const R = frameRadius(pieces, capacityMM);
   return <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽">
     <div className="pv-head"><b>360° PREVIEW</b><span>拖曳旋轉 · 滾輪縮放</span><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
     <div className="pv-canvas" style={{ position: "relative" }}>
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [radiusUnits * 0.2, radiusUnits * 1.5, radiusUnits * 2.6], fov: 35 }}
+        camera={{ position: [R * 0.25, R * 1.7, R * 3.1], fov: 35 }}
         gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
         style={{ position: "absolute", inset: 0 }}
       >
