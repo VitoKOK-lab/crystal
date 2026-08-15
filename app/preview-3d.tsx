@@ -161,11 +161,15 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
 
 // Accessories (charms, spacers, figurine beads) are flat product cutouts,
 // not spheres — mapping their photo onto a ball made every compass a gold
-// marble. Render each as its transparent cutout on a plane that yaw-follows
-// the camera (Y-axis billboard): it stays upright like a real hanging piece
-// instead of tilting when the camera looks down, and the polar-angle limits
-// mean it's never seen edge-on. Charms hang below their cord point with the
-// bail overlapping the cord; spacers sit centred on the cord like beads.
+// marble. Render each as its transparent cutout on a camera-facing plane,
+// ROLLED so its orientation follows the strand's circle exactly like the
+// 2D studio: a spacer's top edge points radially outward, a charm's bail
+// points at the ring's centre with its body extending outward past the
+// cord. As the showcase spins, every accessory turns with the circle
+// instead of standing upright like a sticker.
+const _camRight = new THREE.Vector3();
+const _camUp = new THREE.Vector3();
+
 function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: PreviewPiece; angle: number; radiusUnits: number; cordRadius: number }) {
   const texture = useLoader(THREE.TextureLoader, piece.src as string);
   const map = useMemo(() => {
@@ -175,17 +179,28 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
     return t;
   }, [texture]);
   const side = (piece.isCharm ? CHARM_DISPLAY_MM : SPACER_DISPLAY_MM) * UNITS_PER_MM;
-  const x = Math.cos(angle) * radiusUnits;
-  const z = Math.sin(angle) * radiusUnits;
-  // Charm photos are canonical: bail ring at the top edge. Hang the plane so
-  // the bail sits on the cord (slight overlap reads as threaded).
-  const y = piece.isCharm ? -side / 2 + side * 0.13 : 0;
+  // Charm photos are canonical (bail at the top edge): centre the charm far
+  // enough past the cord that the bail overlaps it — same geometry as the
+  // 2D stage's orbit offset. Spacers thread centred on the cord.
+  const orbit = piece.isCharm ? radiusUnits + side * 0.37 : radiusUnits;
+  const x = Math.cos(angle) * orbit;
+  const z = Math.sin(angle) * orbit;
+  const radial = useMemo(() => new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)), [angle]);
   const groupRef = useRef<THREE.Group>(null);
   useFrame(({ camera }) => {
     const g = groupRef.current;
-    if (g) g.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);
+    if (!g) return;
+    // Face the camera, then roll in-plane so the sprite's up-axis tracks
+    // the screen projection of the ring's radial direction.
+    g.quaternion.copy(camera.quaternion);
+    _camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    _camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    const rx = radial.dot(_camRight);
+    const ry = radial.dot(_camUp);
+    const roll = piece.isCharm ? Math.atan2(rx, -ry) : Math.atan2(-rx, ry);
+    g.rotateZ(roll);
   });
-  return <group ref={groupRef} position={[x, y, z]}>
+  return <group ref={groupRef} position={[x, 0, z]}>
     {/* Nudged toward the camera so the cord's front half doesn't slice
         through the opaque part of the photo. */}
     <mesh position={[0, 0, cordRadius * 1.6 + 0.002]}>
@@ -286,8 +301,11 @@ function ShowcaseControls({ R }: { R: number }) {
   useEffect(() => {
     const c = controlsRef.current;
     if (!c) return;
+    // Spin resumes the instant the customer lets go (mode flips on "end");
+    // only the glide back to the default framing waits briefly, so a wheel
+    // zoom in progress isn't yanked back between ticks.
     const onStart = () => { modeRef.current = "user"; releasedAt.current = 0; };
-    const onEnd = () => { releasedAt.current = performance.now(); };
+    const onEnd = () => { modeRef.current = "auto"; releasedAt.current = performance.now(); };
     c.addEventListener("start", onStart);
     c.addEventListener("end", onEnd);
     return () => { c.removeEventListener("start", onStart); c.removeEventListener("end", onEnd); };
@@ -301,18 +319,19 @@ function ShowcaseControls({ R }: { R: number }) {
   useFrame((_, delta) => {
     const c = controlsRef.current;
     if (!c) return;
-    if (modeRef.current === "user") {
-      if (releasedAt.current && performance.now() - releasedAt.current > 600) modeRef.current = "auto";
-      return;
-    }
+    if (modeRef.current === "user") return;
     const cam = c.object;
     const offset = new THREE.Vector3().subVectors(cam.position, c.target);
     const sph = new THREE.Spherical().setFromVector3(offset);
-    // Frame-rate-independent exponential glide (~1s settle).
-    const k = 1 - Math.pow(0.002, delta);
-    sph.phi += (DEFAULT_POLAR - sph.phi) * k;
-    sph.radius += (fitD - sph.radius) * k;
-    sph.theta -= 0.25 * delta; // ~25s per revolution
+    // Tilt/zoom glide back to the default framing after a short beat
+    // (immediate glide would fight a wheel zoom between its ticks);
+    // frame-rate-independent exponential settle (~1s).
+    if (!releasedAt.current || performance.now() - releasedAt.current > 400) {
+      const k = 1 - Math.pow(0.002, delta);
+      sph.phi += (DEFAULT_POLAR - sph.phi) * k;
+      sph.radius += (fitD - sph.radius) * k;
+    }
+    sph.theta -= 0.25 * delta; // ~25s per revolution — never pauses
     cam.position.setFromSpherical(sph).add(c.target);
     cam.lookAt(c.target);
   });
