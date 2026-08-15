@@ -38,6 +38,6 @@
     // Admin login whitelist. GOOGLE_CLIENT_ID is passed at deploy time
     // (--var) and GOOGLE_CLIENT_SECRET via wrangler secret — see
     // .github/workflows/deploy-cloudflare.yml.
-    "ADMIN_EMAILS": "luxkey.tw@gmail.com,agent@tzgrotw.tw"
+    "ADMIN_EMAILS": "luxkey.tw@gmail.com,agent@tzgrotw.tw,taiwanstore365@gmail.com"
   }
 }
