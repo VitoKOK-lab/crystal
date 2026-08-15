@@ -185,19 +185,26 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
   const orbit = piece.isCharm ? radiusUnits + side * 0.37 : radiusUnits;
   const x = Math.cos(angle) * orbit;
   const z = Math.sin(angle) * orbit;
-  const radial = useMemo(() => new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)), [angle]);
+  // Charms orient by the RADIAL direction (bail toward the ring's centre,
+  // body extending outward past the cord). Spacers orient by the TANGENT:
+  // their photos are shot with the drill axis vertical, and a threaded
+  // bead's drill axis runs along the cord — radial alignment made a ridged
+  // cylinder sit on the strand like a hat instead of being strung on it.
+  const orientDir = useMemo(() => piece.isCharm
+    ? new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle))
+    : new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)), [angle, piece.isCharm]);
   const groupRef = useRef<THREE.Group>(null);
   useFrame(({ camera }) => {
     const g = groupRef.current;
     if (!g) return;
     // Face the camera, then roll in-plane so the sprite's up-axis tracks
-    // the screen projection of the ring's radial direction.
+    // the screen projection of its orientation direction.
     g.quaternion.copy(camera.quaternion);
     _camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
     _camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
-    const rx = radial.dot(_camRight);
-    const ry = radial.dot(_camUp);
-    const roll = piece.isCharm ? Math.atan2(rx, -ry) : Math.atan2(-rx, ry);
+    const dx = orientDir.dot(_camRight);
+    const dy = orientDir.dot(_camUp);
+    const roll = piece.isCharm ? Math.atan2(dx, -dy) : Math.atan2(-dx, dy);
     g.rotateZ(roll);
   });
   return <group ref={groupRef} position={[x, 0, z]}>
