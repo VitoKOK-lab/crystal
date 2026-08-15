@@ -1,8 +1,8 @@
 "use client";
 
-import { Environment, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef, type CSSProperties } from "react";
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { anglesForWidths } from "./catalog";
@@ -354,18 +354,29 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
   // but because heavy transmission (0.88) made it a hard dark band through
   // every glassy bead; at the milky 0.45 the interior cord reads correctly.
   const cordRadius = Math.max(radiusUnits * 0.014, 0.008);
-  //
-  // No ground-plane contact shadow: this preview orbits freely in every
-  // direction, so there's no fixed "resting surface" a shadow could sit on —
-  // an invisible shadow-catcher plane became a visible floating grey smear
-  // once the camera tilted enough to look down into the ring's open centre.
-  // The beads' own castShadow/receiveShadow already give believable contact
-  // shadows at their touch points, from any angle.
+  // Soft grounding shadow just below the piece's lowest point. This was
+  // once removed because the freely-orbiting camera could dive under the
+  // ring and see the shadow plane as a floating smear — but the showcase
+  // controls now clamp the camera above the bracelet's plane, so the
+  // "resting on a surface" reading always holds.
+  const floorY = useMemo(() => {
+    let drop = 0.03;
+    for (const p of pieces) {
+      if (p.kind === "accessory" && p.src) {
+        const side = (p.isCharm ? CHARM_DISPLAY_MM : SPACER_DISPLAY_MM) * UNITS_PER_MM;
+        drop = Math.max(drop, p.isCharm ? side * 0.87 : side / 2);
+      } else {
+        drop = Math.max(drop, Math.max(p.mm * UNITS_PER_MM, 0.03) / 2);
+      }
+    }
+    return -(drop + 0.025);
+  }, [pieces]);
   return <>
     <StudioEnvironment />
     <ambientLight intensity={0.35} />
     <directionalLight position={[4, 6, 3]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
     <directionalLight position={[-3, 2, -4]} intensity={0.35} />
+    <ContactShadows position={[0, floorY, 0]} opacity={0.3} scale={frameRadius(pieces, capacityMM) * 3.4} blur={2.7} far={Math.abs(floorY) + 0.45} resolution={512} color="#5c4a33" />
     <mesh rotation={[Math.PI / 2, 0, 0]}>
       <torusGeometry args={[radiusUnits, cordRadius, 12, 128]} />
       <meshStandardMaterial color="#b8ab93" roughness={0.7} metalness={0.05} />
@@ -389,9 +400,22 @@ function frameRadius(pieces: PreviewPiece[], capacityMM: number) {
   return ring + maxBead;
 }
 
-export default function Preview3D({ pieces, capacityMM, onClose }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void }) {
+// Backdrop palettes per dominant energy: same luxury lightness structure,
+// hue shifted toward the energy's brand color (catalog ENERGY_META), kept
+// pale and desaturated so the stones stay the heroes. Wealth = the
+// original champagne, and the CSS fallback when no energy is passed.
+const PV_PALETTES: Record<string, Record<string, string>> = {
+  wealth: { "--pv-glow": "#fffdf8", "--pv-hi": "#f7f3ea", "--pv-top": "#f4efe6", "--pv-mid": "#ece5d8", "--pv-low": "#ddd2c0", "--pv-floor": "#cfc2ac", "--pv-band": "#b9a88e33", "--pv-pool": "#fff8ea59", "--pv-mark": "#8a6d1f55" },
+  love: { "--pv-glow": "#fffafb", "--pv-hi": "#f9f0f2", "--pv-top": "#f7edef", "--pv-mid": "#f0dfe3", "--pv-low": "#e3c9d0", "--pv-floor": "#d5b6bf", "--pv-band": "#c096a233", "--pv-pool": "#fff0f459", "--pv-mark": "#a4626f55" },
+  healing: { "--pv-glow": "#fbfdf9", "--pv-hi": "#f2f6ef", "--pv-top": "#eef3ea", "--pv-mid": "#e1eadd", "--pv-low": "#c9d8c4", "--pv-floor": "#b4c7af", "--pv-band": "#93ab8e33", "--pv-pool": "#f2fbef59", "--pv-mark": "#4f7a5e55" },
+  protection: { "--pv-glow": "#fbfcfd", "--pv-hi": "#f1f3f6", "--pv-top": "#edf0f4", "--pv-mid": "#e0e5eb", "--pv-low": "#c6cfd9", "--pv-floor": "#b0bcc9", "--pv-band": "#8fa0b233", "--pv-pool": "#f3f8fd59", "--pv-mark": "#4e5f7255" },
+  focus: { "--pv-glow": "#fafdfe", "--pv-hi": "#eff5f7", "--pv-top": "#ebf2f4", "--pv-mid": "#dde9ec", "--pv-low": "#c2d5da", "--pv-floor": "#aac3ca", "--pv-band": "#87a7b033", "--pv-pool": "#effbfd59", "--pv-mark": "#3f6f7b55" },
+  power: { "--pv-glow": "#fffbf6", "--pv-hi": "#f7f0e7", "--pv-top": "#f4ece1", "--pv-mid": "#ecddcc", "--pv-low": "#dcc3a8", "--pv-floor": "#caa98a", "--pv-band": "#b0885f33", "--pv-pool": "#fff0dd59", "--pv-mark": "#8f5a2e55" },
+};
+
+export default function Preview3D({ pieces, capacityMM, onClose, energy }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void; energy?: string }) {
   const R = frameRadius(pieces, capacityMM);
-  return <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽">
+  return <div className="preview-overlay" style={PV_PALETTES[energy ?? ""] as CSSProperties} role="dialog" aria-label="360 度立體預覽">
     <div className="pv-head"><b>360° PREVIEW</b><span>拖曳旋轉 · 滾輪縮放</span><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
     <div className="pv-canvas" style={{ position: "relative" }}>
       <Canvas

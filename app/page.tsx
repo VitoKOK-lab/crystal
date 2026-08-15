@@ -215,7 +215,7 @@ export default function Home() {
         <div className="pv-head"><b>360° PREVIEW</b><span>載入中…</span><button className="pv-close" onClick={() => setPreviewOpen(false)} aria-label="關閉預覽">✕</button></div>
       </div>
     }>
-      <Preview3D pieces={previewPieces} capacityMM={capacityMM} onClose={() => setPreviewOpen(false)} />
+      <Preview3D pieces={previewPieces} capacityMM={capacityMM} energy={dominant.key} onClose={() => setPreviewOpen(false)} />
     </Suspense>}
     <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} baseFee={680} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
