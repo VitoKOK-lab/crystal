@@ -51,10 +51,11 @@ jobs:
           npx vite build --config vite.pages-men.config.ts
           python3 scripts/check-cjk-coverage.py
 
-      - name: Bootstrap D1 database and R2 bucket (first run only)
-        run: |
-          npx wrangler d1 create oma-crystal || echo "D1 database already exists"
-          npx wrangler r2 bucket create oma-crystal-img || echo "R2 bucket already exists"
+      # R2 bucket bootstrap returns in Phase 2, after the account enables R2
+      # in the Cloudflare dashboard (its API rejects bucket calls with 10042
+      # until then, which sank the first deploy).
+      - name: Bootstrap D1 database (first run only)
+        run: npx wrangler d1 create oma-crystal || echo "D1 database already exists"
 
       - name: Resolve D1 database ID into wrangler.jsonc
         run: |

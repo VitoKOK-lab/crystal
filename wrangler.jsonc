@@ -19,11 +19,10 @@
       "database_id": "__D1_DATABASE_ID__"
     }
   ],
-  "r2_buckets": [
-    {
-      "binding": "IMAGES",
-      "bucket_name": "oma-crystal-img"
-    }
-  ],
+  // R2 (admin photo uploads) joins in Phase 2: the account must first
+  // enable R2 once in the Cloudflare dashboard (API error 10042 otherwise).
+  // Until then photos serve from the static assets and worker/index.ts
+  // treats the IMAGES binding as optional.
+  // "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "oma-crystal-img" }],
   "observability": { "enabled": true }
 }
