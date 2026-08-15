@@ -1,0 +1,82 @@
+name: Deploy to Cloudflare (Worker + D1)
+
+# Runs alongside the GitHub Pages deploy (pages.yml) during the migration.
+# Self-bootstrapping: creates the D1 database and R2 bucket on first run,
+# resolves the database ID into wrangler.jsonc, applies pending SQL
+# migrations, then deploys the Worker with the static site.
+#
+# Requires repo secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+        env:
+          npm_config_cache: /tmp/npm-cache
+
+      - name: Fail early if Cloudflare secrets are missing
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID repo secrets are not set (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      # Root-based build (no /crystal/ path rewrite — the Worker serves at
+      # the domain root). CJK font coverage is still guarded.
+      - name: Build site for Cloudflare
+        run: |
+          npx vite build --config vite.pages.config.ts
+          npx vite build --config vite.pages-men.config.ts
+          python3 scripts/check-cjk-coverage.py
+
+      - name: Bootstrap D1 database and R2 bucket (first run only)
+        run: |
+          npx wrangler d1 create oma-crystal || echo "D1 database already exists"
+          npx wrangler r2 bucket create oma-crystal-img || echo "R2 bucket already exists"
+
+      - name: Resolve D1 database ID into wrangler.jsonc
+        run: |
+          DB_ID=$(npx wrangler d1 list --json | jq -r '.[] | select(.name=="oma-crystal") | .uuid')
+          if [ -z "$DB_ID" ]; then echo "::error::could not resolve oma-crystal D1 id"; exit 1; fi
+          echo "Resolved D1 id: ${DB_ID:0:8}…"
+          sed -i "s/__D1_DATABASE_ID__/$DB_ID/" wrangler.jsonc
+
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply oma-crystal --remote
+
+      - name: Deploy Worker
+        run: |
+          npx wrangler deploy | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          echo "WORKER_URL=$URL" >> "$GITHUB_ENV"
+          echo "Deployed to $URL"
+
+      - name: Smoke-check /api/health and the site
+        run: |
+          sleep 5
+          curl -sf "$WORKER_URL/api/health" | tee health.json
+          grep -q '"ok":true' health.json
+          curl -sf -o /dev/null -w 'site: %{http_code}\n' "$WORKER_URL/"
+          curl -sf "$WORKER_URL/api/catalog" | head -c 300; echo
