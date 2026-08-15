@@ -2,7 +2,7 @@
 
 import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef, type CSSProperties } from "react";
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { anglesForWidths } from "./catalog";
@@ -400,9 +400,22 @@ function frameRadius(pieces: PreviewPiece[], capacityMM: number) {
   return ring + maxBead;
 }
 
-export default function Preview3D({ pieces, capacityMM, onClose }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void }) {
+// Backdrop palettes per dominant energy: same luxury lightness structure,
+// hue shifted toward the energy's brand color (catalog ENERGY_META), kept
+// pale and desaturated so the stones stay the heroes. Wealth = the
+// original champagne, and the CSS fallback when no energy is passed.
+const PV_PALETTES: Record<string, Record<string, string>> = {
+  wealth: { "--pv-glow": "#fffdf8", "--pv-hi": "#f7f3ea", "--pv-top": "#f4efe6", "--pv-mid": "#ece5d8", "--pv-low": "#ddd2c0", "--pv-floor": "#cfc2ac", "--pv-band": "#b9a88e33", "--pv-pool": "#fff8ea59", "--pv-mark": "#8a6d1f55" },
+  love: { "--pv-glow": "#fffafb", "--pv-hi": "#f9f0f2", "--pv-top": "#f7edef", "--pv-mid": "#f0dfe3", "--pv-low": "#e3c9d0", "--pv-floor": "#d5b6bf", "--pv-band": "#c096a233", "--pv-pool": "#fff0f459", "--pv-mark": "#a4626f55" },
+  healing: { "--pv-glow": "#fbfdf9", "--pv-hi": "#f2f6ef", "--pv-top": "#eef3ea", "--pv-mid": "#e1eadd", "--pv-low": "#c9d8c4", "--pv-floor": "#b4c7af", "--pv-band": "#93ab8e33", "--pv-pool": "#f2fbef59", "--pv-mark": "#4f7a5e55" },
+  protection: { "--pv-glow": "#fbfcfd", "--pv-hi": "#f1f3f6", "--pv-top": "#edf0f4", "--pv-mid": "#e0e5eb", "--pv-low": "#c6cfd9", "--pv-floor": "#b0bcc9", "--pv-band": "#8fa0b233", "--pv-pool": "#f3f8fd59", "--pv-mark": "#4e5f7255" },
+  focus: { "--pv-glow": "#fafdfe", "--pv-hi": "#eff5f7", "--pv-top": "#ebf2f4", "--pv-mid": "#dde9ec", "--pv-low": "#c2d5da", "--pv-floor": "#aac3ca", "--pv-band": "#87a7b033", "--pv-pool": "#effbfd59", "--pv-mark": "#3f6f7b55" },
+  power: { "--pv-glow": "#fffbf6", "--pv-hi": "#f7f0e7", "--pv-top": "#f4ece1", "--pv-mid": "#ecddcc", "--pv-low": "#dcc3a8", "--pv-floor": "#caa98a", "--pv-band": "#b0885f33", "--pv-pool": "#fff0dd59", "--pv-mark": "#8f5a2e55" },
+};
+
+export default function Preview3D({ pieces, capacityMM, onClose, energy }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void; energy?: string }) {
   const R = frameRadius(pieces, capacityMM);
-  return <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽">
+  return <div className="preview-overlay" style={PV_PALETTES[energy ?? ""] as CSSProperties} role="dialog" aria-label="360 度立體預覽">
     <div className="pv-head"><b>360° PREVIEW</b><span>拖曳旋轉 · 滾輪縮放</span><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
     <div className="pv-canvas" style={{ position: "relative" }}>
       <Canvas
