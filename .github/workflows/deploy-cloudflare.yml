@@ -48,10 +48,7 @@ jobs:
       # first deploy shipped /crystal/-prefixed script tags and loaded blank.
       # CJK font coverage is still guarded.
       - name: Build site for Cloudflare
-        run: |
-          npx vite build --config vite.pages.config.ts --base=/
-          npx vite build --config vite.pages-men.config.ts --base=/men/
-          python3 scripts/check-cjk-coverage.py
+        run: npm run build:cf
 
       - name: Bootstrap D1 database and R2 bucket (first run only)
         run: |
@@ -68,9 +65,23 @@ jobs:
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply oma-crystal --remote
 
-      - name: Deploy Worker
+      - name: Sync Google OAuth secret (when configured)
+        env:
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          npx wrangler deploy | tee deploy.log
+          if [ -n "$GOOGLE_CLIENT_SECRET" ]; then
+            echo "$GOOGLE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_CLIENT_SECRET
+          else
+            echo "GOOGLE_CLIENT_SECRET not set yet — admin login stays disabled"
+          fi
+
+      - name: Deploy Worker
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        run: |
+          EXTRA=""
+          if [ -n "$GOOGLE_CLIENT_ID" ]; then EXTRA="--var GOOGLE_CLIENT_ID:$GOOGLE_CLIENT_ID"; fi
+          npx wrangler deploy $EXTRA | tee deploy.log
           URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           echo "WORKER_URL=$URL" >> "$GITHUB_ENV"
           echo "Deployed to $URL"
