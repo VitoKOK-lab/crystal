@@ -636,3 +636,6 @@ button,input { font:inherit; } button { cursor:pointer; }
   .landing-hero-actions .landing-cta { padding:12px 16px; font-size:11px; }
   .landing-scroll-hint { display:none; }
 }
+.size-actions button.out,.material-card.out { position:relative; opacity:.5; cursor:not-allowed; }
+.size-actions button.out i { position:absolute; inset:auto 0 -1px 0; font-style:normal; font-size:7px; color:#b04a4a; }
+.material-card.out .rarity-tag { background:#b04a4a; color:#fff; }

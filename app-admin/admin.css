@@ -46,3 +46,36 @@ body { font-family: "Noto Sans TC", Arial, sans-serif; background: #f4f2ee; colo
 .editor p { font-size: 13px; line-height: 1.7; }
 
 .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #141414ee; color: #fff; padding: 11px 20px; border-radius: 99px; font-size: 13px; z-index: 20; }
+
+/* Visual composition editor: the strand as a row of real photos. */
+.spec { display: flex; flex-direction: column; gap: 8px; }
+.spec-head { display: flex; align-items: baseline; gap: 10px; font-size: 12px; color: #666; }
+.spec-head b { margin-left: auto; color: #8a6d1f; font-weight: normal; }
+.strand { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; background: #faf9f6; border: 1px solid #e6e1d5; border-radius: 8px; }
+.bead { position: relative; width: 62px; padding: 4px 2px 2px; background: #fff; border: 1px solid #e6e1d5; border-radius: 6px; text-align: center; }
+.bead.missing { border-color: #b04a4a; background: #fdf3f3; }
+.bead img { width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto; }
+.bead .qmark { display: block; height: 40px; line-height: 40px; color: #b04a4a; font-size: 20px; }
+.bead em { display: block; font-style: normal; font-size: 10px; color: #888; }
+.bead-tools { display: flex; margin-top: 3px; border-top: 1px solid #f0ece2; }
+.bead-tools button { flex: 1; border: 0; background: transparent; font-size: 12px; color: #666; cursor: pointer; padding: 2px 0; }
+.bead-tools button:disabled { opacity: .25; cursor: default; }
+.bead-tools .del { color: #b04a4a; }
+.add-slot button { width: 62px; height: 76px; border: 1px dashed #c9bfa8; border-radius: 6px; background: #fff; color: #8a6d1f; font-size: 18px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.add-slot span { font-size: 10px; }
+
+.picker { border: 1px solid #e6e1d5; border-radius: 8px; background: #fff; overflow: hidden; }
+.picker-tabs { display: flex; gap: 4px; padding: 8px; background: #f4f2ee; border-bottom: 1px solid #e6e1d5; }
+.picker-tabs button { padding: 6px 14px; border: 1px solid #ddd6c6; background: #fff; border-radius: 5px; font-size: 12px; cursor: pointer; }
+.picker-tabs button.on { background: #141414; color: #fff; border-color: #141414; }
+.picker-tabs .close { margin-left: auto; border: 0; background: transparent; color: #888; }
+.picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; padding: 10px; max-height: 300px; overflow-y: auto; }
+.pick { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 3px; border: 1px solid #ece7db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 11px; }
+.pick img { width: 38px; height: 38px; object-fit: contain; }
+.pick b { font-weight: normal; font-size: 11px; text-align: center; line-height: 1.3; }
+.pick em { font-style: normal; font-size: 9px; color: #999; }
+.pick-sizes { display: flex; gap: 3px; margin-top: 2px; }
+.pick-sizes button { padding: 3px 6px; border: 1px solid #ddd6c6; background: #faf9f6; border-radius: 4px; font-size: 10px; cursor: pointer; }
+.pick-sizes button.out { opacity: .4; }
+.raw summary { font-size: 11px; color: #999; cursor: pointer; }
+.raw textarea { width: 100%; margin-top: 6px; }

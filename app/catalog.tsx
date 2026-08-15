@@ -20,7 +20,10 @@ export type Rarity = "common" | "rare" | "legendary";
 export type BeadSize = "xlarge" | "large" | "small";
 export type Stone = { id: string; zh: string; en: string; group: string; price: number; note: string; energy: Record<EnergyType, number> };
 export type Accessory = { id: string; zh: string; en: string; type: "spacer" | "charm"; metal: "gold" | "silver"; price: number; note: string };
-export type DesignItem = { kind: "stone" | "accessory"; id: string; size?: BeadSize; uid?: number };
+// `mm` is the authoritative diameter when present (admin-defined ladders can
+// hold any size); `size` remains for designs authored against the original
+// named trio, including every share link already in the wild.
+export type DesignItem = { kind: "stone" | "accessory"; id: string; size?: BeadSize; mm?: number; uid?: number };
 
 // Rarity is derived from price rather than hand-tagged per item — keeps the
 // tier consistent as the catalogue grows instead of drifting out of sync.
@@ -189,6 +192,40 @@ export const accessoryPhotos: Record<string, string> = {
 // picks a wrist size first; its circumference (cm × 10) is the fixed capacity
 // that beads fill up.
 export const BEAD_MM: Record<BeadSize, number> = { xlarge: 20, large: 10, small: 8 };
+
+// Per-stone size ladders. Empty at build time and filled from the database
+// by catalog-live at boot, so the owner can give a stone any set of
+// diameters in the admin (6mm, 12mm…) and the studio offers exactly those,
+// priced and stocked per size. Everything downstream — bead diameters on
+// the 2D stage, the 3D preview, strand capacity, price, energy weight —
+// already keys off millimetres, so a new ladder changes all of them at
+// once. DEFAULT_SIZES reproduces the original hard-coded 8/10/20 trio for
+// any stone the database hasn't described (and for the static build).
+export type StoneSize = { mm: number; priceDelta: number; stock: number };
+export const DEFAULT_SIZES: StoneSize[] = [
+  { mm: BEAD_MM.small, priceDelta: 0, stock: Infinity },
+  { mm: BEAD_MM.large, priceDelta: 80, stock: Infinity },
+  { mm: BEAD_MM.xlarge, priceDelta: 320, stock: Infinity },
+];
+export const stoneSizes: Record<string, StoneSize[]> = {};
+export const accessoryStock: Record<string, number> = {};
+
+export function sizesFor(stoneId: string): StoneSize[] {
+  const rows = stoneSizes[stoneId];
+  return rows?.length ? rows : DEFAULT_SIZES;
+}
+/** Millimetres an item occupies, resolved from its explicit mm when the
+ *  design carries one, else the legacy named ladder. */
+export function mmOf(item: DesignItem): number {
+  return item.mm ?? BEAD_MM[item.size ?? "large"];
+}
+export function stockOf(item: DesignItem): number {
+  if (item.kind === "accessory") return accessoryStock[item.id] ?? Infinity;
+  const mm = mmOf(item);
+  const row = sizesFor(item.id).find((s) => s.mm === mm);
+  return row ? row.stock : Infinity;
+}
+export const inStock = (item: DesignItem) => stockOf(item) > 0;
 export const WRIST_CHOICES = Array.from({ length: 19 }, (_, i) => 13 + i * 0.5);
 // Rendering scale: stage percent per physical millimetre. Ring radius and
 // bead diameters share it, so beads sit tangent along the cord — a 20mm bead
@@ -199,19 +236,34 @@ export const PCT_PER_MM = 0.95;
 // displayed total can never drift from what checkout actually charges.
 export const BASE_FEE = 680;
 
-export function itemMM(item: DesignItem) { if (item.kind === "stone") return BEAD_MM[item.size ?? "large"]; return byAccessory[item.id].type === "spacer" ? 5 : 3; }
-export function itemPrice(item: DesignItem) { if (item.kind === "accessory") return byAccessory[item.id].price; const base = byStone[item.id].price; return base + (item.size === "xlarge" ? 320 : item.size === "small" ? 0 : 80); }
+export function itemMM(item: DesignItem) { if (item.kind === "stone") return mmOf(item); return byAccessory[item.id].type === "spacer" ? 5 : 3; }
+export function itemPrice(item: DesignItem) {
+  if (item.kind === "accessory") return byAccessory[item.id].price;
+  const mm = mmOf(item);
+  const row = sizesFor(item.id).find((s) => s.mm === mm);
+  // A size the ladder no longer lists (an old share link, say) still needs
+  // a price: fall back to the default ladder's nearest step.
+  const delta = row ? row.priceDelta : (DEFAULT_SIZES.find((s) => s.mm === mm)?.priceDelta ?? Math.round((mm - BEAD_MM.small) * 32));
+  return byStone[item.id].price + delta;
+}
 export function label(item: DesignItem) { return item.kind === "stone" ? byStone[item.id].zh : byAccessory[item.id].zh; }
-export function sizeLabel(size: BeadSize = "large") { return size === "xlarge" ? "20mm 特大主珠" : size === "large" ? "10mm 大珠" : "8mm 中珠"; }
+export function sizeLabel(item: DesignItem | BeadSize = "large") {
+  const mm = typeof item === "string" ? BEAD_MM[item] : mmOf(item);
+  const noun = mm >= 16 ? "特大主珠" : mm >= 10 ? "大珠" : mm >= 8 ? "中珠" : "小珠";
+  return `${mm}mm ${noun}`;
+}
 
-// Bigger beads carry more of the stone's energy into the design.
+// Bigger beads carry more of the stone's energy into the design. Weight is
+// millimetre-based so a custom size slots into the same curve: linear up to
+// 10mm, then gentler, which reproduces the original 0.8/1.0/1.6 for the
+// 8/10/20 ladder exactly.
+export function sizeWeight(mm: number) { return mm <= 10 ? mm / 10 : 1 + (mm - 10) * 0.06; }
 export function energyScores(items: DesignItem[]) {
-  const sizeWeight = (s?: BeadSize) => (s === "xlarge" ? 1.6 : s === "small" ? 0.8 : 1);
   const scores = { wealth: 0, love: 0, healing: 0, protection: 0, focus: 0, power: 0 } as Record<EnergyType, number>;
   items.forEach((item) => {
     if (item.kind !== "stone") return;
     const stone = byStone[item.id];
-    const w = sizeWeight(item.size);
+    const w = sizeWeight(mmOf(item));
     ENERGY_META.forEach((m) => { scores[m.key] += stone.energy[m.key] * w * 36; });
   });
   ENERGY_META.forEach((m) => { scores[m.key] = Math.round(scores[m.key]); });
@@ -253,18 +305,30 @@ export const buildSpec = (spec: [string, BeadSize?][]): DesignItem[] => spec.map
   ? ({ kind: "accessory", id, uid: nextUid() } as DesignItem)
   : ({ kind: "stone", id, size: size ?? "large", uid: nextUid() } as DesignItem));
 
+// Size suffix in the compact notation: the original letters (`.x` 20mm,
+// `.s` 8mm, anything else 10mm) or a plain number for admin-defined sizes
+// (`.12` = 12mm). Letters are kept forever so every share link and product
+// spec written before custom sizes existed still decodes.
+function stoneToken(id: string, sz: string | undefined): DesignItem {
+  const mm = sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : undefined;
+  if (mm && mm > 0 && mm <= 40) return { kind: "stone", id, mm, uid: nextUid() };
+  return { kind: "stone", id, size: sz === "x" ? "xlarge" : sz === "s" ? "small" : "large", uid: nextUid() };
+}
+const sizeSuffix = (it: DesignItem) => it.mm !== undefined
+  ? String(it.mm)
+  : it.size === "xlarge" ? "x" : it.size === "small" ? "s" : "l";
+
 // Compact spec notation used by the series catalogue: "obsidian.x,obsidian.l,gold-hex".
-// `.x` = 20mm focal, `.s` = 8mm accent, anything else (or bare) = 10mm.
 export function parseSpec(spec: string): DesignItem[] {
   return spec.split(",").map((token) => {
     const [id, sz] = token.trim().split(".");
     if (byAccessory[id]) return { kind: "accessory", id, uid: nextUid() } as DesignItem;
-    return { kind: "stone", id, size: sz === "x" ? "xlarge" : sz === "s" ? "small" : "large", uid: nextUid() } as DesignItem;
+    return stoneToken(id, sz);
   });
 }
 
 // Shareable design links: ?d=<wrist>|<id>.<size>,<id>,…
-export const encodeDesign = (items: DesignItem[], wristCm: number) => `${wristCm}|` + items.map((it) => it.kind === "stone" ? `${it.id}.${it.size === "xlarge" ? "x" : it.size === "small" ? "s" : "l"}` : it.id).join(",");
+export const encodeDesign = (items: DesignItem[], wristCm: number) => `${wristCm}|` + items.map((it) => it.kind === "stone" ? `${it.id}.${sizeSuffix(it)}` : it.id).join(",");
 export function decodeDesign(code: string): { wrist: number; items: DesignItem[] } | null {
   try {
     const [w, list] = code.split("|");
@@ -273,7 +337,7 @@ export function decodeDesign(code: string): { wrist: number; items: DesignItem[]
     const items: DesignItem[] = [];
     for (const token of list.split(",")) {
       const [id, sz] = token.split(".");
-      if (byStone[id]) items.push({ kind: "stone", id, size: sz === "x" ? "xlarge" : sz === "s" ? "small" : "large", uid: nextUid() });
+      if (byStone[id]) items.push(stoneToken(id, sz));
       else if (byAccessory[id]) items.push({ kind: "accessory", id, uid: nextUid() });
       else return null;
     }
