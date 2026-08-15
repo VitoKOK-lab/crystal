@@ -1,47 +1,92 @@
-/** Cloudflare Worker entry point for the vinext-starter template. */
-import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
-import handler from "vinext/server/app-router-entry";
+// OMA CRYSTAL Cloudflare Worker (Phase 1).
+// Serves the built static site (assets binding), the read-only catalog API
+// backed by D1, and images from R2 with a static-asset fallback so the
+// photo migration can happen gradually.
+//
+// Minimal structural types — the full workers-types package is deliberately
+// not a dependency; wrangler bundles this file itself.
+type D1Database = {
+  prepare: (sql: string) => {
+    all: <T = Record<string, unknown>>() => Promise<{ results: T[] }>;
+    bind: (...args: unknown[]) => { all: <T = Record<string, unknown>>() => Promise<{ results: T[] }> };
+  };
+};
+type R2Bucket = { get: (key: string) => Promise<{ body: ReadableStream; httpEtag: string; writeHttpMetadata: (h: Headers) => void } | null> };
+type Fetcher = { fetch: (req: Request) => Promise<Response> };
 
-interface Env {
-  ASSETS: Fetcher;
+export interface Env {
   DB: D1Database;
-  IMAGES: {
-    input(stream: ReadableStream): {
-      transform(options: Record<string, unknown>): {
-        output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
-      };
-    };
+  IMAGES: R2Bucket;
+  ASSETS: Fetcher;
+}
+
+const json = (data: unknown, extra: Record<string, string> = {}) =>
+  new Response(JSON.stringify(data), {
+    headers: { "content-type": "application/json; charset=utf-8", ...extra },
+  });
+
+async function catalogPayload(env: Env) {
+  const [stones, sizes, accessories, series, products, settings] = await Promise.all([
+    env.DB.prepare("SELECT * FROM stones WHERE active=1 ORDER BY sort").all(),
+    env.DB.prepare("SELECT * FROM stone_sizes WHERE active=1 ORDER BY stone_id, mm").all(),
+    env.DB.prepare("SELECT * FROM accessories WHERE active=1 ORDER BY sort").all(),
+    env.DB.prepare("SELECT * FROM series WHERE active=1 ORDER BY sort").all(),
+    env.DB.prepare("SELECT * FROM products WHERE active=1 ORDER BY series_id, sort").all(),
+    env.DB.prepare("SELECT * FROM settings").all(),
+  ]);
+  return {
+    stones: stones.results,
+    stoneSizes: sizes.results,
+    accessories: accessories.results,
+    series: series.results,
+    products: products.results,
+    settings: Object.fromEntries(settings.results.map((r) => [r.key as string, r.value as string])),
+    generatedAt: new Date().toISOString(),
   };
 }
 
-interface ExecutionContext {
-  waitUntil(promise: Promise<unknown>): void;
-  passThroughOnException(): void;
-}
-
-// Image security config. SVG sources with .svg extension auto-skip the
-// optimization endpoint on the client side (served directly, no proxy).
-// To route SVGs through the optimizer (with security headers), set
-// dangerouslyAllowSVG: true in next.config.js and uncomment below:
-// const imageConfig: ImageConfig = { dangerouslyAllowSVG: true };
-
-const worker = {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname === "/_vinext/image") {
-      const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
-      return handleImageOptimization(request, {
-        fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
-        transformImage: async (body, { width, format, quality }) => {
-          const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
-          return result.response();
-        },
-      }, allowedWidths);
+    if (url.pathname === "/api/health") {
+      try {
+        const { results } = await env.DB.prepare("SELECT COUNT(*) AS n FROM stones").all<{ n: number }>();
+        return json({ ok: true, stones: results[0]?.n ?? 0 });
+      } catch (err) {
+        return json({ ok: false, error: String(err) }, { "cache-control": "no-store" });
+      }
     }
 
-    return handler.fetch(request, env, ctx);
+    if (url.pathname === "/api/catalog") {
+      // Edge-cached for a minute: product edits in the admin propagate fast
+      // while every studio pageview stays a cache hit.
+      const cache = (globalThis as { caches?: { default: { match: (r: Request) => Promise<Response | undefined>; put: (r: Request, res: Response) => Promise<void> } } }).caches?.default;
+      const cacheKey = new Request(url.origin + "/api/catalog");
+      const hit = cache && (await cache.match(cacheKey));
+      if (hit) return hit;
+      const res = json(await catalogPayload(env), { "cache-control": "public, s-maxage=60, max-age=15" });
+      if (cache) await cache.put(cacheKey, res.clone());
+      return res;
+    }
+
+    // Images: R2 first (admin uploads land there), static assets as the
+    // fallback for everything shipped in the repo today.
+    if (url.pathname.startsWith("/img/")) {
+      const key = decodeURIComponent(url.pathname.slice(5));
+      const obj = await env.IMAGES.get(key);
+      if (obj) {
+        const headers = new Headers();
+        obj.writeHttpMetadata(headers);
+        headers.set("etag", obj.httpEtag);
+        headers.set("cache-control", "public, max-age=86400, s-maxage=604800");
+        return new Response(obj.body, { headers });
+      }
+      const fallback = new URL(url);
+      fallback.pathname = "/" + key;
+      return env.ASSETS.fetch(new Request(fallback.toString(), request));
+    }
+
+    return env.ASSETS.fetch(request);
   },
 };
-
-export default worker;

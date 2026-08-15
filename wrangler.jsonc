@@ -1,0 +1,29 @@
+// OMA CRYSTAL — Cloudflare Worker config (Phase 1).
+// database_id is a placeholder: the deploy workflow resolves the real ID
+// from the account at deploy time (self-bootstrapping — see
+// .github/workflows/deploy-cloudflare.yml), so no ID ever needs committing.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oma-crystal",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "dist-pages",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "oma-crystal",
+      "database_id": "__D1_DATABASE_ID__"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "oma-crystal-img"
+    }
+  ],
+  "observability": { "enabled": true }
+}

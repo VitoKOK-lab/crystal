@@ -21,6 +21,12 @@ export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "si
 // not by the sampled photo colour, which can't tell translucent from opaque
 // on its own.
 const TRANSLUCENT_STONES = new Set(["clear", "amethyst", "citrine", "rose", "aqua", "smoky", "fluorite", "moon"]);
+// 切面 stones render as real faceted polyhedra (coarse sphere + flat
+// shading = diamond-cut facet rows), matching their 2D product photos —
+// a smooth ball under a dark texture just read as a plain marble.
+const FACETED_STONES = new Set(["obsidian", "tiger-eye", "hematite", "goldstone"]);
+// Porous matte stones: no lacquer-gloss clearcoat, high roughness.
+const MATTE_STONES = new Set(["lava"]);
 
 // Every stone gets an AI-generated seamless albedo texture wrapped around
 // the sphere — a texture map with the lighting deliberately flat, so the 3D
@@ -78,9 +84,16 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     // family keeps a milky translucency underneath its texture — that depth
     // is what separates crystal from painted ceramic.
     const translucent = TRANSLUCENT_STONES.has(piece.id);
+    const faceted = FACETED_STONES.has(piece.id);
+    const matte = MATTE_STONES.has(piece.id);
     const mat = new THREE.MeshPhysicalMaterial({
-      map, color: "#ffffff", roughness: translucent ? 0.14 : 0.22, metalness: 0.02,
-      clearcoat: translucent ? 1 : 0.8, clearcoatRoughness: 0.12,
+      map, color: "#ffffff",
+      roughness: matte ? 0.78 : translucent ? 0.14 : faceted ? 0.16 : 0.22,
+      metalness: piece.id === "hematite" ? 0.55 : 0.02,
+      clearcoat: matte ? 0.05 : translucent ? 1 : 0.8, clearcoatRoughness: matte ? 0.6 : 0.12,
+      // Flat shading turns the coarse facet geometry into crisp mirror
+      // planes — each facet catches its own highlight, like a real cut.
+      flatShading: faceted,
       ...(translucent ? { transmission: 0.3, thickness: sizeUnits * 2, ior: 1.54 } : {}),
     });
     // Sphere UVs pinch any texture into a starburst at the two poles, and on
@@ -109,8 +122,12 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     mat.customProgramCacheKey = () => "triplanar-bead";
     return mat;
   }, [texture, sizeUnits, piece.id]);
+  // Faceted stones use a deliberately coarse sphere: with flat shading,
+  // its quad rows read exactly like the 64-facet diamond cut of the
+  // product photos. Smooth stones keep the fine mesh.
+  const segments: [number, number] = FACETED_STONES.has(piece.id) ? [14, 10] : [48, 48];
   return <mesh position={position} quaternion={quaternion} material={material} castShadow receiveShadow>
-    <sphereGeometry args={[sizeUnits / 2, 48, 48]} />
+    <sphereGeometry args={[sizeUnits / 2, segments[0], segments[1]]} />
   </mesh>;
 }
 
