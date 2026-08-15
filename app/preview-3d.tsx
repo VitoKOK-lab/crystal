@@ -2,7 +2,7 @@
 
 import { Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from "react";
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { anglesForWidths } from "./catalog";
@@ -232,8 +232,10 @@ function StudioEnvironment() {
 // narrower, so the same distance overflowed the ring off both edges.
 const CAMERA_FOV = 35;
 const FRAME_FRACTION = 0.6;
-// Keep the original slightly-elevated viewing direction.
-const CAMERA_DIR = new THREE.Vector3(0.25, 1.7, 3.1).normalize();
+// Showcase angle: the camera looks down at 45° (y equals the horizontal
+// magnitude), the angle a bracelet is naturally admired at on a tray.
+const CAMERA_DIR = new THREE.Vector3(0.25, Math.hypot(0.25, 3.1), 3.1).normalize();
+const DEFAULT_POLAR = Math.PI / 4;
 
 function fitDistance(R: number, width: number, height: number) {
   const tanV = Math.tan((CAMERA_FOV * Math.PI) / 360);
@@ -252,8 +254,69 @@ function CameraRig({ R }: { R: number }) {
   return null;
 }
 
-function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: number }) {
+// Showcase turntable: the piece spins on its own at the 45° angle; the
+// customer can grab it any time, and on release it glides back to the
+// default tilt and framing and resumes spinning. Azimuth is left wherever
+// the customer put it — rewinding the spin would look like a glitch.
+function ShowcaseControls({ R }: { R: number }) {
   const size = useThree((s) => s.size);
+  const fitD = fitDistance(R, size.width, size.height);
+  const controlsRef = useRef<ComponentRef<typeof OrbitControls>>(null);
+  const modeRef = useRef<"auto" | "user" | "returning">("auto");
+  const releasedAt = useRef<number>(0);
+  // Wired straight on the controls instance — the drei component's
+  // onStart/onEnd props silently dropped these events in testing.
+  useEffect(() => {
+    const c = controlsRef.current;
+    if (!c) return;
+    const onStart = () => { modeRef.current = "user"; releasedAt.current = 0; };
+    const onEnd = () => { releasedAt.current = performance.now(); };
+    c.addEventListener("start", onStart);
+    c.addEventListener("end", onEnd);
+    return () => { c.removeEventListener("start", onStart); c.removeEventListener("end", onEnd); };
+  }, []);
+  // The camera is driven directly every frame the customer isn't holding
+  // it: azimuth advances at showcase speed while tilt and distance glide
+  // exponentially back to the default framing. OrbitControls' built-in
+  // autoRotate is NOT used — combined with external camera writes it
+  // produced a slow diagonal drift (its internal spherical state fighting
+  // ours), so there is exactly one writer per mode.
+  useFrame((_, delta) => {
+    const c = controlsRef.current;
+    if (!c) return;
+    if (modeRef.current === "user") {
+      if (releasedAt.current && performance.now() - releasedAt.current > 600) modeRef.current = "auto";
+      return;
+    }
+    const cam = c.object;
+    const offset = new THREE.Vector3().subVectors(cam.position, c.target);
+    const sph = new THREE.Spherical().setFromVector3(offset);
+    // Frame-rate-independent exponential glide (~1s settle).
+    const k = 1 - Math.pow(0.002, delta);
+    sph.phi += (DEFAULT_POLAR - sph.phi) * k;
+    sph.radius += (fitD - sph.radius) * k;
+    sph.theta -= 0.25 * delta; // ~25s per revolution
+    cam.position.setFromSpherical(sph).add(c.target);
+    cam.lookAt(c.target);
+  });
+  return <OrbitControls
+    ref={controlsRef}
+    enablePan={false}
+    // drei enables damping by default; its inertia keeps applying decaying
+    // rotation after release, fighting the showcase driver above.
+    enableDamping={false}
+    minDistance={R * 1.2}
+    maxDistance={fitD * 2.2}
+    // Never let the camera dip below the bracelet's plane: seen from
+    // underneath, hanging charms read as upside-down and the strand
+    // projects onto itself — the "broken" view. 0.2π–0.55π keeps every
+    // reachable angle a presentable one.
+    minPolarAngle={Math.PI * 0.2}
+    maxPolarAngle={Math.PI * 0.55}
+  />;
+}
+
+function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: number }) {
   // Mirror the 2D studio's metaphor exactly: the full wrist-circumference
   // cord is always there as a complete ring, and beads occupy however much
   // of it the design has filled so far. The exposed cord along the unfilled
@@ -313,13 +376,7 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
       {pieces.map((p, i) => <AnyBead key={i} piece={p} angle={displayAngles[i]} radiusUnits={radiusUnits} cordRadius={cordRadius} />)}
     </Suspense>
     <CameraRig R={frameRadius(pieces, capacityMM)} />
-    <OrbitControls
-      enablePan={false}
-      minDistance={frameRadius(pieces, capacityMM) * 1.2}
-      maxDistance={fitDistance(frameRadius(pieces, capacityMM), size.width, size.height) * 2.2}
-      minPolarAngle={Math.PI * 0.15}
-      maxPolarAngle={Math.PI * 0.82}
-    />
+    <ShowcaseControls R={frameRadius(pieces, capacityMM)} />
   </>;
 }
 
