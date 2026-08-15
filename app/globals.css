@@ -121,7 +121,17 @@ button,input { font:inherit; } button { cursor:pointer; }
 /* ── 360° physics preview ────────────────────────────────────────── */
 .canvas-actions .pv-open { border-color:#141414; color:#141414; background:#fff; }
 .canvas-actions .pv-open:hover { background:#f3f1ec; }
-.preview-overlay { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; background:radial-gradient(circle at 50% 40%, #ffffff 0%, #faf9f6 55%, #f3f1ec 100%); animation:fadeIn .3s ease; }
+.preview-overlay { position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; background:
+  radial-gradient(ellipse 85% 60% at 50% 38%, #fffdf8 0%, #f7f3ea 42%, transparent 75%),
+  linear-gradient(180deg, #f4efe6 0%, #ece5d8 46%, #ddd2c0 78%, #cfc2ac 100%);
+  animation:fadeIn .3s ease; }
+/* Seamless-backdrop curve: the soft dark band where a studio's paper
+   backdrop rolls from wall to table, plus a faint warm pool of light
+   under the piece. Pure presentation — pointer events pass through. */
+.preview-overlay::before { content:""; position:absolute; inset:0; pointer-events:none; background:
+  radial-gradient(ellipse 120% 34% at 50% 78%, #b9a88e33 0%, transparent 60%),
+  radial-gradient(ellipse 46% 12% at 50% 66%, #fff8ea59 0%, transparent 70%); }
+.preview-overlay::after { content:"OMA CRYSTAL"; position:absolute; left:50%; bottom:calc(44px + env(safe-area-inset-bottom)); transform:translateX(-50%); pointer-events:none; color:#8a6d1f55; font-size:11px; letter-spacing:.55em; text-indent:.55em; }
 .pv-head { display:flex; align-items:center; gap:10px; padding:18px 22px 8px; }
 .pv-head b { color:#8a6d1f; font-size:13px; letter-spacing:.2em; }
 .pv-head span { color:#6b6b6b; font-size:10px; letter-spacing:.24em; }

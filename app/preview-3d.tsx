@@ -1,6 +1,6 @@
 "use client";
 
-import { Environment, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef } from "react";
 import * as THREE from "three";
@@ -354,18 +354,29 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
   // but because heavy transmission (0.88) made it a hard dark band through
   // every glassy bead; at the milky 0.45 the interior cord reads correctly.
   const cordRadius = Math.max(radiusUnits * 0.014, 0.008);
-  //
-  // No ground-plane contact shadow: this preview orbits freely in every
-  // direction, so there's no fixed "resting surface" a shadow could sit on —
-  // an invisible shadow-catcher plane became a visible floating grey smear
-  // once the camera tilted enough to look down into the ring's open centre.
-  // The beads' own castShadow/receiveShadow already give believable contact
-  // shadows at their touch points, from any angle.
+  // Soft grounding shadow just below the piece's lowest point. This was
+  // once removed because the freely-orbiting camera could dive under the
+  // ring and see the shadow plane as a floating smear — but the showcase
+  // controls now clamp the camera above the bracelet's plane, so the
+  // "resting on a surface" reading always holds.
+  const floorY = useMemo(() => {
+    let drop = 0.03;
+    for (const p of pieces) {
+      if (p.kind === "accessory" && p.src) {
+        const side = (p.isCharm ? CHARM_DISPLAY_MM : SPACER_DISPLAY_MM) * UNITS_PER_MM;
+        drop = Math.max(drop, p.isCharm ? side * 0.87 : side / 2);
+      } else {
+        drop = Math.max(drop, Math.max(p.mm * UNITS_PER_MM, 0.03) / 2);
+      }
+    }
+    return -(drop + 0.025);
+  }, [pieces]);
   return <>
     <StudioEnvironment />
     <ambientLight intensity={0.35} />
     <directionalLight position={[4, 6, 3]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
     <directionalLight position={[-3, 2, -4]} intensity={0.35} />
+    <ContactShadows position={[0, floorY, 0]} opacity={0.3} scale={frameRadius(pieces, capacityMM) * 3.4} blur={2.7} far={Math.abs(floorY) + 0.45} resolution={512} color="#5c4a33" />
     <mesh rotation={[Math.PI / 2, 0, 0]}>
       <torusGeometry args={[radiusUnits, cordRadius, 12, 128]} />
       <meshStandardMaterial color="#b8ab93" roughness={0.7} metalness={0.05} />
