@@ -10,7 +10,15 @@
   "assets": {
     "directory": "dist-pages",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    // The SPA fallback answers BROWSER NAVIGATIONS to any unmatched path
+    // with index.html, and the asset router runs before the Worker — so
+    // clicking "log in" landed on the storefront homepage instead of
+    // reaching the Worker's redirect (curl was unaffected: no
+    // Sec-Fetch-Mode: navigate header, so the fallback never triggered,
+    // which is why API checks looked green). These prefixes must reach
+    // the Worker first.
+    "run_worker_first": ["/api/*", "/img/*"]
   },
   "d1_databases": [
     {
