@@ -51,7 +51,13 @@ body { font-family: "Noto Sans TC", Arial, sans-serif; background: #f4f2ee; colo
 .spec { display: flex; flex-direction: column; gap: 8px; }
 .spec-head { display: flex; align-items: baseline; gap: 10px; font-size: 12px; color: #666; }
 .spec-head b { margin-left: auto; color: #8a6d1f; font-weight: normal; }
-.strand { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; background: #faf9f6; border: 1px solid #e6e1d5; border-radius: 8px; }
+.strand { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; padding: 10px 10px 22px; background: #faf9f6; border: 1px solid #e6e1d5; border-radius: 8px; }
+/* A charm hangs off the cord instead of sitting in the line of beads, so
+   the editor row reads like the finished bracelet: dropped, with a short
+   bail line back up to the strand. */
+.bead.charm { margin-top: 26px; border-color: #ddd0ae; background: #fffdf7; }
+.bead.charm::before { content: ""; position: absolute; left: 50%; top: -22px; width: 1px; height: 22px; background: #c9bfa8; }
+.bead.charm::after { content: ""; position: absolute; left: 50%; top: -24px; width: 7px; height: 7px; margin-left: -3.5px; border: 1px solid #c9bfa8; border-radius: 50%; background: #fff; }
 .bead { position: relative; width: 62px; padding: 4px 2px 2px; background: #fff; border: 1px solid #e6e1d5; border-radius: 6px; text-align: center; }
 .bead.missing { border-color: #b04a4a; background: #fdf3f3; }
 .bead img { width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto; }
