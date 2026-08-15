@@ -6,15 +6,17 @@
 // nothing about their render logic changes.
 //
 // Fallback ladder: live API → last-good copy in localStorage → baked-in.
-import { accessories, accessoryPhotos, byAccessory, byStone, stonePhotos, stones, type Accessory, type Stone } from "./catalog";
+import { accessories, accessoryPhotos, accessoryStock, byAccessory, byStone, stonePhotos, stoneSizes, stones, type Accessory, type Stone } from "./catalog";
 import { SERIES, bySeries, type Product, type Series } from "./series";
 
 type StoneRow = { id: string; zh: string; en: string; energy_zh: string; price: number; note: string; energies: string; photo: string };
-type AccessoryRow = { id: string; zh: string; en: string; type: Accessory["type"]; metal: Accessory["metal"]; price: number; note: string; photo: string };
+type AccessoryRow = { id: string; zh: string; en: string; type: Accessory["type"]; metal: Accessory["metal"]; price: number; note: string; photo: string; stock?: number };
+type SizeRow = { stone_id: string; mm: number; price_delta: number; stock: number };
 type SeriesRow = { id: string; tone: string };
 type ProductRow = { id: string; series_id: string; name: string; tagline: string; style: Product["style"]; wrist: number; spec: string };
 type CatalogPayload = {
   stones: StoneRow[];
+  stoneSizes?: SizeRow[];
   accessories: AccessoryRow[];
   series: SeriesRow[];
   products: ProductRow[];
@@ -79,6 +81,21 @@ function hydrate(p: CatalogPayload) {
   accessories.splice(0, accessories.length, ...newAccessories);
   replaceRecord(byAccessory, newAccessories.map((a) => [a.id, a]));
   replaceRecord(accessoryPhotos, p.accessories.map((r) => [r.id, r.photo]));
+  replaceRecord(accessoryStock, p.accessories.map((r) => [r.id, r.stock ?? Infinity]));
+
+  // Per-stone size ladders: what diameters the studio offers, what each
+  // costs, and how many are left. Sorted so the size buttons read small →
+  // large regardless of the order rows come back in.
+  if (p.stoneSizes?.length) {
+    const ladders = new Map<string, { mm: number; priceDelta: number; stock: number }[]>();
+    for (const r of p.stoneSizes) {
+      const list = ladders.get(r.stone_id) ?? [];
+      list.push({ mm: r.mm, priceDelta: r.price_delta, stock: r.stock });
+      ladders.set(r.stone_id, list);
+    }
+    for (const list of ladders.values()) list.sort((a, b) => a.mm - b.mm);
+    replaceRecord(stoneSizes, [...ladders.entries()]);
+  }
 
   if (p.series?.length && p.products?.length) {
     const productsBySeries = new Map<string, Product[]>();

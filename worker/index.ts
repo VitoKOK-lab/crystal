@@ -42,7 +42,9 @@ export default {
     if (url.pathname === "/api/catalog") {
       // Edge-cached for a minute: admin edits propagate fast while every
       // studio pageview stays a cache hit.
-      const cache = (globalThis as { caches?: { default: { match: (r: Request) => Promise<Response | undefined>; put: (r: Request, res: Response) => Promise<void> } } }).caches?.default;
+      // Workers expose caches.default, which the DOM CacheStorage type
+      // doesn't declare — hence the widening cast.
+      const cache = (globalThis as unknown as { caches?: { default: { match: (r: Request) => Promise<Response | undefined>; put: (r: Request, res: Response) => Promise<void> } } }).caches?.default;
       const cacheKey = new Request(url.origin + "/api/catalog");
       const hit = cache && (await cache.match(cacheKey));
       if (hit) return hit;

@@ -7,6 +7,7 @@ const {
   itemMM, itemPrice, energyScores, dominantOf, rarityOf, parseSpec, buildSpec,
   encodeDesign, decodeDesign, layoutStrand, anglesForWidths, centersForWidths,
   WRIST_CHOICES, BASE_FEE, stones, accessories, byStone, byAccessory, ENERGY_META,
+  stoneSizes, accessoryStock, sizesFor, mmOf, stockOf, inStock, sizeWeight, DEFAULT_SIZES,
 } = catalog;
 
 test("itemMM sizes stones by BeadSize and accessories by spacer/charm", () => {
@@ -100,4 +101,69 @@ test("ENERGY_META/WRIST_CHOICES/BASE_FEE have the shape the rest of the app assu
   assert.equal(WRIST_CHOICES[0], 13);
   assert.equal(WRIST_CHOICES[WRIST_CHOICES.length - 1], 22);
   assert.equal(BASE_FEE, 680);
+});
+
+// --- Admin-defined size ladders (the database can give a stone any set of
+// diameters; nothing may hard-code the original 8/10/20 trio).
+
+test("sizesFor falls back to the default ladder until the database supplies one", () => {
+  assert.deepEqual(sizesFor("rose").map((s) => s.mm), DEFAULT_SIZES.map((s) => s.mm));
+});
+
+test("a custom ladder drives size, price and stock for that stone only", () => {
+  stoneSizes["rose"] = [
+    { mm: 6, priceDelta: 0, stock: 4 },
+    { mm: 12, priceDelta: 150, stock: 0 },
+  ];
+  try {
+    assert.deepEqual(sizesFor("rose").map((s) => s.mm), [6, 12]);
+    assert.deepEqual(sizesFor("clear").map((s) => s.mm), DEFAULT_SIZES.map((s) => s.mm), "other stones keep the default");
+
+    const six = { kind: "stone", id: "rose", mm: 6 };
+    const twelve = { kind: "stone", id: "rose", mm: 12 };
+    assert.equal(itemMM(six), 6, "strand width follows the custom mm");
+    assert.equal(itemPrice(six), byStone.rose.price + 0);
+    assert.equal(itemPrice(twelve), byStone.rose.price + 150, "price delta comes from the ladder");
+    assert.equal(stockOf(six), 4);
+    assert.equal(inStock(six), true);
+    assert.equal(inStock(twelve), false, "a zero-stock size is unbuyable");
+  } finally {
+    delete stoneSizes["rose"];
+  }
+});
+
+test("accessory stock gates availability, defaulting to available", () => {
+  const item = { kind: "accessory", id: "gold-hex" };
+  assert.equal(inStock(item), true);
+  accessoryStock["gold-hex"] = 0;
+  try {
+    assert.equal(inStock(item), false);
+  } finally {
+    delete accessoryStock["gold-hex"];
+  }
+});
+
+test("size weight reproduces the original ladder and interpolates custom sizes", () => {
+  assert.equal(sizeWeight(8), 0.8);
+  assert.equal(sizeWeight(10), 1);
+  assert.ok(Math.abs(sizeWeight(20) - 1.6) < 1e-9);
+  assert.ok(sizeWeight(12) > sizeWeight(10) && sizeWeight(12) < sizeWeight(20), "12mm sits between 10 and 20");
+});
+
+test("share links round-trip custom sizes and still decode legacy letter links", () => {
+  const items = [{ kind: "stone", id: "rose", mm: 12 }, { kind: "accessory", id: "gold-hex" }];
+  const code = encodeDesign(items, 17);
+  assert.ok(code.includes("rose.12"), `expected explicit mm in ${code}`);
+  const back = decodeDesign(code);
+  assert.equal(back.items[0].mm, 12);
+  assert.equal(itemMM(back.items[0]), 12);
+
+  const legacy = decodeDesign("17|rose.x,clear.l,smoky.s,gold-hex");
+  assert.deepEqual(legacy.items.map(itemMM), [20, 10, 8, 5], "old links keep their original sizes");
+});
+
+test("parseSpec accepts both legacy letters and numeric sizes", () => {
+  const [a, b] = parseSpec("rose.x,rose.12");
+  assert.equal(itemMM(a), 20);
+  assert.equal(itemMM(b), 12);
 });
