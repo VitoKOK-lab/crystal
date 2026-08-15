@@ -94,12 +94,16 @@ export default function BraceletStage({
       const a = isDragging ? (dragView as { angle: number }).angle : displayAngles[i];
       const isCharm = arcs[i].isCharm;
       const sizePct = isCharm ? 10.5 : arcs[i].mm * PCT_PER_MM;
-      // Charms hang with their jump ring at the photo's top edge (canonical
-      // orientation), rotated to point at the centre. The orbit is chosen so
-      // that ring sits ON the cord — the cord must read as passing through
-      // the ring, not merely grazing the charm's tip.
-      const orbit = isCharm ? r + 4.1 : r;
-      const charmRotation = (a * 180 / Math.PI) - 90;
+      // A charm dangles from its jump ring, so gravity — not the ring's
+      // geometry — decides which way it points: always straight down, the
+      // same way it hangs on a wrist. (Rotating it radially made charms on
+      // the left half point left and ones up top point up, which no real
+      // charm does.) The photos are shot bail-up, so hanging down is simply
+      // no rotation at all; the piece is centred half a body-length below
+      // its cord point so the bail still sits on the cord.
+      const charmDrop = 5.2;
+      const orbit = isCharm ? r : r;
+      const charmRotation = 0;
       const stoneRotation = (a * 180 / Math.PI) + 90;
       return <button
         key={uid}
@@ -124,7 +128,7 @@ export default function BraceletStage({
         onPointerCancel={() => { dragRef.current = null; setDragView(null); }}
         aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"}
         title="輕點移除 · 按住拖曳調整位置"
-        style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}
+        style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit + (isCharm ? charmDrop : 0)}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}
       ><ItemVisual item={item} /><span className="remove-mark">−</span></button>;
     })}
     {beads > 0
