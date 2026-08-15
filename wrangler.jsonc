@@ -25,5 +25,11 @@
       "bucket_name": "oma-crystal-img"
     }
   ],
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "vars": {
+    // Admin login whitelist. GOOGLE_CLIENT_ID is passed at deploy time
+    // (--var) and GOOGLE_CLIENT_SECRET via wrangler secret — see
+    // .github/workflows/deploy-cloudflare.yml.
+    "ADMIN_EMAILS": "luxkey.tw@gmail.com,agent@tzgrotw.tw"
+  }
 }

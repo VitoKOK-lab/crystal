@@ -1,31 +1,10 @@
-// OMA CRYSTAL Cloudflare Worker (Phase 1).
-// Serves the built static site (assets binding), the read-only catalog API
-// backed by D1, and images from R2 with a static-asset fallback so the
-// photo migration can happen gradually.
-//
-// Minimal structural types — the full workers-types package is deliberately
-// not a dependency; wrangler bundles this file itself.
-type D1Database = {
-  prepare: (sql: string) => {
-    all: <T = Record<string, unknown>>() => Promise<{ results: T[] }>;
-    bind: (...args: unknown[]) => { all: <T = Record<string, unknown>>() => Promise<{ results: T[] }> };
-  };
-};
-type R2Bucket = { get: (key: string) => Promise<{ body: ReadableStream; httpEtag: string; writeHttpMetadata: (h: Headers) => void } | null> };
-type Fetcher = { fetch: (req: Request) => Promise<Response> };
-
-export interface Env {
-  DB: D1Database;
-  // Optional until Phase 2: R2 must be enabled once in the dashboard
-  // before the binding can exist (Cloudflare error 10042).
-  IMAGES?: R2Bucket;
-  ASSETS: Fetcher;
-}
-
-const json = (data: unknown, extra: Record<string, string> = {}) =>
-  new Response(JSON.stringify(data), {
-    headers: { "content-type": "application/json; charset=utf-8", ...extra },
-  });
+// OMA CRYSTAL Cloudflare Worker.
+// Serves the built static site (assets binding), the public catalog API
+// backed by D1, images from R2 with a static-asset fallback, Google-login
+// admin auth, and the admin management API.
+import { handleAdmin } from "./admin";
+import { handleAuth } from "./auth";
+import { Env, json } from "./lib";
 
 async function catalogPayload(env: Env) {
   const [stones, sizes, accessories, series, products, settings] = await Promise.all([
@@ -34,7 +13,7 @@ async function catalogPayload(env: Env) {
     env.DB.prepare("SELECT * FROM accessories WHERE active=1 ORDER BY sort").all(),
     env.DB.prepare("SELECT * FROM series WHERE active=1 ORDER BY sort").all(),
     env.DB.prepare("SELECT * FROM products WHERE active=1 ORDER BY series_id, sort").all(),
-    env.DB.prepare("SELECT * FROM settings").all(),
+    env.DB.prepare("SELECT * FROM settings WHERE key NOT LIKE 'session_%'").all(),
   ]);
   return {
     stones: stones.results,
@@ -56,21 +35,27 @@ export default {
         const { results } = await env.DB.prepare("SELECT COUNT(*) AS n FROM stones").all<{ n: number }>();
         return json({ ok: true, stones: results[0]?.n ?? 0 });
       } catch (err) {
-        return json({ ok: false, error: String(err) }, { "cache-control": "no-store" });
+        return json({ ok: false, error: String(err) }, { headers: { "cache-control": "no-store" } });
       }
     }
 
     if (url.pathname === "/api/catalog") {
-      // Edge-cached for a minute: product edits in the admin propagate fast
-      // while every studio pageview stays a cache hit.
+      // Edge-cached for a minute: admin edits propagate fast while every
+      // studio pageview stays a cache hit.
       const cache = (globalThis as { caches?: { default: { match: (r: Request) => Promise<Response | undefined>; put: (r: Request, res: Response) => Promise<void> } } }).caches?.default;
       const cacheKey = new Request(url.origin + "/api/catalog");
       const hit = cache && (await cache.match(cacheKey));
       if (hit) return hit;
-      const res = json(await catalogPayload(env), { "cache-control": "public, s-maxage=60, max-age=15" });
+      const res = json(await catalogPayload(env), { headers: { "cache-control": "public, s-maxage=60, max-age=15" } });
       if (cache) await cache.put(cacheKey, res.clone());
       return res;
     }
+
+    const authRes = await handleAuth(request, env, url);
+    if (authRes) return authRes;
+
+    const adminRes = await handleAdmin(request, env, url);
+    if (adminRes) return adminRes;
 
     // Images: R2 first (admin uploads land there), static assets as the
     // fallback for everything shipped in the repo today.
