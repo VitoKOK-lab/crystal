@@ -16,7 +16,9 @@ type Fetcher = { fetch: (req: Request) => Promise<Response> };
 
 export interface Env {
   DB: D1Database;
-  IMAGES: R2Bucket;
+  // Optional until Phase 2: R2 must be enabled once in the dashboard
+  // before the binding can exist (Cloudflare error 10042).
+  IMAGES?: R2Bucket;
   ASSETS: Fetcher;
 }
 
@@ -74,7 +76,7 @@ export default {
     // fallback for everything shipped in the repo today.
     if (url.pathname.startsWith("/img/")) {
       const key = decodeURIComponent(url.pathname.slice(5));
-      const obj = await env.IMAGES.get(key);
+      const obj = env.IMAGES ? await env.IMAGES.get(key) : null;
       if (obj) {
         const headers = new Headers();
         obj.writeHttpMetadata(headers);
