@@ -74,7 +74,26 @@ export async function handleAuth(request: Request, env: Env, url: URL): Promise<
     }
     const allowed = (env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
     if (!allowed.includes(info.email.toLowerCase())) {
-      return new Response("此 Google 帳號沒有後台權限。", { status: 403, headers: { "content-type": "text/plain; charset=utf-8" } });
+      // Name the rejected account and offer a retry: "no permission" with
+      // no other detail is a dead end — the usual cause is simply being
+      // signed into a different Google account in this browser.
+      const esc = (s: string) => s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]!));
+      return new Response(
+        `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>沒有後台權限</title>
+<style>body{font-family:"Noto Sans TC",Arial,sans-serif;background:#f4f2ee;color:#222;display:grid;place-content:center;min-height:100vh;gap:14px;text-align:center;padding:24px;line-height:1.8}
+b{color:#b04a4a}code{background:#e8e4da;padding:2px 7px;border-radius:4px;font-size:14px}
+.dim{color:#999;font-size:12px}
+a{display:inline-block;margin-top:8px;padding:12px 24px;background:#141414;color:#fff;text-decoration:none;border-radius:6px}</style>
+</head><body>
+<p><b>這個 Google 帳號沒有後台權限</b></p>
+<p>你剛才登入的是 <code>${esc(info.email)}</code></p>
+<p class="dim">目前設定了 ${allowed.length} 個管理員帳號</p>
+<p>請改用有權限的帳號登入。</p>
+<a href="/api/auth/google/start">換一個 Google 帳號登入</a>
+</body></html>`,
+        { status: 403, headers: { "content-type": "text/html; charset=utf-8" } },
+      );
     }
     return new Response(null, {
       status: 302,
