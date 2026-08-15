@@ -263,7 +263,11 @@ function SpecEditor({ catalog, spec, onChange, wrist }: { catalog: Catalog; spec
     return {
       photo: acc?.photo ?? "", name: acc?.zh ?? id,
       detail: acc?.type === "charm" ? "吊飾" : "隔珠",
-      mm: SPEC_ACCESSORY_MM[(acc?.type as keyof typeof SPEC_ACCESSORY_MM) ?? "spacer"], missing: !acc,
+      mm: SPEC_ACCESSORY_MM[(acc?.type as keyof typeof SPEC_ACCESSORY_MM) ?? "spacer"],
+      missing: !acc,
+      // Charms hang off the cord rather than sitting in the line of beads —
+      // the editor mirrors that so the row reads like the finished piece.
+      charm: acc?.type === "charm",
     };
   };
 
@@ -288,7 +292,7 @@ function SpecEditor({ catalog, spec, onChange, wrist }: { catalog: Catalog; spec
     <div className="strand">
       {tokens.map((t, i) => {
         const d = describe(t);
-        return <div key={`${t}-${i}`} className={`bead ${d.missing ? "missing" : ""}`} title={d.missing ? `找不到素材：${t}` : `${d.name} ${d.detail}`}>
+        return <div key={`${t}-${i}`} className={`bead ${d.missing ? "missing" : ""} ${d.charm ? "charm" : ""}`} title={d.missing ? `找不到素材：${t}` : `${d.name} ${d.detail}`}>
           {d.photo ? <img src={d.photo} alt="" /> : <span className="qmark">?</span>}
           <em>{d.detail}</em>
           <div className="bead-tools">
