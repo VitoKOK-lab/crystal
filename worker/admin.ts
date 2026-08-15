@@ -80,6 +80,38 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
     return json({ ok: true, photo: photoPath });
   }
 
+  // Products carry no price column: a product's price is derived from its
+  // composition spec, exactly as the storefront computes it, so the two can
+  // never drift.
+  if (seg[0] === "products" && seg[1] && seg[2] && request.method === "PUT") {
+    const b = (await request.json()) as Record<string, unknown>;
+    await env.DB.prepare(
+      "UPDATE products SET name=?, tagline=?, style=?, wrist=?, spec=?, active=? WHERE series_id=? AND id=?"
+    ).bind(b.name, b.tagline, b.style, b.wrist, b.spec, b.active ?? 1, decodeURIComponent(seg[1]), decodeURIComponent(seg[2])).run();
+    return json({ ok: true });
+  }
+
+  if (seg[0] === "series" && seg[1] && request.method === "PUT") {
+    const b = (await request.json()) as { name?: string; en?: string; tone?: unknown; active?: number };
+    await env.DB.prepare("UPDATE series SET name=?, en=?, tone=?, active=? WHERE id=?")
+      .bind(b.name, b.en, JSON.stringify(b.tone ?? {}), b.active ?? 1, decodeURIComponent(seg[1])).run();
+    return json({ ok: true });
+  }
+
+  if (seg[0] === "orders") {
+    if (request.method === "GET" && !seg[1]) {
+      const { results } = await env.DB.prepare("SELECT * FROM orders ORDER BY created_at DESC LIMIT 200").all();
+      return json({ orders: results });
+    }
+    if (request.method === "PUT" && seg[1] && seg[2] === "status") {
+      const { status } = (await request.json()) as { status?: string };
+      const allowed = ["pending", "paid", "making", "shipped", "done", "cancelled"];
+      if (!status || !allowed.includes(status)) return bad("invalid status");
+      await env.DB.prepare("UPDATE orders SET status=? WHERE id=?").bind(status, decodeURIComponent(seg[1])).run();
+      return json({ ok: true });
+    }
+  }
+
   if (seg[0] === "settings" && request.method === "PUT") {
     const b = (await request.json()) as Record<string, string>;
     const editable = ["base_fee", "shipping_fee", "free_shipping_over"];
