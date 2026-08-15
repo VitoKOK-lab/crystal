@@ -43,12 +43,14 @@ jobs:
             exit 1
           fi
 
-      # Root-based build (no /crystal/ path rewrite — the Worker serves at
-      # the domain root). CJK font coverage is still guarded.
+      # Root-based build: the configs default to base /crystal/ (the GitHub
+      # Pages project path), but the Worker serves at the domain root — the
+      # first deploy shipped /crystal/-prefixed script tags and loaded blank.
+      # CJK font coverage is still guarded.
       - name: Build site for Cloudflare
         run: |
-          npx vite build --config vite.pages.config.ts
-          npx vite build --config vite.pages-men.config.ts
+          npx vite build --config vite.pages.config.ts --base=/
+          npx vite build --config vite.pages-men.config.ts --base=/men/
           python3 scripts/check-cjk-coverage.py
 
       - name: Bootstrap D1 database and R2 bucket (first run only)
