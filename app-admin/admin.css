@@ -47,6 +47,8 @@ body { font-family: "Noto Sans TC", Arial, sans-serif; background: #f4f2ee; colo
 
 .toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); background: #141414ee; color: #fff; padding: 11px 20px; border-radius: 99px; font-size: 13px; z-index: 20; }
 
+.order-lines { list-style: none; padding: 10px 12px; margin: 0; background: #faf9f6; border: 1px solid #e6e1d5; border-radius: 6px; font-size: 13px; line-height: 1.9; }
+
 /* Visual composition editor: the strand as a row of real photos. */
 .spec { display: flex; flex-direction: column; gap: 8px; }
 .spec-head { display: flex; align-items: baseline; gap: 10px; font-size: 12px; color: #666; }
