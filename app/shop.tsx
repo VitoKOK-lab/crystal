@@ -13,7 +13,7 @@ import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
 // room for more" affordance — but the finished piece is strung on elastic and
 // is a closed ring, so an open gap here would read as a broken product.
 // `k` is solved per product so every thumbnail fills its box to the same 92%.
-function BraceletThumb({ items, wrist }: { items: DesignItem[]; wrist: number }) {
+export function BraceletThumb({ items, wrist }: { items: DesignItem[]; wrist: number }) {
   const strandMM = items.reduce((sum, it) => sum + itemMM(it), 0) || wrist * 10;
   const maxMM = Math.max(...items.map(itemMM), 1);
   const k = 92 / (strandMM / Math.PI + maxMM);

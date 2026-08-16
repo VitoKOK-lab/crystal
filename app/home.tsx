@@ -123,12 +123,13 @@ function useScrollReveal() {
   return rootRef;
 }
 
-export default function Home({ onStart, onShop }: { onStart: () => void; onShop: (seriesId?: string) => void }) {
+export default function Home({ onStart, onShop, onGallery }: { onStart: () => void; onShop: (seriesId?: string) => void; onGallery: () => void }) {
   const rootRef = useScrollReveal();
   return <div className="landing" ref={rootRef}>
     <header className="landing-nav">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
       <div className="landing-nav-links">
+        <button className="landing-nav-quiet" onClick={onGallery}>靈感藝廊</button>
         <button className="landing-nav-quiet" onClick={() => onShop()}>系列</button>
         <button className="landing-nav-cta" onClick={onStart}>工作室</button>
       </div>
