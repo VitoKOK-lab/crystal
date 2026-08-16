@@ -73,6 +73,10 @@ function lineupItems(positions: Position[]): DesignItem[] {
   ];
 }
 
+// Kimi 個人化解讀的三態：null＝不可用（沒 key／失敗，靜靜用內建文案）、
+// "loading"＝生成中、Reading＝已送達。
+type AiReading = { overall: string; stones: { role: string; line: string }[]; blessing: string };
+
 export default function Quiz({ onLoadDesign, onHome }: {
   onLoadDesign: (items: DesignItem[], wrist: number) => void;
   onHome: () => void;
@@ -83,6 +87,7 @@ export default function Quiz({ onLoadDesign, onHome }: {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState<ReturnType<typeof buildLineup> | null>(null);
+  const [ai, setAi] = useState<AiReading | "loading" | null>(null);
 
   const submit = () => {
     if (!name.trim()) { setError("留個稱呼，結果才知道要寫給誰"); return; }
@@ -94,6 +99,20 @@ export default function Quiz({ onLoadDesign, onHome }: {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ name: name.trim(), birthday, theme: r.themeKey, email: email.trim(), stones: r.positions.map((p) => p.stone.id).join(",") }),
     }).catch(() => {});
+    // AI 個人化解讀：拿得到就逐段換上；拿不到（沒設 key、超時、超量）
+    // 就維持內建文案，頁面不顯示任何錯誤——解讀是加分項，不是依賴。
+    setAi("loading");
+    const zhOf = (k: EnergyType) => ENERGY_META.find((e) => e.key === k)!.zh;
+    fetch("/api/quiz-reading", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(), birthday, life: r.life, persona: r.entry.persona, theme: zhOf(r.themeKey),
+        positions: r.positions.map((p) => ({ role: p.role, stone: p.stone.zh, energy: zhOf(p.energy) })),
+      }),
+    })
+      .then(async (res) => (res.ok ? ((await res.json()) as { reading: AiReading }).reading : null))
+      .then((reading) => setAi(reading))
+      .catch(() => setAi(null));
     window.scrollTo({ top: 0 });
   };
 
@@ -114,18 +133,24 @@ export default function Quiz({ onLoadDesign, onHome }: {
         <p className="quiz-lack">你的數字偏向<b>{ENERGY_META.find((e) => e.key === result.entry.main)!.zh}</b>，最少照顧到的是<b style={{ color: zhLack.color }}>{zhLack.zh}</b>{pickedOwnTheme
           ? <>；你另外點名想補<b style={{ color: zhTheme.color }}>{zhTheme.zh}</b>，意圖石已經替你放進去。</>
           : <>——意圖石已經替你補上。</>}</p>
+        {ai === "loading" && <p className="quiz-ai loading">顧問正在為你寫專屬解讀…</p>}
+        {ai && ai !== "loading" && <div className="quiz-ai"><p>{ai.overall}</p><span>— 寫給 {name} 的專屬解讀</span></div>}
         <div className="quiz-preview"><BraceletThumb items={items} wrist={14} /></div>
         <div className="quiz-stones">
-          {result.positions.map((p) => <div className="quiz-stone" key={p.en}>
-            <img src={stonePhotos[p.stone.id]} alt={p.stone.zh} />
-            <div>
-              <span className="qs-role">{p.en} · {p.role} <b style={{ color: ENERGY_META.find((e) => e.key === p.energy)!.color }}>{ENERGY_META.find((e) => e.key === p.energy)!.zh}</b></span>
-              <b className="qs-name">{p.stone.zh} <i>{p.stone.en}</i></b>
-              <p>{p.why}</p>
-              <small>{p.stone.note}</small>
-            </div>
-          </div>)}
+          {result.positions.map((p) => {
+            const aiLine = ai && ai !== "loading" ? ai.stones.find((s) => s.role === p.role)?.line : null;
+            return <div className="quiz-stone" key={p.en}>
+              <img src={stonePhotos[p.stone.id]} alt={p.stone.zh} />
+              <div>
+                <span className="qs-role">{p.en} · {p.role} <b style={{ color: ENERGY_META.find((e) => e.key === p.energy)!.color }}>{ENERGY_META.find((e) => e.key === p.energy)!.zh}</b></span>
+                <b className="qs-name">{p.stone.zh} <i>{p.stone.en}</i></b>
+                <p>{aiLine ?? p.why}</p>
+                <small>{p.stone.note}</small>
+              </div>
+            </div>;
+          })}
         </div>
+        {ai && ai !== "loading" && ai.blessing && <p className="quiz-blessing">{ai.blessing}</p>}
         <button className="landing-cta" onClick={() => onLoadDesign(items, 14)}>把陣容載入工作室 <i>→</i></button>
         <p className="quiz-note">陣容已排成 14cm 手圍的完整一條，進工作室可自由增減。本測驗屬趣味參考，不構成任何醫療或財務建議。</p>
       </section>

@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import { pricing } from "./catalog";
 
-// 頂端公告列：三個轉換鉤子輪播（免運門檻讀自後台設定，永遠是現值）。
+// 頂端公告列：轉換鉤子輪播（免運門檻讀自後台設定，永遠是現值）。
 // 單一資料源、不寫死數字——競品把 $39/$59 寫得全站互相矛盾，引以為戒。
-export default function AnnounceBar({ onQuiz, onGallery }: { onQuiz?: () => void; onGallery?: () => void }) {
+export default function AnnounceBar({ onQuiz }: { onQuiz?: () => void }) {
   const items = [
     { text: `滿 NT$${pricing.freeShippingOver.toLocaleString()} 免運費`, onClick: undefined as (() => void) | undefined },
     { text: "生日選石測驗上線 — 一分鐘算出你的五石陣容", onClick: onQuiz },
-    { text: "靈感藝廊 — 看別人怎麼串，一鍵載入再改", onClick: onGallery },
   ];
   const [i, setI] = useState(0);
   useEffect(() => {

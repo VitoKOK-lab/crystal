@@ -7,7 +7,7 @@
 //
 // Fallback ladder: live API → last-good copy in localStorage → baked-in.
 import { accessories, accessoryPhotos, accessoryStock, byAccessory, byStone, pricing, stonePhotos, stoneSizes, stones, type Accessory, type Stone } from "./catalog";
-import { SERIES, bySeries, designUses, type Product, type Series } from "./series";
+import { SERIES, bySeries, type Product, type Series } from "./series";
 
 type StoneRow = { id: string; zh: string; en: string; energy_zh: string; price: number; note: string; energies: string; photo: string };
 type AccessoryRow = { id: string; zh: string; en: string; type: Accessory["type"]; metal: Accessory["metal"]; price: number; note: string; photo: string; stock?: number };
@@ -21,7 +21,6 @@ type CatalogPayload = {
   series: SeriesRow[];
   products: ProductRow[];
   settings?: Record<string, string>;
-  designUses?: Record<string, number>;
 };
 
 const CACHE_KEY = "oma-catalog-v1";
@@ -143,7 +142,6 @@ function hydrateSeries(p: CatalogPayload) {
   }));
   SERIES.splice(0, SERIES.length, ...newSeries);
   replaceRecord(bySeries, newSeries.map((s) => [s.id, s]));
-  if (p.designUses) replaceRecord(designUses, Object.entries(p.designUses));
 }
 
 // The admin 設定 page: stringing fee, shipping fee, free-shipping threshold.

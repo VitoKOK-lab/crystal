@@ -11,7 +11,6 @@ import EnergyPanel from "./energy-panel";
 // resolution collapse the JSX reference back onto this very component,
 // so `<Home>` silently rendered itself recursively (infinite mount depth,
 // hard browser-tab crash) instead of the intended landing page.
-import Gallery from "./gallery";
 import LandingHome from "./home";
 import Quiz from "./quiz";
 import MaterialLibrary from "./material-library";
@@ -56,7 +55,7 @@ export default function Home() {
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "obsidian", size: "large" });
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
-  const [view, setView] = useState<"home" | "shop" | "studio" | "checkout" | "gallery" | "quiz">("home");
+  const [view, setView] = useState<"home" | "shop" | "studio" | "checkout" | "quiz">("home");
   // Which collection the customer came in through. Drives the accent colour
   // and whether the studio speaks 能量 or 戰力. Null = walked straight into
   // the studio without picking a series, which gets the neutral wording.
@@ -95,7 +94,7 @@ export default function Home() {
       const sid = params.get("series");
       if (sid && bySeries[sid]) setSeriesId(sid);
       const v = params.get("v");
-      if (v === "shop" || v === "studio" || v === "checkout" || v === "gallery" || v === "quiz") setView(v);
+      if (v === "shop" || v === "studio" || v === "checkout" || v === "quiz") setView(v);
       else if (params.get("d")) setView("studio"); // a history entry from before a share link's design was navigated away
       else if (sid && bySeries[sid]) setView("shop"); // /men/ redirects here with ?series=forge
       else setView("home");
@@ -254,7 +253,6 @@ export default function Home() {
   if (view === "home") return <LandingHome
     onStart={() => navigate("studio", seriesId)}
     onShop={goShop}
-    onGallery={() => navigate("gallery", seriesId)}
     onQuiz={() => navigate("quiz", seriesId)}
   />;
   if (view === "quiz") return <Quiz
@@ -265,12 +263,6 @@ export default function Home() {
       navigate("studio", seriesId);
       showNotice("五石陣容已載入 — 每一顆都可以再調");
     }}
-  />;
-  if (view === "gallery") return <Gallery
-    onBuy={(sid, pid) => openProduct(sid, pid, "buy")}
-    onCustomize={(sid, pid) => openProduct(sid, pid, "customize")}
-    onHome={() => navigate("home", seriesId)}
-    onStudio={() => { setItems([]); navigate("studio", seriesId); showNotice("空白的手鍊 — 從右側挑第一顆礦石開始"); }}
   />;
   if (view === "shop") return <Shop
     seriesId={seriesId ?? SERIES[0].id}
@@ -289,7 +281,7 @@ export default function Home() {
     }>
       <Preview3D pieces={previewPieces} capacityMM={capacityMM} energy={dominant.key} onClose={() => setPreviewOpen(false)} />
     </Suspense>}
-    <header className="studio-head"><button className="wordmark" onClick={() => navigate("home", seriesId)}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => navigate("gallery", seriesId)}>靈感藝廊</button><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
+    <header className="studio-head"><button className="wordmark" onClick={() => navigate("home", seriesId)}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => navigate("quiz", seriesId)}>生日選石</button><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
     {view === "checkout" ? <Checkout lines={orderLines} spec={encodeDesign(items, wristCm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => navigate("studio", seriesId)} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">

@@ -358,49 +358,13 @@ button,input { font:inherit; } button { cursor:pointer; }
 .quiz-stone p { margin:5px 0 0; color:#4b4b4b; font-size:12px; line-height:1.7; }
 .quiz-stone small { display:block; margin-top:3px; color:#8a8f93; font-size:10px; }
 .quiz-note { margin:14px auto 0; max-width:420px; color:#8a8f93; font-size:10px; line-height:1.7; }
-
-/* 靈感藝廊 */
-.gallery { min-height:100vh; background:#faf9f6; }
-.gal-filters { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:6px 20px 20px; }
-.gal-filters button { padding:8px 18px; border:1px solid #dedad0; border-radius:99px; background:#fff; color:#6b6b6b; font-size:11px; letter-spacing:.08em; transition:.15s; }
-.gal-filters button.on { border-color:var(--chip,#141414); color:var(--chip,#141414); background:color-mix(in srgb, var(--chip,#141414) 8%, #fff); font-weight:bold; }
-.gal-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; max-width:1080px; margin:0 auto; padding:0 24px 70px; }
-.gal-card { background:#fff; border:1px solid #e6e2d8; border-radius:14px; overflow:hidden; transition:.16s; }
-.gal-card:hover { border-color:#141414; box-shadow:0 12px 26px #14141414; transform:translateY(-2px); }
-.gal-open { display:flex; flex-direction:column; align-items:center; width:100%; padding:16px 12px 16px; border:0; background:transparent; text-align:center; }
-.gal-open .shop-thumb { width:150px; height:150px; position:relative; }
-.gal-open b { margin-top:10px; font:16px var(--display); color:#141414; }
-.gal-open small { margin-top:2px; color:#8a8f93; font-size:9px; letter-spacing:.08em; }
-.gal-meta { display:flex; align-items:center; gap:8px; margin-top:7px; font-size:9px; }
-.gal-meta em { font-style:normal; letter-spacing:.12em; font-weight:bold; }
-.gal-meta i { font-style:normal; color:#8a8f93; }
-.gal-price { margin-top:6px; color:#8a6d1f; font-size:11px; }
-.gal-modal-overlay { position:fixed; inset:0; z-index:80; display:grid; place-items:center; padding:18px; background:#141414a8; backdrop-filter:blur(3px); }
-.gal-modal { position:relative; display:grid; grid-template-columns:280px 1fr; gap:8px; width:min(760px,100%); max-height:88vh; overflow:auto; background:#fff; border-radius:16px; box-shadow:0 30px 80px #00000059; }
-.gal-close { position:absolute; top:10px; right:12px; z-index:2; border:0; background:transparent; color:#6b6b6b; font-size:16px; }
-.gal-modal-vis { display:grid; place-items:center; padding:26px 8px; background:#faf9f6; }
-.gal-modal-vis .shop-thumb { width:230px; height:230px; position:relative; }
-.gal-modal-body { padding:26px 26px 24px 12px; }
-.gal-eyebrow { margin:0; color:#8a8f93; font-size:9px; letter-spacing:.1em; }
-.gal-eyebrow b { letter-spacing:.14em; }
-.gal-modal-body h2 { margin:6px 0 2px; font:24px var(--display); color:#141414; }
-.gal-tagline { display:block; color:#6b6b6b; font-size:11px; line-height:1.7; }
-.gal-bom { margin-top:14px; border:1px solid #eee9dd; border-radius:10px; padding:6px 12px; background:#fdfcf9; }
-.gal-bom-line { display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid #f2eee4; font-size:11px; }
-.gal-bom-line:last-child { border-bottom:0; }
-.gb-name { color:#141414; }
-.gb-name i { display:block; margin-top:1px; color:#8a8f93; font-style:normal; font-size:9px; line-height:1.5; }
-.gb-qty { color:#8a8f93; }
-.gal-bom-line b { color:#141414; font-size:11px; }
-.gal-bom-line.fee .gb-name, .gal-bom-line.fee b { color:#6b6b6b; }
-.gal-bom-line.total b { color:#8a6d1f; font-size:13px; }
-.gal-ctas { display:flex; gap:10px; margin-top:16px; }
-.gal-ctas .co-primary { flex:1; }
-@media (max-width:640px) {
-  .gal-modal { grid-template-columns:1fr; }
-  .gal-modal-vis { padding:18px; }
-  .gal-modal-body { padding:0 20px 22px; }
-}
+/* AI 個人化解讀卡 */
+.quiz-ai { margin:16px auto 0; max-width:500px; padding:16px 20px; text-align:left; background:#fdfbf5; border:1px solid #e6dcc2; border-radius:12px; }
+.quiz-ai p { margin:0; color:#4b4b4b; font-size:13px; line-height:1.9; }
+.quiz-ai span { display:block; margin-top:8px; color:#8a6d1f; font-size:10px; letter-spacing:.08em; text-align:right; }
+.quiz-ai.loading { border-style:dashed; color:#8a8f93; font-size:11px; text-align:center; animation:quizAiPulse 1.6s ease-in-out infinite; }
+@keyframes quizAiPulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+.quiz-blessing { margin:14px auto 2px; max-width:440px; color:#8a6d1f; font-size:13px; line-height:1.8; font-family:var(--display); }
 
 .co-submit { width:100%; margin-top:22px; }
 .co-submit:disabled { opacity:.55; cursor:default; }

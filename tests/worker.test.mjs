@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { importCompiled } from "./esbuild-import.mjs";
 
-const { lib, admin, orders } = await importCompiled("tests/fixtures/worker-entry.ts");
+const { lib, admin, orders, quizReading } = await importCompiled("tests/fixtures/worker-entry.ts");
 
 // --- Fake D1 -------------------------------------------------------------
 
@@ -18,6 +18,7 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
     accessories: new Map(Object.entries(accessories)), // id -> stock
     orders: [],
     writes: [],
+    quizReadings: new Map(),
   };
   const exec = (sql, args) => {
     if (sql.includes("FROM settings WHERE key='session_signing_key'")) {
@@ -56,6 +57,17 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
     }
     if (sql.startsWith("INSERT INTO orders")) {
       state.orders.push(args);
+      return [];
+    }
+    if (sql.startsWith("SELECT reading FROM quiz_readings")) {
+      const v = state.quizReadings.get(args[0]);
+      return v === undefined ? [] : [{ reading: v }];
+    }
+    if (sql.startsWith("SELECT COUNT(*) AS n FROM quiz_readings")) {
+      return [{ n: state.quizReadings.size }];
+    }
+    if (sql.startsWith("INSERT OR IGNORE INTO quiz_readings")) {
+      state.quizReadings.set(args[0], args[1]);
       return [];
     }
     if (/^(UPDATE|INSERT|DELETE)/.test(sql)) {
@@ -219,4 +231,69 @@ test("free shipping kicks in past the configured threshold", async () => {
   const res = await call(orders.handleOrders, jsonReq("http://x/api/orders", body), envWith(db));
   const data = await res.json();
   assert.equal(data.shipping, 0);
+});
+
+// --- 生日選石 AI 解讀代理 ---------------------------------------------------
+
+const readingBody = {
+  name: "Vito", birthday: "1995-08-16", life: 3, persona: "表達者", theme: "財富",
+  positions: [
+    { role: "主星石", stone: "白水晶", energy: "專注" },
+    { role: "內在石", stone: "薔薇輝石", energy: "愛情" },
+    { role: "行動石", stone: "圓珠茶晶", energy: "專注" },
+    { role: "流年石", stone: "圓珠消光火山岩", energy: "力量" },
+    { role: "意圖石", stone: "切面金沙石", energy: "財富" },
+  ],
+};
+const readingReq = (body) => new Request("https://x/api/quiz-reading", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+});
+
+test("quiz-reading answers 503 when no Kimi key is configured", async () => {
+  const res = await call(quizReading.handleQuizReading, readingReq(readingBody), envWith(fakeDb()));
+  assert.equal(res.status, 503);
+});
+
+test("quiz-reading validates input before spending any tokens", async () => {
+  const env = envWith(fakeDb(), { KIMI_API_KEY: "k" });
+  for (const bad of [
+    { ...readingBody, birthday: "not-a-date" },
+    { ...readingBody, name: "" },
+    { ...readingBody, life: 99 },
+    { ...readingBody, positions: readingBody.positions.slice(0, 2) },
+  ]) {
+    const res = await call(quizReading.handleQuizReading, readingReq(bad), env);
+    assert.equal(res.status, 400);
+  }
+});
+
+test("quiz-reading proxies Kimi, validates the JSON shape, and caches by identity", async () => {
+  const db = fakeDb();
+  const env = envWith(db, { KIMI_API_KEY: "k" });
+  const reading = {
+    overall: "Vito，1995 年夏天出生的你，帶著表達者的節奏走到今天，這五顆石頭排出的正是你此刻的樣子，值得慢慢戴著感受。",
+    stones: readingBody.positions.map((p) => ({ role: p.role, line: `${p.stone}陪你把${p.energy}穩穩接住。` })),
+    blessing: "願你想說的話，都有人好好聽見。",
+  };
+  const realFetch = globalThis.fetch;
+  let upstreamCalls = 0;
+  globalThis.fetch = async () => { upstreamCalls += 1; return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reading) } }] })); };
+  try {
+    const res = await call(quizReading.handleQuizReading, readingReq(readingBody), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.reading.overall, reading.overall);
+    assert.equal(data.reading.stones.length, 5);
+
+    const again = await call(quizReading.handleQuizReading, readingReq(readingBody), env);
+    const cached = await again.json();
+    assert.equal(cached.cached, true, "same name|birthday|theme is served from D1");
+    assert.equal(upstreamCalls, 1, "the model is only paid once per identity");
+
+    globalThis.fetch = async () => new Response("{}", { status: 500 });
+    const garbled = await call(quizReading.handleQuizReading, readingReq({ ...readingBody, name: "另一個人" }), env);
+    assert.equal(garbled.status, 502, "upstream failure surfaces as 502, never a fake reading");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });
