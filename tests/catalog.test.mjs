@@ -167,3 +167,13 @@ test("parseSpec accepts both legacy letters and numeric sizes", () => {
   assert.equal(itemMM(a), 20);
   assert.equal(itemMM(b), 12);
 });
+
+// The admin's composition editor resolves spec tokens through specTokenMM;
+// the storefront resolves them through parseSpec/itemMM. Lock them together.
+test("specTokenMM agrees with parseSpec+itemMM for every token form", () => {
+  for (const [suffix, want] of [["x", 20], ["s", 8], ["l", 10], [undefined, 10], ["12", 12], ["6.5", 6.5]]) {
+    const token = suffix === undefined ? "rose" : `rose.${suffix}`;
+    assert.equal(catalog.specTokenMM(suffix), want, `specTokenMM(${suffix})`);
+    assert.equal(itemMM(parseSpec(token)[0]), want, `parseSpec(${token})`);
+  }
+});

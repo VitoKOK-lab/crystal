@@ -14,20 +14,19 @@ type Catalog = {
   series: SeriesRow[]; products: ProductRow[]; settings: Record<string, string>;
 };
 
-// The storefront's spec notation: "<id>.<size>" for stones — either a
-// legacy letter (x/l/s = 20/10/8 mm) or a plain number for admin-defined
-// sizes — and a bare id for accessories. Mirrors catalog.tsx.
-const SPEC_MM: Record<string, number> = { x: 20, l: 10, s: 8 };
-const tokenMM = (size: string) => (/^\d+(\.\d+)?$/.test(size) ? Number(size) : SPEC_MM[size] ?? 10);
+// The storefront's spec notation: "<id>.<size>" for stones and a bare id
+// for accessories. The size→mm mapping is imported from the storefront's
+// catalog module so the two sides can never drift.
+import { specTokenMM, splitSpecToken } from "../app/catalog";
 
 // A finished piece has no stock of its own — it's buildable only while every
 // component is in stock, which is what the storefront shows as 補貨中.
 function specShortages(spec: string, catalog: Catalog): string[] {
   const short: string[] = [];
   for (const token of spec.split(",").map((t) => t.trim()).filter(Boolean)) {
-    const [id, size] = token.split(".");
+    const [id, size] = splitSpecToken(token);
     if (size) {
-      const mm = tokenMM(size);
+      const mm = specTokenMM(size);
       const row = catalog.stoneSizes.find((z) => z.stone_id === id && z.mm === mm);
       const stone = catalog.stones.find((s) => s.id === id);
       if (!stone?.active) short.push(`${stone?.zh ?? id}（已下架）`);
@@ -256,7 +255,7 @@ function SpecEditor({ catalog, spec, onChange, wrist }: { catalog: Catalog; spec
     const [id, size] = token.split(".");
     if (size) {
       const stone = catalog.stones.find((s) => s.id === id);
-      const mm = tokenMM(size);
+      const mm = specTokenMM(size);
       return { photo: stone?.photo ?? "", name: stone?.zh ?? id, detail: `${mm}mm`, mm, missing: !stone };
     }
     const acc = catalog.accessories.find((a) => a.id === id);

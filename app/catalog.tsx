@@ -312,6 +312,12 @@ export const buildSpec = (spec: [string, BeadSize?][]): DesignItem[] => spec.map
 // `.s` 8mm, anything else 10mm) or a plain number for admin-defined sizes
 // (`.12` = 12mm). Letters are kept forever so every share link and product
 // spec written before custom sizes existed still decodes.
+//
+// specTokenMM is the one place that mapping lives as plain arithmetic — the
+// admin's composition editor prices and stock-checks specs through it, so
+// any change to the notation lands on both sides at once.
+export const specTokenMM = (sz?: string): number =>
+  sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : sz === "x" ? BEAD_MM.xlarge : sz === "s" ? BEAD_MM.small : BEAD_MM.large;
 function stoneToken(id: string, sz: string | undefined): DesignItem {
   const mm = sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : undefined;
   if (mm && mm > 0 && mm <= 40) return { kind: "stone", id, mm, uid: nextUid() };
@@ -321,10 +327,18 @@ const sizeSuffix = (it: DesignItem) => it.mm !== undefined
   ? String(it.mm)
   : it.size === "xlarge" ? "x" : it.size === "small" ? "s" : "l";
 
+// A token is "<id>" or "<id>.<size>". Split on the FIRST dot only: sizes
+// can be fractional ("rose.6.5" is a 6.5mm rose), so a naive split(".")
+// would silently truncate them.
+export function splitSpecToken(token: string): [string, string | undefined] {
+  const dot = token.indexOf(".");
+  return dot < 0 ? [token, undefined] : [token.slice(0, dot), token.slice(dot + 1)];
+}
+
 // Compact spec notation used by the series catalogue: "obsidian.x,obsidian.l,gold-hex".
 export function parseSpec(spec: string): DesignItem[] {
   return spec.split(",").map((token) => {
-    const [id, sz] = token.trim().split(".");
+    const [id, sz] = splitSpecToken(token.trim());
     if (byAccessory[id]) return { kind: "accessory", id, uid: nextUid() } as DesignItem;
     return stoneToken(id, sz);
   });
@@ -339,7 +353,7 @@ export function decodeDesign(code: string): { wrist: number; items: DesignItem[]
     if (!WRIST_CHOICES.includes(wrist) || !list) return null;
     const items: DesignItem[] = [];
     for (const token of list.split(",")) {
-      const [id, sz] = token.split(".");
+      const [id, sz] = splitSpecToken(token);
       if (byStone[id]) items.push(stoneToken(id, sz));
       else if (byAccessory[id]) items.push({ kind: "accessory", id, uid: nextUid() });
       else return null;
