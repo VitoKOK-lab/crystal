@@ -301,6 +301,32 @@ button,input { font:inherit; } button { cursor:pointer; }
 .co-primary span { margin-left:10px; color:#c9a355; }
 .co-secondary { border:1px solid #141414; background:#fff; color:#141414; padding:15px 22px; border-radius:9px; font-size:13px; transition:.15s; }
 .co-secondary:hover { border-color:#8a6d1f; color:#8a6d1f; }
+/* 生日選石測驗 */
+.quiz { min-height:100vh; background:#faf9f6; }
+.quiz-form, .quiz-result { max-width:640px; margin:0 auto; padding:34px 24px 80px; text-align:center; }
+.quiz-form h1, .quiz-result h1 { margin:10px 0 4px; font:34px/1.2 var(--display); color:#141414; }
+.quiz-sub { display:block; margin:10px auto 0; max-width:440px; color:#6b6b6b; font-size:12px; line-height:1.8; }
+.quiz-fields { display:flex; flex-direction:column; gap:14px; margin:26px 0 8px; text-align:left; }
+.quiz-fields label { display:flex; flex-direction:column; gap:6px; color:#6b6b6b; font-size:11px; letter-spacing:.05em; }
+.quiz-fields input { padding:12px 14px; border:1px solid #dedad0; border-radius:8px; background:#fff; font-size:14px; }
+.quiz-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.quiz-chips button { padding:9px 18px; border:1px solid #dedad0; border-radius:99px; background:#fff; color:#6b6b6b; font-size:12px; transition:.15s; }
+.quiz-chips button.on { border-color:var(--chip); color:var(--chip); background:color-mix(in srgb, var(--chip) 9%, #fff); font-weight:bold; }
+.quiz-form .landing-cta, .quiz-result .landing-cta { margin-top:18px; }
+.quiz-lack { margin:10px auto 0; max-width:460px; color:#6b6b6b; font-size:13px; line-height:1.8; }
+.quiz-lack b { margin:0 2px; }
+.quiz-preview { position:relative; width:230px; height:230px; margin:18px auto 8px; }
+.quiz-stones { display:flex; flex-direction:column; gap:10px; margin:16px 0 6px; text-align:left; }
+.quiz-stone { display:grid; grid-template-columns:64px 1fr; gap:14px; align-items:center; padding:14px 16px; background:#fff; border:1px solid #e6e2d8; border-radius:12px; }
+.quiz-stone img { width:64px; height:64px; object-fit:contain; }
+.qs-role { display:block; color:#8a8f93; font-size:9px; letter-spacing:.14em; }
+.qs-role b { letter-spacing:.14em; }
+.qs-name { display:block; margin-top:3px; font:17px var(--display); color:#141414; }
+.qs-name i { color:#8a8f93; font-size:10px; font-style:normal; letter-spacing:.06em; }
+.quiz-stone p { margin:5px 0 0; color:#4b4b4b; font-size:12px; line-height:1.7; }
+.quiz-stone small { display:block; margin-top:3px; color:#8a8f93; font-size:10px; }
+.quiz-note { margin:14px auto 0; max-width:420px; color:#8a8f93; font-size:10px; line-height:1.7; }
+
 /* 靈感藝廊 */
 .gallery { min-height:100vh; background:#faf9f6; }
 .gal-filters { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:6px 20px 20px; }

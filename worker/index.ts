@@ -66,6 +66,19 @@ export default {
       return json({ ok: true });
     }
 
+    // 生日選石測驗 lead intake. Fire-and-forget from the quiz result page.
+    if (url.pathname === "/api/quiz-lead" && request.method === "POST") {
+      let b: Record<string, unknown> = {};
+      try { b = (await request.json()) as Record<string, unknown>; } catch { /* validated below */ }
+      const s = (v: unknown, max: number) => (typeof v === "string" && v.length <= max ? v.trim() : null);
+      const name = s(b.name, 100), birthday = s(b.birthday, 10), theme = s(b.theme, 20) ?? "", email = s(b.email, 200) ?? "", stones = s(b.stones, 500) ?? "";
+      if (!name || !birthday || !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) return json({ error: "invalid lead" }, { status: 400 });
+      if (email && !/^\S+@\S+\.\S+$/.test(email)) return json({ error: "invalid email" }, { status: 400 });
+      await env.DB.prepare("INSERT INTO quiz_leads (name, birthday, theme, email, stones) VALUES (?,?,?,?,?)")
+        .bind(name, birthday, theme, email, stones).run();
+      return json({ ok: true }, { status: 201 });
+    }
+
     const orderRes = await handleOrders(request, env, url);
     if (orderRes) return orderRes;
 

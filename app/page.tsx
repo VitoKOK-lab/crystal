@@ -13,6 +13,7 @@ import EnergyPanel, { useCountUp } from "./energy-panel";
 // hard browser-tab crash) instead of the intended landing page.
 import Gallery from "./gallery";
 import LandingHome from "./home";
+import Quiz from "./quiz";
 import MaterialLibrary from "./material-library";
 import type { PreviewPiece } from "./preview-3d";
 import { PRESETS } from "./presets";
@@ -50,7 +51,7 @@ export default function Home() {
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "obsidian", size: "large" });
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
-  const [view, setView] = useState<"home" | "shop" | "studio" | "checkout" | "gallery">("home");
+  const [view, setView] = useState<"home" | "shop" | "studio" | "checkout" | "gallery" | "quiz">("home");
   // Which collection the customer came in through. Drives the accent colour
   // and whether the studio speaks 能量 or 戰力. Null = walked straight into
   // the studio without picking a series, which gets the neutral wording.
@@ -89,7 +90,7 @@ export default function Home() {
       const sid = params.get("series");
       if (sid && bySeries[sid]) setSeriesId(sid);
       const v = params.get("v");
-      if (v === "shop" || v === "studio" || v === "checkout" || v === "gallery") setView(v);
+      if (v === "shop" || v === "studio" || v === "checkout" || v === "gallery" || v === "quiz") setView(v);
       else if (params.get("d")) setView("studio"); // a history entry from before a share link's design was navigated away
       else if (sid && bySeries[sid]) setView("shop"); // /men/ redirects here with ?series=forge
       else setView("home");
@@ -232,6 +233,16 @@ export default function Home() {
     onStart={() => navigate("studio", seriesId)}
     onShop={goShop}
     onGallery={() => navigate("gallery", seriesId)}
+    onQuiz={() => navigate("quiz", seriesId)}
+  />;
+  if (view === "quiz") return <Quiz
+    onHome={() => navigate("home", seriesId)}
+    onLoadDesign={(quizItems, wrist) => {
+      setItems(quizItems);
+      setWristCm(wrist);
+      navigate("studio", seriesId);
+      showNotice("五石陣容已載入 — 每一顆都可以再調");
+    }}
   />;
   if (view === "gallery") return <Gallery
     onBuy={(sid, pid) => openProduct(sid, pid, "buy")}
