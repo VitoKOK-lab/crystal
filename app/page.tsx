@@ -65,19 +65,51 @@ export default function Home() {
   const [noticeSeq, setNoticeSeq] = useState(0);
   const showNotice = (text: string) => { setNotice(text); setNoticeSeq((n) => n + 1); };
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
-  useEffect(() => {
+  // The view lives in the URL (?v=shop|studio|checkout, plus ?series=), so
+  // the browser's back button steps between views instead of leaving the
+  // site, and a refresh comes back to the same place. pushState on
+  // programmatic navigation, popstate to follow the history.
+  const navigate = (v: typeof view, sid: string | null, opts: { push?: boolean; scroll?: boolean } = {}) => {
+    setSeriesId(sid);
+    setView(v);
     const params = new URLSearchParams(window.location.search);
-    // /men/ redirects here with ?series=forge so old links keep working.
-    const wanted = params.get("series");
-    if (wanted && bySeries[wanted]) { setSeriesId(wanted); setView("shop"); }
+    params.delete("v"); params.delete("series"); params.delete("d");
+    if (v !== "home") params.set("v", v);
+    if (sid && (v === "shop" || v === "studio")) params.set("series", sid);
+    const qs = params.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    if (opts.push === false) window.history.replaceState(null, "", url);
+    else window.history.pushState(null, "", url);
+    if (opts.scroll !== false) window.scrollTo({ top: 0 });
+  };
+  useEffect(() => {
+    const applyUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const sid = params.get("series");
+      if (sid && bySeries[sid]) setSeriesId(sid);
+      const v = params.get("v");
+      if (v === "shop" || v === "studio" || v === "checkout") setView(v);
+      else if (params.get("d")) setView("studio"); // a history entry from before a share link's design was navigated away
+      else if (sid && bySeries[sid]) setView("shop"); // /men/ redirects here with ?series=forge
+      else setView("home");
+    };
+    window.addEventListener("popstate", applyUrl);
+
+    // Initial load: a shared design link (?d=) wins and opens the studio.
+    const params = new URLSearchParams(window.location.search);
     const code = params.get("d");
-    if (!code) return;
-    const decoded = decodeDesign(code);
-    if (!decoded) return;
-    setItems(decoded.items);
-    setWristCm(decoded.wrist);
-    showNotice("已載入這條設計，可直接調整或結帳");
-    setView("studio");
+    const decoded = code ? decodeDesign(code) : null;
+    if (decoded) {
+      setItems(decoded.items);
+      setWristCm(decoded.wrist);
+      showNotice("已載入這條設計，可直接調整或結帳");
+      const sid = params.get("series");
+      if (sid && bySeries[sid]) setSeriesId(sid);
+      setView("studio");
+    } else {
+      applyUrl();
+    }
+    return () => window.removeEventListener("popstate", applyUrl);
   }, []);
   // Ready-to-wear products are re-parsed from their spec on click rather than
   // reusing the shop's display copies, so the studio always gets fresh uids
@@ -85,12 +117,10 @@ export default function Home() {
   const openProduct = (sid: string, pid: string, mode: "buy" | "customize") => {
     const product = findProduct(sid, pid);
     if (!product) return;
-    setSeriesId(sid);
     setItems(parseSpec(product.spec));
     setWristCm(product.wrist);
-    setView(mode === "buy" ? "checkout" : "studio");
+    navigate(mode === "buy" ? "checkout" : "studio", sid);
     showNotice(mode === "buy" ? "" : `已載入「${product.name}」，接下來由你決定`);
-    window.scrollTo({ top: 0 });
   };
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
   const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
@@ -196,18 +226,18 @@ export default function Home() {
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
   const activeSeries = seriesId ? bySeries[seriesId] : null;
   const tone: SeriesTone = activeSeries?.tone ?? NEUTRAL_TONE;
-  const goShop = (id?: string) => { setSeriesId(id ?? seriesId ?? SERIES[0].id); setView("shop"); window.scrollTo({ top: 0 }); };
+  const goShop = (id?: string) => navigate("shop", id ?? seriesId ?? SERIES[0].id);
   if (view === "home") return <LandingHome
-    onStart={() => { setView("studio"); window.scrollTo({ top: 0 }); }}
+    onStart={() => navigate("studio", seriesId)}
     onShop={goShop}
   />;
   if (view === "shop") return <Shop
     seriesId={seriesId ?? SERIES[0].id}
-    onSelectSeries={setSeriesId}
+    onSelectSeries={(sid) => navigate("shop", sid, { push: false, scroll: false })}
     onBuy={(sid, pid) => openProduct(sid, pid, "buy")}
     onCustomize={(sid, pid) => openProduct(sid, pid, "customize")}
-    onHome={() => { setView("home"); window.scrollTo({ top: 0 }); }}
-    onBlankStudio={() => { setItems([]); setView("studio"); showNotice("空白的手鍊 — 從右側挑第一顆礦石開始"); window.scrollTo({ top: 0 }); }}
+    onHome={() => navigate("home", seriesId)}
+    onBlankStudio={() => { setItems([]); navigate("studio", seriesId); showNotice("空白的手鍊 — 從右側挑第一顆礦石開始"); }}
   />;
   return <main className={`studio ${drawerOpen ? "" : "drawer-collapsed"}`} style={activeSeries ? { "--series-accent": activeSeries.accent } as React.CSSProperties : undefined}>
     <DesignGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
@@ -218,8 +248,8 @@ export default function Home() {
     }>
       <Preview3D pieces={previewPieces} capacityMM={capacityMM} energy={dominant.key} onClose={() => setPreviewOpen(false)} />
     </Suspense>}
-    <header className="studio-head"><button className="wordmark" onClick={() => setView("home")}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
-    {view === "checkout" ? <Checkout lines={orderLines} spec={encodeDesign(items, wristCm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => setView("studio")} /> : <>
+    <header className="studio-head"><button className="wordmark" onClick={() => navigate("home", seriesId)}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
+    {view === "checkout" ? <Checkout lines={orderLines} spec={encodeDesign(items, wristCm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => navigate("studio", seriesId)} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span>{nearFull && <button className="wrist-hint" onClick={() => changeWrist(nextWrist as number)}>快滿了 · 改 {nextWrist} cm</button>}</span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
@@ -237,7 +267,7 @@ export default function Home() {
           removeByUid={removeByUid}
         />
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } setView("checkout"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } navigate("checkout", seriesId, { scroll: false }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <MaterialLibrary
