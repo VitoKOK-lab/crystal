@@ -202,7 +202,9 @@ button,input { font:inherit; } button { cursor:pointer; }
   .materials-panel .tabs button { padding:7px 5px; font-size:10px; }
   .materials-panel .search { display:none; }
   .library-label { margin:3px 14px 0; font-size:8px; }
-  .material-grid { grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:100px; grid-template-rows:1fr; gap:6px; overflow-x:auto; overflow-y:hidden; max-height:none; min-height:0; height:118px; flex:none; padding:5px 14px 8px; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+  /* 136px: the 118px card plus the energy-chip row — anything shorter crops
+     the price and size buttons out of the card. */
+  .material-grid { grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:100px; grid-template-rows:1fr; gap:6px; overflow-x:auto; overflow-y:hidden; max-height:none; min-height:0; height:146px; flex:none; padding:5px 14px 8px; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
   .material-card { min-height:0; scroll-snap-align:start; }
   .crystal-card { min-height:0; display:flex; flex-direction:column; }
   .crystal-card .card-main { flex:1; padding-top:3px; }
@@ -217,6 +219,10 @@ button,input { font:inherit; } button { cursor:pointer; }
   .crystal-card b,.material-card b { font-size:10px; }
   .crystal-card small,.material-card small { display:none; }
   .crystal-card em,.material-card em { margin-top:2px; font-size:8px; }
+  /* 窄卡只放最強的一個能量標籤，避免第二個被裁掉 */
+  .energy-chips { margin-top:2px; gap:2px; }
+  .energy-chips i { font-size:7px; padding:1px 5px; }
+  .energy-chips i:nth-child(2) { display:none; }
   .size-actions button { min-height:22px; font-size:8px; padding:0; }
   .selected-detail { display:none; }
   .empty-library { min-height:100px; }
@@ -605,13 +611,17 @@ button,input { font:inherit; } button { cursor:pointer; }
 .shop-intro h1 { margin:0 0 20px; color:#141414; font:400 clamp(26px,3vw,40px)/1.44 var(--display); letter-spacing:.07em; }
 .shop-intro > span { display:block; max-width:560px; margin:0 auto; color:#6b6b6b; font-size:12px; line-height:1.9; }
 
-.series-tabs { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; max-width:1120px; margin:0 auto; padding:0 clamp(16px,5vw,64px); }
-.series-tab { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:112px; padding:14px 20px; border:1px solid #e6e2d8; border-radius:0; background:#fff; transition:.18s; }
-.series-tab b { color:#141414; font:600 15px var(--display); letter-spacing:.05em; }
-.series-tab i { color:#8a8f93; font:normal 8px var(--sans); letter-spacing:.2em; }
-.series-tab em { color:#a8a29a; font:normal 8px var(--sans); letter-spacing:.12em; }
+/* 精簡膠囊列：首頁已經用大卡介紹過八個系列，這裡只負責切換，
+   一行放完、手機橫滑，不再重複一整面牆。 */
+.series-tabs { display:flex; justify-content:flex-start; flex-wrap:nowrap; gap:8px; max-width:1120px; margin:0 auto; padding:0 clamp(16px,5vw,64px) 4px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.series-tabs::-webkit-scrollbar { display:none; }
+@media (min-width:980px) { .series-tabs { justify-content:center; } }
+.series-tab { display:flex; flex-direction:row; align-items:baseline; gap:7px; flex:none; padding:9px 16px; border:1px solid #e6e2d8; border-radius:99px; background:#fff; transition:.18s; white-space:nowrap; }
+.series-tab b { color:#141414; font:600 13px var(--display); letter-spacing:.05em; }
+.series-tab i { color:#8a8f93; font:normal 8px var(--sans); letter-spacing:.16em; }
+.series-tab em { display:none; }
 .series-tab:hover { border-color:var(--tab-accent); }
-.series-tab.active { border-color:var(--tab-accent); box-shadow:inset 0 -3px 0 var(--tab-accent); }
+.series-tab.active { border-color:var(--tab-accent); box-shadow:inset 0 0 0 1px var(--tab-accent); }
 .series-tab.active i { color:var(--tab-accent); }
 
 .shop-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; max-width:1220px; margin:0 auto; padding:34px clamp(16px,5vw,64px) 20px; }
@@ -650,8 +660,8 @@ button,input { font:inherit; } button { cursor:pointer; }
   .lsr-card { padding:22px 10px 16px; }
   .lsr-card b { font-size:15px; }
   .shop-head { height:64px; padding:0 16px; }
-  .series-tab { min-width:0; flex:1 1 40%; padding:10px 8px; }
-  .series-tab b { font-size:13px; }
+  .series-tab { padding:8px 13px; }
+  .series-tab b { font-size:12px; }
   .sc-body { padding:12px 11px 8px; }
   .sc-name { font-size:13.5px; }
   .sc-tagline { font-size:9.5px; min-height:30px; }

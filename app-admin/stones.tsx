@@ -36,8 +36,8 @@ export function Stones({ catalog, reload, notify }: TabProps) {
       const totalStock = sizes.reduce((n, z) => n + z.stock, 0);
       return <div key={s.id} className={`card ${s.active ? "" : "inactive"}`}>
         <button className="row" onClick={() => setOpen(open === s.id ? null : s.id)}>
-          <img src={s.photo} alt="" />
-          <div><b>{s.zh}</b><small>{s.en}</small></div>
+          {s.photo ? <img src={s.photo} alt="" /> : <span className="no-photo">未上傳<br />照片</span>}
+          <div><b>{s.zh}</b><small>{s.en}{s.photo ? "" : " · 前台隱藏中"}</small></div>
           <div className="meta">NT$ {s.price}<small>庫存 {totalStock} 顆{s.active ? "" : " · 已下架"}</small></div>
         </button>
         {open === s.id && <StoneEditor stone={s} sizes={sizes} reload={reload} notify={notify} />}
