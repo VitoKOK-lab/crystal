@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { BASE_FEE, ItemVisual, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, type DesignItem } from "./catalog";
+import { ItemVisual, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, pricing, type DesignItem } from "./catalog";
 import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
 
 // A miniature of the real strand, using the studio's tangent-circle
@@ -55,7 +55,7 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
     return {
       product,
       items,
-      price: items.reduce((sum, it) => sum + itemPrice(it), BASE_FEE),
+      price: items.reduce((sum, it) => sum + itemPrice(it), pricing.baseFee),
       dominant: dominantOf(energyScores(items)),
       beads: items.filter((x) => x.kind === "stone").length,
     };

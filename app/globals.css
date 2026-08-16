@@ -272,6 +272,8 @@ button,input { font:inherit; } button { cursor:pointer; }
 .co-secondary { border:1px solid #141414; background:#fff; color:#141414; padding:15px 22px; border-radius:9px; font-size:13px; transition:.15s; }
 .co-secondary:hover { border-color:#8a6d1f; color:#8a6d1f; }
 .co-submit { width:100%; margin-top:22px; }
+.co-submit:disabled { opacity:.55; cursor:default; }
+.co-error { margin:12px 0 0; padding:10px 14px; text-align:center; color:#b04a4a; background:#fdf3f3; border:1px solid #eccfcf; border-radius:8px; font-size:13px; line-height:1.6; }
 .co-tip { margin:12px 0 0; text-align:center; color:#6b6b6b; font-size:10px; }
 /* success view */
 .done-view { display:grid; place-items:center; min-height:70vh; }

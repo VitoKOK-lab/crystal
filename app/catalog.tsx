@@ -231,10 +231,13 @@ export const WRIST_CHOICES = Array.from({ length: 19 }, (_, i) => 13 + i * 0.5);
 // bead diameters share it, so beads sit tangent along the cord — a 20mm bead
 // truly draws twice as wide as a 10mm one and neighbours never overlap.
 export const PCT_PER_MM = 0.95;
-// Design/stringing fee charged on every order regardless of materials —
-// the studio, shop cards and checkout all price off this one constant so a
-// displayed total can never drift from what checkout actually charges.
-export const BASE_FEE = 680;
+// Order-level pricing: the stringing fee charged on every order, and the
+// shipping rules checkout applies. The studio, shop cards and checkout all
+// price off this one object so a displayed total can never drift from what
+// checkout actually charges — and catalog-live overwrites it in place from
+// the database settings at boot, so the admin 設定 page drives every price
+// a customer sees.
+export const pricing = { baseFee: 680, shippingFee: 120, freeShippingOver: 3000 };
 
 export function itemMM(item: DesignItem) { if (item.kind === "stone") return mmOf(item); return byAccessory[item.id].type === "spacer" ? 5 : 3; }
 export function itemPrice(item: DesignItem) {

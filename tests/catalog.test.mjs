@@ -6,7 +6,7 @@ const catalog = await importCompiled("app/catalog.tsx");
 const {
   itemMM, itemPrice, energyScores, dominantOf, rarityOf, parseSpec, buildSpec,
   encodeDesign, decodeDesign, layoutStrand, anglesForWidths, centersForWidths,
-  WRIST_CHOICES, BASE_FEE, stones, accessories, byStone, byAccessory, ENERGY_META,
+  WRIST_CHOICES, pricing, stones, accessories, byStone, byAccessory, ENERGY_META,
   stoneSizes, accessoryStock, sizesFor, mmOf, stockOf, inStock, sizeWeight, DEFAULT_SIZES,
 } = catalog;
 
@@ -95,12 +95,12 @@ test("layoutStrand agrees with anglesForWidths/centersForWidths on the same item
   for (let i = 1; i < centers.length; i++) assert.ok(centers[i] > centers[i - 1], "centers must be strictly increasing");
 });
 
-test("ENERGY_META/WRIST_CHOICES/BASE_FEE have the shape the rest of the app assumes", () => {
+test("ENERGY_META/WRIST_CHOICES/pricing have the shape the rest of the app assumes", () => {
   assert.equal(ENERGY_META.length, 6);
   assert.equal(WRIST_CHOICES.length, 19);
   assert.equal(WRIST_CHOICES[0], 13);
   assert.equal(WRIST_CHOICES[WRIST_CHOICES.length - 1], 22);
-  assert.equal(BASE_FEE, 680);
+  assert.deepEqual(pricing, { baseFee: 680, shippingFee: 120, freeShippingOver: 3000 });
 });
 
 // --- Admin-defined size ladders (the database can give a stone any set of

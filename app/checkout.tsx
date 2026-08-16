@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { WRIST_CHOICES } from "./catalog";
+import { WRIST_CHOICES, pricing } from "./catalog";
 import { playConfirmBoom } from "./ui-sound";
 
-export type OrderLine = { key: string; visual: React.ReactNode; name: string; sub: string; qty: number; unit: number };
+// kind/id/mm ride along invisibly: they're what the order API needs to find
+// the exact stock rows (stone_sizes is keyed by stone_id+mm) to deduct.
+export type OrderLine = { key: string; visual: React.ReactNode; name: string; sub: string; qty: number; unit: number; kind: "stone" | "accessory"; id: string; mm?: number };
 type EnergyInfo = { zh: string; en: string; color: string };
 
 // Same wrist sizes the studio offers, formatted as the plain "16" / "16.5"
@@ -16,9 +18,10 @@ const PAYMENTS = [
   { id: "cod", name: "貨到付款", note: "宅配到府，取貨付款" },
 ] as const;
 
-export default function Checkout({ lines, baseFee, dominant, totalEnergy, initialWrist, onBack }: {
+export default function Checkout({ lines, spec, dominant, totalEnergy, initialWrist, onBack }: {
   lines: OrderLine[];
-  baseFee: number;
+  /** Compact design notation (encodeDesign) — the order's authoritative composition. */
+  spec: string;
   dominant: EnergyInfo;
   totalEnergy: number;
   initialWrist?: number;
@@ -30,13 +33,16 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
   const [form, setForm] = useState({ name: "", phone: "", email: "", wrist: initialWrist ? String(initialWrist % 1 ? initialWrist.toFixed(1) : initialWrist) : "16", address: "", note: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
+  const baseFee = pricing.baseFee;
   const itemsTotal = lines.reduce((s, l) => s + l.unit * l.qty, 0);
-  const shipping = itemsTotal + baseFee >= 3000 ? 0 : 120;
+  const shipping = itemsTotal + baseFee >= pricing.freeShippingOver ? 0 : pricing.shippingFee;
   const grand = itemsTotal + baseFee + shipping;
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { const v = e.target.value; setForm((f) => ({ ...f, [k]: v })); setErrors((er) => { if (!(k in er)) return er; const next = { ...er }; delete next[k]; return next; }); };
 
-  const submit = () => {
+  const submit = async () => {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = "請填寫收件人姓名";
     if (!/^09\d{8}$/.test(form.phone.trim())) errs.phone = "請填寫正確的手機號碼（09 開頭共 10 碼）";
@@ -44,10 +50,34 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
     if (!form.address.trim()) errs.address = "請填寫收件地址";
     setErrors(errs);
     if (Object.keys(errs).length) return;
-    setOrderId(`OMA-${Date.now().toString(36).toUpperCase()}`);
-    setStep("done");
-    playConfirmBoom();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim(),
+          address: form.address.trim(), note: form.note.trim(), wrist: form.wrist,
+          payment, spec,
+          lines: lines.map((l) => ({ kind: l.kind, id: l.id, mm: l.mm, qty: l.qty, unit: l.unit, name: l.name, sub: l.sub })),
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { id?: string; error?: string; shortages?: string[] } | null;
+      if (res.status === 409 && data?.shortages?.length) {
+        setSubmitError(`這些素材剛好賣完了：${data.shortages.join("、")}。回上一步把它們換掉，就能完成下單`);
+        return;
+      }
+      if (!res.ok || !data?.id) throw new Error(data?.error ?? `order failed (${res.status})`);
+      setOrderId(data.id);
+      setStep("done");
+      playConfirmBoom();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setSubmitError("訂單沒有送出去（網路或伺服器問題）。稍等一下再按一次，你填的資料都還在");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const orderText = () => [
@@ -123,7 +153,8 @@ export default function Checkout({ lines, baseFee, dominant, totalEnergy, initia
             <b>{p.name}</b><i>{p.note}</i>
           </button>)}
         </div>
-        <button className="co-primary co-submit" onClick={submit}>確認下單 · NT$ {grand.toLocaleString()} <span>→</span></button>
+        <button className="co-primary co-submit" onClick={submit} disabled={submitting}>{submitting ? "送出中…" : <>確認下單 · NT$ {grand.toLocaleString()} <span>→</span></>}</button>
+        {submitError && <p className="co-error">{submitError}</p>}
         <p className="co-tip">送出後由珠寶顧問與你確認細節，確認前不會請款。慢慢想，不急。</p>
       </div>
     </div>

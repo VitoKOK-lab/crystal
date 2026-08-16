@@ -5,6 +5,7 @@
 import { handleAdmin } from "./admin";
 import { handleAuth } from "./auth";
 import { Env, json } from "./lib";
+import { handleOrders } from "./orders";
 
 async function catalogPayload(env: Env) {
   const [stones, sizes, accessories, series, products, settings] = await Promise.all([
@@ -52,6 +53,9 @@ export default {
       if (cache) await cache.put(cacheKey, res.clone());
       return res;
     }
+
+    const orderRes = await handleOrders(request, env, url);
+    if (orderRes) return orderRes;
 
     const authRes = await handleAuth(request, env, url);
     if (authRes) return authRes;
