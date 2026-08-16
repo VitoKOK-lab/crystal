@@ -151,7 +151,6 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
       });
     }
     return new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.05, clearcoat: 0.65, clearcoatRoughness: 0.18 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [piece.id, piece.kind, piece.metal, sizeUnits]);
 
   return <mesh position={position} material={material} castShadow receiveShadow>
@@ -179,35 +178,31 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
     return t;
   }, [texture]);
   const side = (piece.isCharm ? CHARM_DISPLAY_MM : SPACER_DISPLAY_MM) * UNITS_PER_MM;
-  // Charm photos are canonical (bail at the top edge): centre the charm far
-  // enough past the cord that the bail overlaps it — same geometry as the
-  // 2D stage's orbit offset. Spacers thread centred on the cord.
-  const orbit = piece.isCharm ? radiusUnits + side * 0.37 : radiusUnits;
-  const x = Math.cos(angle) * orbit;
-  const z = Math.sin(angle) * orbit;
-  // Charms orient by the RADIAL direction (bail toward the ring's centre,
-  // body extending outward past the cord). Spacers orient by the TANGENT:
-  // their photos are shot with the drill axis vertical, and a threaded
-  // bead's drill axis runs along the cord — radial alignment made a ridged
-  // cylinder sit on the strand like a hat instead of being strung on it.
-  const orientDir = useMemo(() => piece.isCharm
-    ? new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle))
-    : new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)), [angle, piece.isCharm]);
+  const x = Math.cos(angle) * radiusUnits;
+  const z = Math.sin(angle) * radiusUnits;
+  // A charm dangles from its jump ring: gravity decides where it points,
+  // so it hangs straight down from its cord point wherever it sits on the
+  // ring (matching the 2D stage). Its photo is shot bail-up, so hanging
+  // means no in-plane roll at all — just drop it half a body so the bail
+  // still meets the cord. Spacers are threaded ON the cord, and their
+  // photos are shot with the drill axis vertical, so those roll to follow
+  // the TANGENT — a ridged cylinder must lie along the strand, not across
+  // it.
+  const y = piece.isCharm ? -side / 2 + side * 0.13 : 0;
+  const tangent = useMemo(() => new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)), [angle]);
   const groupRef = useRef<THREE.Group>(null);
   useFrame(({ camera }) => {
     const g = groupRef.current;
     if (!g) return;
-    // Face the camera, then roll in-plane so the sprite's up-axis tracks
-    // the screen projection of its orientation direction.
     g.quaternion.copy(camera.quaternion);
+    if (piece.isCharm) return; // camera-facing and upright: it hangs
+    // Spacers: roll in-plane so the sprite's up-axis tracks the screen
+    // projection of the cord's tangent.
     _camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
     _camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
-    const dx = orientDir.dot(_camRight);
-    const dy = orientDir.dot(_camUp);
-    const roll = piece.isCharm ? Math.atan2(dx, -dy) : Math.atan2(-dx, dy);
-    g.rotateZ(roll);
+    g.rotateZ(Math.atan2(-tangent.dot(_camRight), tangent.dot(_camUp)));
   });
-  return <group ref={groupRef} position={[x, 0, z]}>
+  return <group ref={groupRef} position={[x, y, z]}>
     {/* Nudged toward the camera so the cord's front half doesn't slice
         through the opaque part of the photo. */}
     <mesh position={[0, 0, cordRadius * 1.6 + 0.002]}>

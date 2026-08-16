@@ -6,8 +6,8 @@ const catalog = await importCompiled("app/catalog.tsx");
 const {
   itemMM, itemPrice, energyScores, dominantOf, rarityOf, parseSpec, buildSpec,
   encodeDesign, decodeDesign, layoutStrand, anglesForWidths, centersForWidths,
-  WRIST_CHOICES, BASE_FEE, stones, accessories, byStone, byAccessory, ENERGY_META,
-  stoneSizes, accessoryStock, sizesFor, mmOf, stockOf, inStock, sizeWeight, DEFAULT_SIZES,
+  WRIST_CHOICES, pricing, stones, accessories, byStone, byAccessory, ENERGY_META,
+  stoneSizes, accessoryStock, sizesFor, stockOf, inStock, sizeWeight, DEFAULT_SIZES,
 } = catalog;
 
 test("itemMM sizes stones by BeadSize and accessories by spacer/charm", () => {
@@ -95,12 +95,12 @@ test("layoutStrand agrees with anglesForWidths/centersForWidths on the same item
   for (let i = 1; i < centers.length; i++) assert.ok(centers[i] > centers[i - 1], "centers must be strictly increasing");
 });
 
-test("ENERGY_META/WRIST_CHOICES/BASE_FEE have the shape the rest of the app assumes", () => {
+test("ENERGY_META/WRIST_CHOICES/pricing have the shape the rest of the app assumes", () => {
   assert.equal(ENERGY_META.length, 6);
   assert.equal(WRIST_CHOICES.length, 19);
   assert.equal(WRIST_CHOICES[0], 13);
   assert.equal(WRIST_CHOICES[WRIST_CHOICES.length - 1], 22);
-  assert.equal(BASE_FEE, 680);
+  assert.deepEqual(pricing, { baseFee: 680, shippingFee: 120, freeShippingOver: 3000 });
 });
 
 // --- Admin-defined size ladders (the database can give a stone any set of
@@ -166,4 +166,14 @@ test("parseSpec accepts both legacy letters and numeric sizes", () => {
   const [a, b] = parseSpec("rose.x,rose.12");
   assert.equal(itemMM(a), 20);
   assert.equal(itemMM(b), 12);
+});
+
+// The admin's composition editor resolves spec tokens through specTokenMM;
+// the storefront resolves them through parseSpec/itemMM. Lock them together.
+test("specTokenMM agrees with parseSpec+itemMM for every token form", () => {
+  for (const [suffix, want] of [["x", 20], ["s", 8], ["l", 10], [undefined, 10], ["12", 12], ["6.5", 6.5]]) {
+    const token = suffix === undefined ? "rose" : `rose.${suffix}`;
+    assert.equal(catalog.specTokenMM(suffix), want, `specTokenMM(${suffix})`);
+    assert.equal(itemMM(parseSpec(token)[0]), want, `parseSpec(${token})`);
+  }
 });

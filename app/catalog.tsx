@@ -231,10 +231,13 @@ export const WRIST_CHOICES = Array.from({ length: 19 }, (_, i) => 13 + i * 0.5);
 // bead diameters share it, so beads sit tangent along the cord — a 20mm bead
 // truly draws twice as wide as a 10mm one and neighbours never overlap.
 export const PCT_PER_MM = 0.95;
-// Design/stringing fee charged on every order regardless of materials —
-// the studio, shop cards and checkout all price off this one constant so a
-// displayed total can never drift from what checkout actually charges.
-export const BASE_FEE = 680;
+// Order-level pricing: the stringing fee charged on every order, and the
+// shipping rules checkout applies. The studio, shop cards and checkout all
+// price off this one object so a displayed total can never drift from what
+// checkout actually charges — and catalog-live overwrites it in place from
+// the database settings at boot, so the admin 設定 page drives every price
+// a customer sees.
+export const pricing = { baseFee: 680, shippingFee: 120, freeShippingOver: 3000 };
 
 export function itemMM(item: DesignItem) { if (item.kind === "stone") return mmOf(item); return byAccessory[item.id].type === "spacer" ? 5 : 3; }
 export function itemPrice(item: DesignItem) {
@@ -273,6 +276,27 @@ export function dominantOf(scores: Record<EnergyType, number>) {
   return ENERGY_META.reduce((best, m) => (scores[m.key] > scores[best.key] ? m : best), ENERGY_META[0]);
 }
 
+// The stone↔energy lookup, made explicit: which stones carry an energy the
+// strongest (the answer to 「我缺 X 能量該選什麼」), and which dimensions a
+// design is currently weakest in (what the energy panel flags as gaps).
+export function stonesForEnergy(key: EnergyType, count = 3): Stone[] {
+  return [...stones].sort((a, b) => b.energy[key] - a.energy[key]).slice(0, count);
+}
+export function weakestEnergies(scores: Record<EnergyType, number>, count = 2) {
+  return [...ENERGY_META].sort((a, b) => scores[a.key] - scores[b.key]).slice(0, count);
+}
+// A stone's strongest energies, for the badge row on its material card.
+export function topEnergiesOf(stone: Stone, count = 2) {
+  return [...ENERGY_META].sort((a, b) => stone.energy[b.key] - stone.energy[a.key]).slice(0, count);
+}
+// The size the studio adds when the customer doesn't pick one: 10mm if the
+// ladder offers it, else the second rung (shared by the material grid and
+// the energy panel's quick-add).
+export function defaultStoneMM(stoneId: string): number {
+  const ladder = sizesFor(stoneId);
+  return (ladder.find((s) => s.mm === 10) ?? ladder[Math.min(1, ladder.length - 1)]).mm;
+}
+
 // Strand geometry shared by every renderer that arranges items around a
 // ring: the studio stage, shop-card thumbnails, the share-card canvas and
 // the 360° preview. Converts cumulative widths into the angle each item's
@@ -309,6 +333,12 @@ export const buildSpec = (spec: [string, BeadSize?][]): DesignItem[] => spec.map
 // `.s` 8mm, anything else 10mm) or a plain number for admin-defined sizes
 // (`.12` = 12mm). Letters are kept forever so every share link and product
 // spec written before custom sizes existed still decodes.
+//
+// specTokenMM is the one place that mapping lives as plain arithmetic — the
+// admin's composition editor prices and stock-checks specs through it, so
+// any change to the notation lands on both sides at once.
+export const specTokenMM = (sz?: string): number =>
+  sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : sz === "x" ? BEAD_MM.xlarge : sz === "s" ? BEAD_MM.small : BEAD_MM.large;
 function stoneToken(id: string, sz: string | undefined): DesignItem {
   const mm = sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : undefined;
   if (mm && mm > 0 && mm <= 40) return { kind: "stone", id, mm, uid: nextUid() };
@@ -318,10 +348,18 @@ const sizeSuffix = (it: DesignItem) => it.mm !== undefined
   ? String(it.mm)
   : it.size === "xlarge" ? "x" : it.size === "small" ? "s" : "l";
 
+// A token is "<id>" or "<id>.<size>". Split on the FIRST dot only: sizes
+// can be fractional ("rose.6.5" is a 6.5mm rose), so a naive split(".")
+// would silently truncate them.
+export function splitSpecToken(token: string): [string, string | undefined] {
+  const dot = token.indexOf(".");
+  return dot < 0 ? [token, undefined] : [token.slice(0, dot), token.slice(dot + 1)];
+}
+
 // Compact spec notation used by the series catalogue: "obsidian.x,obsidian.l,gold-hex".
 export function parseSpec(spec: string): DesignItem[] {
   return spec.split(",").map((token) => {
-    const [id, sz] = token.trim().split(".");
+    const [id, sz] = splitSpecToken(token.trim());
     if (byAccessory[id]) return { kind: "accessory", id, uid: nextUid() } as DesignItem;
     return stoneToken(id, sz);
   });
@@ -336,7 +374,7 @@ export function decodeDesign(code: string): { wrist: number; items: DesignItem[]
     if (!WRIST_CHOICES.includes(wrist) || !list) return null;
     const items: DesignItem[] = [];
     for (const token of list.split(",")) {
-      const [id, sz] = token.split(".");
+      const [id, sz] = splitSpecToken(token);
       if (byStone[id]) items.push(stoneToken(id, sz));
       else if (byAccessory[id]) items.push({ kind: "accessory", id, uid: nextUid() });
       else return null;

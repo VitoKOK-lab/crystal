@@ -1,4 +1,19 @@
-@import "tailwindcss";
+/* Base reset. This replaces the old `@import "tailwindcss"` — the site never
+   used utility classes, only Tailwind's preflight, so these rules reproduce
+   the preflight behaviours the stylesheet below actually leans on. */
+*, ::before, ::after { box-sizing: border-box; border: 0 solid #e5e7eb; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; line-height: 1.5; }
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: inherit; }
+b, strong { font-weight: bolder; }
+small { font-size: 80%; }
+button, input, optgroup, select, textarea { font: inherit; letter-spacing: inherit; color: inherit; }
+button, select { text-transform: none; }
+button, [type="button"], [type="submit"] { -webkit-appearance: button; background-color: transparent; background-image: none; cursor: pointer; }
+img, svg, video, canvas { display: block; vertical-align: middle; }
+img, video { max-width: 100%; height: auto; }
+:disabled { cursor: default; }
 
 /* Self-hosted rather than linked from a CDN: the pages are static on GitHub
    Pages, and a webfont that arrives late is exactly what makes a display
@@ -45,7 +60,7 @@ button,input { font:inherit; } button { cursor:pointer; }
 .wrist-bar.full i { background:#c44848; }.price { text-align:right; }.price b { color:#8a6d1f; font:500 20px var(--display); letter-spacing:.04em; }
 .bracelet-stage { width:min(650px,92%); aspect-ratio:1 / 1; height:auto; margin:10px auto 0; }.table-shadow { position:absolute; left:16%; right:16%; bottom:54px; height:105px; background:radial-gradient(ellipse,#1e6e6920,transparent 68%); filter:blur(8px); }
 .bracelet-string { position:absolute; z-index:1; border:2px solid #14141455; border-radius:50%; box-shadow:inset 0 0 0 1px #ffffff, 0 3px 3px #00000022; }
-.design-item { position:absolute; z-index:4; display:grid; place-items:center; width:68px; height:68px; padding:4px; border:0; border-radius:50%; background:transparent; touch-action:none; user-select:none; transition:left .22s ease,top .22s ease,transform .16s,filter .16s; }.design-item:hover { z-index:6; filter:brightness(1.06); }.design-item:has(.crystal.small),.design-item:has(.hardware.spacer) { width:48px;height:48px; }.design-item.is-charm { width:82px; height:82px; }.remove-mark { position:absolute; right:0; top:0; z-index:5; display:grid; place-items:center; width:18px; height:18px; border-radius:50%; background:#141414; color:#fff; font-size:14px; opacity:0; transform:scale(.75); transition:.16s; }.design-item:hover .remove-mark { opacity:1; transform:scale(1); }
+.design-item { position:absolute; z-index:4; display:grid; place-items:center; width:68px; height:68px; padding:4px; border:0; border-radius:50%; background:transparent; touch-action:none; user-select:none; transition:left .22s ease,top .22s ease,transform .16s,filter .16s; }.design-item:hover { z-index:6; filter:brightness(1.06); }.design-item:has(.crystal.small),.design-item:has(.hardware.spacer) { width:48px;height:48px; }.design-item.is-charm { width:82px; height:82px; z-index:5; }.remove-mark { position:absolute; right:0; top:0; z-index:5; display:grid; place-items:center; width:18px; height:18px; border-radius:50%; background:#141414; color:#fff; font-size:14px; opacity:0; transform:scale(.75); transition:.16s; }.design-item:hover .remove-mark { opacity:1; transform:scale(1); }
 .crystal { position:relative; display:block; width:56px;height:56px;overflow:hidden;border-radius:50%; }.crystal.small { width:37px;height:37px; }
 .crystal.photo img,.hardware.photo img { display:block; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 6px 6px #1a2c2b2b); }
 .hardware { position:relative; display:grid; place-items:center; width:54px;height:54px;border-radius:50%; }
@@ -56,6 +71,9 @@ button,input { font:inherit; } button { cursor:pointer; }
 .materials-panel { position:relative;display:flex;flex-direction:column;min-height:820px;overflow:hidden;background:#ffffff;border-left:1px solid var(--line); }.materials-head { padding:30px 32px 22px;background:linear-gradient(125deg,#ffffff 0 64%,#f6f4ee 140%); }.materials-head p,.selected-detail p { margin:0 0 10px;color:#b8923f;font-size:9px;letter-spacing:.19em; }.materials-head h1 { margin:0;color:#141414;font:31px/1.18 var(--display);letter-spacing:.02em; }.materials-head h1 em { color:#8a6d1f;font-style:italic; }.materials-head>span { display:block;margin-top:13px;max-width:370px;color:#6b6b6b;font-size:11px;line-height:1.7; }.tabs { display:grid;grid-template-columns:repeat(3,1fr);padding:0 20px;border-bottom:1px solid var(--line); }.tabs button { padding:15px 5px 13px;border:0;border-bottom:2px solid transparent;background:transparent;color:#6b6b6b;font-size:11px; }.tabs .active { border-color:#141414;color:#141414;font-weight:bold; }.search { display:flex;align-items:center;gap:9px;margin:16px 24px 4px;padding:10px 12px;border:1px solid #141414;background:#fff;color:#6b6b6b; }.search input { width:100%;border:0;outline:0;background:transparent;color:#141414;font-size:11px; }.material-grid { flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;overflow:auto;padding:12px 24px 18px; }.material-card { min-height:151px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px;border:1px solid #dedad0;background:#fff;color:#2a2a2a;transition:.16s; }.material-card:hover,.material-card.selected { border-color:#141414;box-shadow:0 9px 18px #14141414;transform:translateY(-2px); }.visual-wrap { position:relative;display:grid;place-items:center;width:56px;height:60px; }.visual-wrap>span { position:absolute;right:-5px;bottom:1px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#141414;color:#fff;box-shadow:0 2px 7px #00000030;font-size:15px; }.material-card b { margin-top:8px;font-size:11px; }.material-card small { display:block;max-width:95%;margin-top:3px;overflow:hidden;color:#8a8f93;font-size:8px;text-overflow:ellipsis;white-space:nowrap; }.material-card em { margin-top:6px;color:#b8923f;font-size:9px;font-style:normal; }.selected-detail { display:grid;grid-template-columns:68px 1fr auto;gap:12px;align-items:center;padding:16px 24px;border-top:1px solid var(--line);background:#faf9f6; }.detail-visual { display:grid;place-items:center;width:64px;height:64px;background:#fff;border:1px solid #dedad0;border-radius:50%;box-shadow:0 5px 12px #00000010; }.selected-detail p { margin-bottom:5px;font-size:8px; }.selected-detail b { display:block;color:#141414;font:15px var(--display); }.selected-detail span { display:block;margin-top:5px;color:#6b6b6b;font-size:9px;line-height:1.5; }.selected-detail>button { border:0;background:#141414;color:#fff;padding:10px;font-size:10px;white-space:nowrap; }.selected-detail strong { color:#c9a355;font-size:14px; }.atelier-note { padding:86px 20px;text-align:center;color:#fff;background:radial-gradient(circle at 30% 20%,#2a2a2a,transparent 60%),#141414; }.atelier-note p { margin:0;color:#c9a355;font-size:9px;letter-spacing:.25em; }.atelier-note h2 { margin:15px 0;color:#fff;font:34px var(--display); }.atelier-note span { display:block;max-width:570px;margin:auto;color:#d8d8d8;font-size:12px;line-height:1.8; }
 @media (max-width:980px) { .studio-shell { grid-template-columns:1fr; }.materials-panel { min-height:0;border-left:0;border-top:1px solid var(--line); }.material-grid { max-height:560px; }.bracelet-stage { width:min(540px,100%); }.canvas-panel { min-height:650px;padding:22px 16px; }.head-note { display:none; } }
 @media (max-width:560px) { .studio-head { height:64px;padding:0 16px; }.wordmark { font-size:18px; }.studio-head .quiet { font-size:10px; }.canvas-top { align-items:flex-start; }.stats { gap:9px; }.stats span:nth-child(3) { display:none; }.stats small,.price small { font-size:7px; }.stats b { font-size:12px; }.price b { font-size:15px; }.bracelet-stage { width:100%;margin-top:15px; }.design-item { width:51px;height:51px; }.design-item:has(.crystal.xlarge) { width:72px;height:72px; }.design-item.is-charm { width:61px;height:61px; }.crystal { width:45px;height:45px; }.crystal.xlarge { width:62px;height:62px; }.crystal.large { width:45px;height:45px; }.crystal.small { width:37px;height:37px; }.hardware { width:43px;height:43px; }.hardware.charm { width:50px;height:50px; }.stage-tip { font-size:8px;bottom:3px; }.canvas-actions { gap:5px; }.canvas-actions button { padding:10px 8px;font-size:9px; }.canvas-actions .primary { padding-inline:10px; }.materials-head { padding:25px 19px 18px; }.materials-head h1 { font-size:27px; }.tabs { padding-inline:9px; }.tabs button { font-size:10px; }.search { margin-inline:14px; }.material-grid { grid-template-columns:repeat(3,1fr);padding:10px 14px;gap:6px; }.material-card { min-height:128px; }.selected-detail { padding:13px 14px;grid-template-columns:58px 1fr auto;gap:8px; }.detail-visual { width:54px;height:54px; }.selected-detail span { font-size:8px; }.atelier-note { padding:62px 22px; }.atelier-note h2 { font-size:27px; } }
+/* 每顆石頭最強的兩個能量，直接標在素材卡上 */
+.energy-chips { display:flex;gap:4px;margin-top:4px; }
+.energy-chips i { font-style:normal;font-size:7.5px;letter-spacing:.04em;color:var(--chip);border:1px solid color-mix(in srgb, var(--chip) 45%, transparent);border-radius:99px;padding:1px 6px;background:color-mix(in srgb, var(--chip) 9%, transparent); }
 .library-label { display:flex;justify-content:space-between;align-items:center;margin:3px 24px 0;color:#6b6b6b;font-size:9px;letter-spacing:.08em; }.library-label b { color:#8a6d1f;font-weight:normal; }.material-grid { align-content:start;min-height:360px; }.material-card i { margin-top:5px;color:#8a8f93;font-size:8px;font-style:normal; }.crystal-card { display:block;min-height:180px;padding:0;overflow:hidden; }.card-main { display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:9px 4px 6px;border:0;background:transparent;color:#2a2a2a; }.size-actions { display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #ececec; }.size-actions button { min-height:31px;border:0;background:#faf9f6;color:#4b4b4b;font-size:8px; }.size-actions button + button { border-left:1px solid #ececec; }.size-actions button:hover { background:#f3f1ec;color:#8a6d1f; }.empty-library { grid-column:1/-1;display:flex;min-height:220px;flex-direction:column;align-items:center;justify-content:center;border:1px dashed #dedad0;color:#6b6b6b;text-align:center; }.empty-library b { font:16px var(--display); }.empty-library span { margin-top:8px;color:#8a8f93;font-size:10px; }
 
 /* 20 / 10 / 8 mm are deliberately distinct, so the bracelet reads like a real mixed-size strand. */
@@ -86,6 +104,18 @@ button,input { font:inherit; } button { cursor:pointer; }
 .ep-total { display:flex; align-items:center; justify-content:space-between; margin-top:9px; padding:8px 12px; border-radius:10px; background:#00000040; border:1px solid #ffd76a33; }
 .ep-total span { color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
 .ep-total b { color:#ffd76a; font:600 17px var(--display); letter-spacing:.04em; text-shadow:0 0 12px #ffd76a55; }
+/* 能量缺口：最弱的兩個維度 + 一鍵補石 */
+.ep-gaps { margin-top:9px; padding-top:8px; border-top:1px solid #ffffff14; }
+.ep-gaps > p { margin:0 0 6px; color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
+.ep-gap { display:flex; align-items:center; gap:8px; padding:4px 0; }
+.ep-gap-name { flex:1 1 auto; display:flex; flex-direction:column; gap:1px; min-width:52px; }
+.ep-gap-name b { font-size:10px; letter-spacing:.1em; }
+.ep-gap-name i { font-style:normal; color:#9cc4bf; font-size:8px; }
+.ep-gap-stones { display:flex; gap:5px; }
+.ep-gap-stones button { display:flex; flex-direction:column; align-items:center; gap:2px; width:40px; padding:3px 2px; border:1px solid #ffffff1c; border-radius:8px; background:#ffffff0d; cursor:pointer; transition:.15s; }
+.ep-gap-stones button:hover { border-color:#ffd76a88; background:#ffd76a1a; transform:translateY(-1px); }
+.ep-gap-stones img { width:24px; height:24px; object-fit:contain; }
+.ep-gap-stones i { font-style:normal; color:#eafffc; font-size:8px; white-space:nowrap; }
 
 /* ── Bracelet centre: dominant energy display ────────────────────── */
 /* z-index above .design-item (4) / its hover state (6) so beads can never
@@ -271,7 +301,89 @@ button,input { font:inherit; } button { cursor:pointer; }
 .co-primary span { margin-left:10px; color:#c9a355; }
 .co-secondary { border:1px solid #141414; background:#fff; color:#141414; padding:15px 22px; border-radius:9px; font-size:13px; transition:.15s; }
 .co-secondary:hover { border-color:#8a6d1f; color:#8a6d1f; }
+/* 頂端公告列 */
+.announce-bar { display:flex; justify-content:center; padding:8px 14px; background:#141414; color:#e8dcbf; font-size:10.5px; letter-spacing:.12em; text-align:center; }
+.announce-bar button { border:0; background:transparent; color:#e8dcbf; font-size:10.5px; letter-spacing:.12em; cursor:pointer; text-decoration:underline; text-underline-offset:3px; text-decoration-color:#c9a35566; }
+.announce-bar span, .announce-bar button { animation:announce-in .4s ease; }
+@keyframes announce-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+/* 結帳頁的製作承諾 */
+.co-promise { display:flex; flex-direction:column; gap:7px; margin-top:18px; padding:14px 16px; border:1px solid #eee9dd; border-radius:10px; background:#fdfcf9; }
+.co-promise b { color:#8a6d1f; font-size:10px; letter-spacing:.18em; }
+.co-promise span { color:#6b6b6b; font-size:10.5px; line-height:1.7; }
+
+/* 生日選石測驗 */
+.quiz { min-height:100vh; background:#faf9f6; }
+.quiz-form, .quiz-result { max-width:640px; margin:0 auto; padding:34px 24px 80px; text-align:center; }
+.quiz-form h1, .quiz-result h1 { margin:10px 0 4px; font:34px/1.2 var(--display); color:#141414; }
+.quiz-sub { display:block; margin:10px auto 0; max-width:440px; color:#6b6b6b; font-size:12px; line-height:1.8; }
+.quiz-fields { display:flex; flex-direction:column; gap:14px; margin:26px 0 8px; text-align:left; }
+.quiz-fields label { display:flex; flex-direction:column; gap:6px; color:#6b6b6b; font-size:11px; letter-spacing:.05em; }
+.quiz-fields input { padding:12px 14px; border:1px solid #dedad0; border-radius:8px; background:#fff; font-size:14px; }
+.quiz-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.quiz-chips button { padding:9px 18px; border:1px solid #dedad0; border-radius:99px; background:#fff; color:#6b6b6b; font-size:12px; transition:.15s; }
+.quiz-chips button.on { border-color:var(--chip); color:var(--chip); background:color-mix(in srgb, var(--chip) 9%, #fff); font-weight:bold; }
+.quiz-form .landing-cta, .quiz-result .landing-cta { margin-top:18px; }
+.quiz-lack { margin:10px auto 0; max-width:460px; color:#6b6b6b; font-size:13px; line-height:1.8; }
+.quiz-lack b { margin:0 2px; }
+.quiz-preview { position:relative; width:230px; height:230px; margin:18px auto 8px; }
+.quiz-stones { display:flex; flex-direction:column; gap:10px; margin:16px 0 6px; text-align:left; }
+.quiz-stone { display:grid; grid-template-columns:64px 1fr; gap:14px; align-items:center; padding:14px 16px; background:#fff; border:1px solid #e6e2d8; border-radius:12px; }
+.quiz-stone img { width:64px; height:64px; object-fit:contain; }
+.qs-role { display:block; color:#8a8f93; font-size:9px; letter-spacing:.14em; }
+.qs-role b { letter-spacing:.14em; }
+.qs-name { display:block; margin-top:3px; font:17px var(--display); color:#141414; }
+.qs-name i { color:#8a8f93; font-size:10px; font-style:normal; letter-spacing:.06em; }
+.quiz-stone p { margin:5px 0 0; color:#4b4b4b; font-size:12px; line-height:1.7; }
+.quiz-stone small { display:block; margin-top:3px; color:#8a8f93; font-size:10px; }
+.quiz-note { margin:14px auto 0; max-width:420px; color:#8a8f93; font-size:10px; line-height:1.7; }
+
+/* 靈感藝廊 */
+.gallery { min-height:100vh; background:#faf9f6; }
+.gal-filters { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:6px 20px 20px; }
+.gal-filters button { padding:8px 18px; border:1px solid #dedad0; border-radius:99px; background:#fff; color:#6b6b6b; font-size:11px; letter-spacing:.08em; transition:.15s; }
+.gal-filters button.on { border-color:var(--chip,#141414); color:var(--chip,#141414); background:color-mix(in srgb, var(--chip,#141414) 8%, #fff); font-weight:bold; }
+.gal-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; max-width:1080px; margin:0 auto; padding:0 24px 70px; }
+.gal-card { background:#fff; border:1px solid #e6e2d8; border-radius:14px; overflow:hidden; transition:.16s; }
+.gal-card:hover { border-color:#141414; box-shadow:0 12px 26px #14141414; transform:translateY(-2px); }
+.gal-open { display:flex; flex-direction:column; align-items:center; width:100%; padding:16px 12px 16px; border:0; background:transparent; text-align:center; }
+.gal-open .shop-thumb { width:150px; height:150px; position:relative; }
+.gal-open b { margin-top:10px; font:16px var(--display); color:#141414; }
+.gal-open small { margin-top:2px; color:#8a8f93; font-size:9px; letter-spacing:.08em; }
+.gal-meta { display:flex; align-items:center; gap:8px; margin-top:7px; font-size:9px; }
+.gal-meta em { font-style:normal; letter-spacing:.12em; font-weight:bold; }
+.gal-meta i { font-style:normal; color:#8a8f93; }
+.gal-price { margin-top:6px; color:#8a6d1f; font-size:11px; }
+.gal-modal-overlay { position:fixed; inset:0; z-index:80; display:grid; place-items:center; padding:18px; background:#141414a8; backdrop-filter:blur(3px); }
+.gal-modal { position:relative; display:grid; grid-template-columns:280px 1fr; gap:8px; width:min(760px,100%); max-height:88vh; overflow:auto; background:#fff; border-radius:16px; box-shadow:0 30px 80px #00000059; }
+.gal-close { position:absolute; top:10px; right:12px; z-index:2; border:0; background:transparent; color:#6b6b6b; font-size:16px; }
+.gal-modal-vis { display:grid; place-items:center; padding:26px 8px; background:#faf9f6; }
+.gal-modal-vis .shop-thumb { width:230px; height:230px; position:relative; }
+.gal-modal-body { padding:26px 26px 24px 12px; }
+.gal-eyebrow { margin:0; color:#8a8f93; font-size:9px; letter-spacing:.1em; }
+.gal-eyebrow b { letter-spacing:.14em; }
+.gal-modal-body h2 { margin:6px 0 2px; font:24px var(--display); color:#141414; }
+.gal-tagline { display:block; color:#6b6b6b; font-size:11px; line-height:1.7; }
+.gal-bom { margin-top:14px; border:1px solid #eee9dd; border-radius:10px; padding:6px 12px; background:#fdfcf9; }
+.gal-bom-line { display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid #f2eee4; font-size:11px; }
+.gal-bom-line:last-child { border-bottom:0; }
+.gb-name { color:#141414; }
+.gb-name i { display:block; margin-top:1px; color:#8a8f93; font-style:normal; font-size:9px; line-height:1.5; }
+.gb-qty { color:#8a8f93; }
+.gal-bom-line b { color:#141414; font-size:11px; }
+.gal-bom-line.fee .gb-name, .gal-bom-line.fee b { color:#6b6b6b; }
+.gal-bom-line.total b { color:#8a6d1f; font-size:13px; }
+.gal-ctas { display:flex; gap:10px; margin-top:16px; }
+.gal-ctas .co-primary { flex:1; }
+@media (max-width:640px) {
+  .gal-modal { grid-template-columns:1fr; }
+  .gal-modal-vis { padding:18px; }
+  .gal-modal-body { padding:0 20px 22px; }
+}
+
 .co-submit { width:100%; margin-top:22px; }
+.co-submit:disabled { opacity:.55; cursor:default; }
+.co-error { margin:12px 0 0; padding:10px 14px; text-align:center; color:#b04a4a; background:#fdf3f3; border:1px solid #eccfcf; border-radius:8px; font-size:13px; line-height:1.6; }
 .co-tip { margin:12px 0 0; text-align:center; color:#6b6b6b; font-size:10px; }
 /* success view */
 .done-view { display:grid; place-items:center; min-height:70vh; }

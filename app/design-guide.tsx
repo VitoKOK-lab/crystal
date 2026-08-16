@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { accessories, stones } from "./catalog";
 
 export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [step, setStep] = useState(0);
@@ -13,8 +14,8 @@ export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onCl
     },
     {
       title: "CHOOSE THE STONES",
-      subtitle: "二十一種天然礦石",
-      description: "另有三十七款隔珠與吊飾。每一種的稀有度與能量強度都不同，被吸引的就先放上去。"
+      subtitle: `${stones.length} 種天然礦石`,
+      description: `另有 ${accessories.length} 款隔珠與吊飾。每張素材卡都標著這顆石頭最強的能量，被吸引的就先放上去。`
     },
     {
       title: "SET THE ORDER",
@@ -25,6 +26,11 @@ export default function DesignGuide({ isOpen, onClose }: { isOpen: boolean; onCl
       title: "SEE WHAT YOU WEAR",
       subtitle: "六個維度，即時運算",
       description: "財富、愛情、療癒、守護、專注、力量。你在意什麼，戴上之前就已經看見。"
+    },
+    {
+      title: "MIND THE GAPS",
+      subtitle: "缺什麼，補什麼",
+      description: "能量表會標出這條手鍊目前最弱的維度，並推薦最能補它的礦石——點一顆，直接加進手鍊。"
     },
     {
       title: "KEEP IT, OR SHARE IT",

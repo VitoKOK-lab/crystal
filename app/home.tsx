@@ -99,6 +99,8 @@ function HeroMedia() {
   </div>;
 }
 
+import AnnounceBar from "./announce";
+
 const FEATURES = [
   { en: "CHOSEN FOR YOU", title: "已為你設想過", body: "八個系列、各四款，從 8mm 細繩到 20mm 大顆，無一重複。不知從何開始時，就從已經被想過的地方開始。" },
   { en: "MADE BY YOUR HAND", title: "或親手完成", body: "二十一種天然礦石、三十七款隔珠與吊飾，任你排列。哪一顆貼著腕內側，只有你知道。" },
@@ -123,12 +125,15 @@ function useScrollReveal() {
   return rootRef;
 }
 
-export default function Home({ onStart, onShop }: { onStart: () => void; onShop: (seriesId?: string) => void }) {
+export default function Home({ onStart, onShop, onGallery, onQuiz }: { onStart: () => void; onShop: (seriesId?: string) => void; onGallery: () => void; onQuiz: () => void }) {
   const rootRef = useScrollReveal();
   return <div className="landing" ref={rootRef}>
+    <AnnounceBar onQuiz={onQuiz} onGallery={onGallery} />
     <header className="landing-nav">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
       <div className="landing-nav-links">
+        <button className="landing-nav-quiet" onClick={onQuiz}>生日選石</button>
+        <button className="landing-nav-quiet" onClick={onGallery}>靈感藝廊</button>
         <button className="landing-nav-quiet" onClick={() => onShop()}>系列</button>
         <button className="landing-nav-cta" onClick={onStart}>工作室</button>
       </div>
