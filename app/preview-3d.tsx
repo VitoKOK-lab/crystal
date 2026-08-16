@@ -5,26 +5,32 @@ import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef, type CSSProperties } from "react";
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
+import { SF_STONE_TEXTURES } from "./bead-textures";
 import { anglesForWidths } from "./catalog";
 
 export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean; id: string; kind: "stone" | "accessory" };
 
 // Real WebGL 3D preview: physically-shaded spheres, not the flat top-down
-// product photos. A photo mapped onto a sphere would expose the drill hole
-// every real strung bead has through its centre (and wouldn't wrap
-// correctly around a sphere anyway) — PBR shading with a colour sampled
-// from the photo sidesteps both problems entirely, since there's no photo
-// on the geometry at all.
+// product photos. A whole photo mapped onto a sphere would bake its
+// silhouette shading into the surface and break under rotation — so beads
+// are shaded live by the engine, over an albedo texture that carries only
+// the mineral's pattern (hand-prompted seamless maps for the catalog-baked
+// stones, lighting-flattened crops cut from each stone's own photo for the
+// database-seeded expansion; see scripts/derive-bead-textures.py).
 //
 // Stones whose real mineral character is translucent/transparent get a
-// glass-like transmission material; this is judged by mineralogy (a lookup),
-// not by the sampled photo colour, which can't tell translucent from opaque
-// on its own.
+// glass-like transmission material; this is judged by mineralogy (a lookup
+// plus a name test for the database-seeded expansion, whose ids encode the
+// mineral family), not by the sampled photo colour, which can't tell
+// translucent from opaque on its own.
 const TRANSLUCENT_STONES = new Set(["clear", "amethyst", "citrine", "rose", "aqua", "smoky", "fluorite", "moon"]);
+const TRANSLUCENT_FAMILY = /quartz|amethyst|citrine|aquamarine|moonstone|fluorite|kunzite|phantom|crystal/;
+const isTranslucent = (id: string) => TRANSLUCENT_STONES.has(id) || TRANSLUCENT_FAMILY.test(id);
 // 切面 stones render as real faceted polyhedra (coarse sphere + flat
 // shading = diamond-cut facet rows), matching their 2D product photos —
 // a smooth ball under a dark texture just read as a plain marble.
 const FACETED_STONES = new Set(["obsidian", "tiger-eye", "hematite", "goldstone"]);
+const isFaceted = (id: string) => FACETED_STONES.has(id) || id.includes("faceted");
 // Porous matte stones: no lacquer-gloss clearcoat, high roughness.
 const MATTE_STONES = new Set(["lava"]);
 
@@ -83,8 +89,8 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     // isn't tinted twice, and let clearcoat supply the polish. The quartz
     // family keeps a milky translucency underneath its texture — that depth
     // is what separates crystal from painted ceramic.
-    const translucent = TRANSLUCENT_STONES.has(piece.id);
-    const faceted = FACETED_STONES.has(piece.id);
+    const translucent = isTranslucent(piece.id);
+    const faceted = isFaceted(piece.id);
     const matte = MATTE_STONES.has(piece.id);
     const mat = new THREE.MeshPhysicalMaterial({
       map, color: "#ffffff",
@@ -125,7 +131,7 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
   // Faceted stones use a deliberately coarse sphere: with flat shading,
   // its quad rows read exactly like the 64-facet diamond cut of the
   // product photos. Smooth stones keep the fine mesh.
-  const segments: [number, number] = FACETED_STONES.has(piece.id) ? [14, 10] : [48, 48];
+  const segments: [number, number] = isFaceted(piece.id) ? [14, 10] : [48, 48];
   return <mesh position={position} quaternion={quaternion} material={material} castShadow receiveShadow>
     <sphereGeometry args={[sizeUnits / 2, segments[0], segments[1]]} />
   </mesh>;
@@ -140,7 +146,7 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
       return new THREE.MeshPhysicalMaterial({ color, metalness: 0.92, roughness: 0.22, clearcoat: 0.4, clearcoatRoughness: 0.25 });
     }
     const color = STONE_COLORS[piece.id] ?? "#a8a8a8";
-    if (TRANSLUCENT_STONES.has(piece.id)) {
+    if (isTranslucent(piece.id)) {
       // Milky-translucent, not window-glass: at transmission 0.88 the white
       // backdrop shone straight through and washed every quartz out to a
       // pale ghost (and moonstone picked up its neighbours' colours like a
@@ -216,7 +222,7 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
 
 function AnyBead(props: { piece: PreviewPiece; angle: number; radiusUnits: number; cordRadius: number }) {
   if (props.piece.kind === "accessory" && props.piece.src) return <AccessoryPiece {...props} />;
-  const textureUrl = props.piece.kind === "stone" ? STONE_TEXTURES[props.piece.id] : undefined;
+  const textureUrl = props.piece.kind === "stone" ? STONE_TEXTURES[props.piece.id] ?? SF_STONE_TEXTURES[props.piece.id] : undefined;
   if (textureUrl) return <TexturedStoneBead {...props} textureUrl={textureUrl} />;
   return <Bead {...props} />;
 }
