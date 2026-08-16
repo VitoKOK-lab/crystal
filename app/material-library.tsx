@@ -1,6 +1,6 @@
 "use client";
 
-import { ItemVisual, RARITY_LABEL, defaultStoneMM, inStock, itemPrice, rarityOf, sizesFor, topEnergiesOf, type Accessory, type DesignItem, type Stone } from "./catalog";
+import { COLOR_GROUPS, ENERGY_META, ItemVisual, RARITY_LABEL, defaultStoneMM, inStock, itemPrice, rarityOf, sizesFor, topEnergiesOf, type Accessory, type ColorGroupKey, type DesignItem, type Stone } from "./catalog";
 import { PRESETS } from "./presets";
 
 type Tab = "crystal" | "spacer" | "charm";
@@ -11,6 +11,7 @@ type Tab = "crystal" | "spacer" | "charm";
 // Home itself, since it owns the pointer-capture refs this panel never touches.
 export default function MaterialLibrary({
   drawerOpen, onToggleDrawer, tab, onSelectTab, query, onQuery, visible, selected, selectedInfo, add, applyPreset,
+  colorFilter, onColorFilter, energyFilter, onEnergyFilter,
 }: {
   drawerOpen: boolean;
   onToggleDrawer: () => void;
@@ -23,7 +24,12 @@ export default function MaterialLibrary({
   selectedInfo: Stone | Accessory;
   add: (item: DesignItem) => void;
   applyPreset: (key: keyof typeof PRESETS) => void;
+  colorFilter: ColorGroupKey | null;
+  onColorFilter: (key: ColorGroupKey | null) => void;
+  energyFilter: string | null;
+  onEnergyFilter: (key: string | null) => void;
 }) {
+  const activeEnergy = energyFilter ? ENERGY_META.find((m) => m.key === energyFilter) : null;
   return <aside className={`materials-panel ${drawerOpen ? "" : "collapsed"}`}>
     <button className="drawer-handle" onClick={onToggleDrawer} aria-expanded={drawerOpen} aria-label={drawerOpen ? "收起素材選擇區" : "展開素材選擇區"}><i /><span>{drawerOpen ? "收起選項" : "選擇礦石與配件"}</span></button>
     <div className="drawer-body">
@@ -31,7 +37,21 @@ export default function MaterialLibrary({
     <div className="preset-row" aria-label="一鍵搭配"><span>一鍵<br />搭配</span>{(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((key) => <button key={key} onClick={() => applyPreset(key)}>{PRESETS[key].name}</button>)}</div>
     <div className="tabs" aria-label="素材分類">{([["crystal","天然水晶"],["spacer","精緻隔珠"],["charm","專屬吊飾"]] as const).map(([id, name]) => <button key={id} className={tab === id ? "active" : ""} onClick={() => onSelectTab(id)}>{name}</button>)}</div>
     <label className="search"><span>⌕</span><input value={query} onChange={(e) => onQuery(e.target.value)} placeholder={tab === "crystal" ? "搜尋水晶名稱…" : "搜尋配件名稱…"} /></label>
-    <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span><b>{visible.length} 款素材</b></div>
+    {/* 109 顆石頭直接列會滑到天荒地老 — 用顏色先切一刀。能量篩選由左側
+        能量矩陣的「用能量挑石」設定，這裡只顯示狀態並提供解除。 */}
+    {tab === "crystal" && <div className="color-chips" role="group" aria-label="依顏色篩選">
+      <button className={colorFilter === null ? "on" : ""} onClick={() => onColorFilter(null)}>全部</button>
+      {COLOR_GROUPS.map((g) => <button
+        key={g.key}
+        className={colorFilter === g.key ? "on" : ""}
+        style={{ "--dot": g.dot } as React.CSSProperties}
+        onClick={() => onColorFilter(colorFilter === g.key ? null : g.key)}
+        aria-pressed={colorFilter === g.key}
+      ><i />{g.zh}</button>)}
+    </div>}
+    <div className="library-label"><span>{tab === "crystal" ? "選擇水晶尺寸" : tab === "spacer" ? "選擇精緻隔珠" : "選擇專屬吊飾"}</span>
+      {activeEnergy && tab === "crystal" && <button className="energy-filter-tag" style={{ "--chip": activeEnergy.color } as React.CSSProperties} onClick={() => onEnergyFilter(null)} aria-label={`取消${activeEnergy.zh}能量篩選`}>{activeEnergy.zh}能量 ✕</button>}
+      <b>{visible.length} 款素材</b></div>
     <div className="material-grid" key={tab}>{visible.length ? visible.map((x: Stone | Accessory) => {
       const tier = rarityOf(x.price);
       if (tab === "crystal") {

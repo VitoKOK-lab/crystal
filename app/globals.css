@@ -105,6 +105,20 @@ button,input { font:inherit; } button { cursor:pointer; }
 .ep-total span { color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
 .ep-total b { color:#ffd76a; font:600 17px var(--display); letter-spacing:.04em; text-shadow:0 0 12px #ffd76a55; }
 /* 能量缺口：最弱的兩個維度 + 一鍵補石 */
+/* 用能量挑石：能量矩陣裡的礦石篩選 chips */
+.ep-filter { margin-top:9px; padding-top:8px; border-top:1px solid #ffffff14; }
+.ep-filter > p { margin:0 0 6px; color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
+.ep-filter span { display:flex; flex-wrap:wrap; gap:5px; }
+.ep-filter button { padding:4px 9px; border:1px solid #ffffff26; border-radius:999px; background:#ffffff0d; color:#cfe4e0; font-size:9px; letter-spacing:.1em; cursor:pointer; transition:.15s; }
+.ep-filter button:hover { border-color:var(--chip); color:#fff; }
+.ep-filter button.on { background:var(--chip); border-color:var(--chip); color:#10201e; font-weight:700; }
+/* 素材櫃的顏色分類 chips */
+.color-chips { display:flex; flex-wrap:wrap; gap:5px; margin:8px 24px 0; }
+.color-chips button { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border:1px solid #dedad0; border-radius:999px; background:#fff; color:#6b6b6b; font-size:9px; letter-spacing:.08em; cursor:pointer; transition:.15s; }
+.color-chips button i { width:9px; height:9px; border-radius:50%; background:var(--dot); border:1px solid #00000014; }
+.color-chips button:hover { border-color:#c9b98a; color:#2a2a2a; }
+.color-chips button.on { border-color:#8a6d1f; background:#faf6ec; color:#8a6d1f; font-weight:700; }
+.energy-filter-tag { margin-right:auto; margin-left:10px; padding:2px 8px; border:1px solid var(--chip); border-radius:999px; background:transparent; color:var(--chip); font-size:9px; letter-spacing:.08em; cursor:pointer; }
 .ep-gaps { margin-top:9px; padding-top:8px; border-top:1px solid #ffffff14; }
 .ep-gaps > p { margin:0 0 6px; color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
 .ep-gap { display:flex; align-items:center; gap:8px; padding:4px 0; }
@@ -124,7 +138,8 @@ button,input { font:inherit; } button { cursor:pointer; }
 .center-intention { position:absolute; z-index:7; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:5px; max-width:64%; text-align:center; pointer-events:none; }
 .center-intention small { color:#8a6d1f; font-size:9px; letter-spacing:.3em; line-height:1.6; }
 .center-intention b { color:#8a6d1f; font:600 clamp(19px,2.4vw,26px) var(--display); letter-spacing:.15em; text-shadow:0 0 10px #fff,0 0 10px #fff,0 0 16px #ffd76aa0; }
-.center-intention .ci-score { color:#8a6d1f; font:500 16px var(--display); letter-spacing:.06em; text-shadow:0 0 8px #fff,0 0 14px #ffd76a80; }
+.center-intention .ci-score { color:#8a6d1f; font:500 18px var(--display); letter-spacing:.06em; text-shadow:0 0 8px #fff,0 0 14px #ffd76a80; }
+.center-intention .ci-score i { font-style:normal; font-size:12px; color:#a08a4f; }
 .center-intention .ci-note { margin-top:3px; color:#6b6b6b; font-size:9px; letter-spacing:.16em; line-height:1.5; }
 
 /* ── Charm photos: no baked shadow, fully transparent backing ────── */

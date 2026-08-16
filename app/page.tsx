@@ -4,7 +4,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import BraceletStage from "./bracelet-stage";
 import Checkout, { type OrderLine } from "./checkout";
 import DesignGuide from "./design-guide";
-import EnergyPanel, { useCountUp } from "./energy-panel";
+import EnergyPanel from "./energy-panel";
 // Aliased: this file's own default export below is also named `Home` (the
 // long-standing name of the whole builder component) — importing the
 // landing page under the same identifier let the bundler's scope
@@ -23,9 +23,10 @@ import { playClaspClick } from "./ui-sound";
 import Shop from "./shop";
 import {
   ENERGY_META, ItemVisual, WRIST_CHOICES, accessories, accessoryPhotos,
-  buildSpec, byAccessory, byStone, decodeDesign, defaultStoneMM, dominantOf, encodeDesign, energyScores, itemMM,
-  itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones, PCT_PER_MM,
-  type Accessory, type BeadSize, type DesignItem, type Stone,
+  buildSpec, byAccessory, byStone, colorGroupOf, decodeDesign, defaultStoneMM, dominantOf, encodeDesign, energyScores,
+  fitWristCm, itemMM, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
+  strandArcMM, PCT_PER_MM,
+  type Accessory, type BeadSize, type ColorGroupKey, type DesignItem, type Stone,
 } from "./catalog";
 import { NEUTRAL_TONE, SERIES, bySeries, findProduct, type SeriesTone } from "./series";
 
@@ -47,6 +48,10 @@ export default function Home() {
   const [items, setItems] = useState<DesignItem[]>(initial);
   const [tab, setTab] = useState<"crystal" | "spacer" | "charm">("crystal");
   const [query, setQuery] = useState("");
+  // Grid filters: colour chips above the stone grid, energy chips in the
+  // energy panel. Both narrow the same grid; either can be off (null).
+  const [colorFilter, setColorFilter] = useState<ColorGroupKey | null>(null);
+  const [energyFilter, setEnergyFilter] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "obsidian", size: "large" });
   const [showGuide, setShowGuide] = useState(false);
@@ -119,33 +124,48 @@ export default function Home() {
   const openProduct = (sid: string, pid: string, mode: "buy" | "customize") => {
     const product = findProduct(sid, pid);
     if (!product) return;
-    setItems(parseSpec(product.spec));
-    setWristCm(product.wrist);
+    const parsed = parseSpec(product.spec);
+    setItems(parsed);
+    // Under the arc model a spec written to exactly fill its stated wrist
+    // may need the next half-size up — fit, never overflow.
+    setWristCm(fitWristCm(parsed.map(itemMM), product.wrist) ?? product.wrist);
     navigate(mode === "buy" ? "checkout" : "studio", sid);
     showNotice(mode === "buy" ? "" : `已載入「${product.name}」，接下來由你決定`);
   };
   const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
-  const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()));
-  const strandMM = useMemo(() => items.reduce((sum, it) => sum + itemMM(it), 0), [items]);
+  const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()))
+    .filter((x) => tab !== "crystal" || !colorFilter || colorGroupOf(x.id) === colorFilter)
+    .filter((x) => tab !== "crystal" || !energyFilter || ((x as Stone).energy[energyFilter as keyof Stone["energy"]] ?? 0) >= 7);
+  const widths = useMemo(() => items.map(itemMM), [items]);
   const capacityMM = wristCm * 10;
-  // The wrist is a hard limit, never something adding a bead can move. It used
-  // to grow itself to fit, which meant a customer could hold down a material
-  // and walk the bracelet up to 22 cm without ever deciding to — the size has
-  // to stay an explicit choice, because it is what has to fit their arm. So a
-  // bead that does not fit is refused, and they change the wrist first.
+  // Strung length is measured in ARC the beads actually occupy on the ring
+  // (a bead takes more arc than its diameter — see arcWidthMM), so the
+  // readout, the fill gates and the drawn ring can never disagree with the
+  // physical bracelet.
+  const strungMM = useMemo(() => strandArcMM(widths, capacityMM), [widths, capacityMM]);
+  // Adding a bead past the current capacity grows the wrist to the next
+  // offered size automatically (per the owner: multi-selecting should just
+  // get bigger, not nag) — the notice says so, and the select stays there
+  // for shrinking back down.
   const add = (item: DesignItem) => {
-    const needMM = strandMM + itemMM(item);
-    if (needMM > wristCm * 10) {
-      const next = WRIST_CHOICES.find((c) => c * 10 >= needMM);
-      setWristAlert(true);
-      showNotice(next
-        ? `${wristCm} cm 放不下${label(item)}了 — 請先把手圍改成 ${next} cm，或移除一些素材`
-        : `已達最大手圍 ${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm，放不下${label(item)}了，請先移除部分素材`);
-      return;
+    const nextWidths = [...widths, itemMM(item)];
+    let cm = wristCm;
+    if (strandArcMM(nextWidths, cm * 10) > cm * 10) {
+      const grown = fitWristCm(nextWidths, cm);
+      if (grown === undefined) {
+        setWristAlert(true);
+        showNotice(`已達最大手圍 ${WRIST_CHOICES[WRIST_CHOICES.length - 1]} cm，放不下${label(item)}了，請先移除部分素材`);
+        return;
+      }
+      cm = grown;
+      setWristCm(grown);
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
     playClaspClick(true);
-    showNotice(`已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${(needMM / 10).toFixed(1)} / ${wristCm} cm`);
+    const strungNext = (strandArcMM(nextWidths, cm * 10) / 10).toFixed(1);
+    showNotice(cm !== wristCm
+      ? `已加入 ${label(placed)}・手圍自動改為 ${cm} cm（已串 ${strungNext} cm）`
+      : `已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${strungNext} / ${cm} cm`);
   };
   const shareDesign = async () => {
     if (!items.length) { showNotice("先加幾顆，再把它分享出去"); return; }
@@ -180,10 +200,12 @@ export default function Home() {
   const applyPreset = (key: keyof typeof PRESETS) => {
     const preset = PRESETS[key];
     const built = buildSpec([...preset.spec]);
-    let mm = built.reduce((sum, it) => sum + itemMM(it), 0);
-    let cm = wristCm;
-    if (mm > cm * 10) cm = WRIST_CHOICES.find((c) => c * 10 >= mm) ?? WRIST_CHOICES[WRIST_CHOICES.length - 1];
-    while (mm + 8 <= cm * 10 && mm < cm * 10 * 0.85) { built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() }); mm += 8; }
+    const w = built.map(itemMM);
+    const cm = fitWristCm(w, wristCm) ?? WRIST_CHOICES[WRIST_CHOICES.length - 1];
+    while (strandArcMM([...w, 8], cm * 10) <= cm * 10 && strandArcMM(w, cm * 10) < cm * 10 * 0.85) {
+      built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() });
+      w.push(8);
+    }
     if (cm !== wristCm) setWristCm(cm);
     setItems(built);
     showNotice(`已為你配好「${preset.name}」，再調成你的樣子`);
@@ -191,7 +213,8 @@ export default function Home() {
   useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(""), 3000); return () => clearTimeout(t); }, [notice, noticeSeq]);
   useEffect(() => { if (!wristAlert) return; const t = setTimeout(() => setWristAlert(false), 2000); return () => clearTimeout(t); }, [wristAlert]);
   const changeWrist = (cm: number) => {
-    if (strandMM > cm * 10) { showNotice(`目前已串 ${(strandMM / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材`); return; }
+    const need = strandArcMM(widths, cm * 10);
+    if (need > cm * 10) { showNotice(`目前已串 ${(need / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材`); return; }
     setWristCm(cm); setWristAlert(false); showNotice(`手圍已設定為 ${cm} cm`);
   };
   const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`已移除 ${label(item)}`); } };
@@ -199,7 +222,6 @@ export default function Home() {
   const scores = useMemo(() => energyScores(items), [items]);
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
   const dominant = dominantOf(scores);
-  const dominantDisplay = useCountUp(scores[dominant.key]);
   const previewPieces = useMemo<PreviewPiece[]>(() => items.map((it) => it.kind === "stone"
     ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const }
     : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const }), [items]);
@@ -217,8 +239,8 @@ export default function Home() {
   }, [items]);
   const beads = items.filter((x) => x.kind === "stone").length;
   const charms = items.filter((x) => x.kind === "accessory" && (byAccessory[x.id] as Accessory).type === "charm").length;
-  const strung = (strandMM / 10).toFixed(1);
-  const fillRatio = strandMM / capacityMM;
+  const strung = (strungMM / 10).toFixed(1);
+  const fillRatio = strungMM / capacityMM;
   // Warn before the wrist auto-grows rather than after, so sizing stays the
   // customer's decision instead of a side effect of adding one more bead.
   const nextWrist = WRIST_CHOICES.find((c) => c > wristCm);
@@ -239,7 +261,7 @@ export default function Home() {
     onHome={() => navigate("home", seriesId)}
     onLoadDesign={(quizItems, wrist) => {
       setItems(quizItems);
-      setWristCm(wrist);
+      setWristCm(fitWristCm(quizItems.map(itemMM), wrist) ?? wrist);
       navigate("studio", seriesId);
       showNotice("五石陣容已載入 — 每一顆都可以再調");
     }}
@@ -280,12 +302,13 @@ export default function Home() {
           capacityMM={capacityMM}
           beads={beads}
           dominant={dominant}
-          dominantDisplay={dominantDisplay}
+          strung={strung}
+          wristCm={wristCm}
           tone={tone}
           showNotice={showNotice}
           removeByUid={removeByUid}
         />
-        <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} onAddStone={(id) => add({ kind: "stone", id, mm: defaultStoneMM(id) })} />
+        <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} onAddStone={(id) => add({ kind: "stone", id, mm: defaultStoneMM(id) })} energyFilter={energyFilter} onFilterEnergy={(key) => { setEnergyFilter(key); if (key) { setTab("crystal"); setDrawerOpen(true); showNotice(`素材櫃只顯示「${ENERGY_META.find((m) => m.key === key)?.zh}」能量強的石頭`); } }} />
         <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } navigate("checkout", seriesId, { scroll: false }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
@@ -301,6 +324,10 @@ export default function Home() {
         selectedInfo={selectedInfo}
         add={add}
         applyPreset={applyPreset}
+        colorFilter={colorFilter}
+        onColorFilter={setColorFilter}
+        energyFilter={energyFilter}
+        onEnergyFilter={setEnergyFilter}
       />
     </section>
     <section className="atelier-note"><p>THE OMA ATELIER</p><h2>把此刻的心願，<br />串成每日戴得住的光。</h2><span>所有礦石、隔珠與吊飾都能自由重排，想改幾次都可以。完成後由專人與你確認手圍與細節，確認前不會請款。</span></section>

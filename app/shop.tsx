@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ItemVisual, accessories, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, pricing, stones, type DesignItem } from "./catalog";
+import { ItemVisual, accessories, closedLoopCapacityMM, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, pricing, stones, type DesignItem } from "./catalog";
 import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
 
 // A miniature of the real strand, using the studio's tangent-circle
@@ -14,7 +14,10 @@ import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
 // is a closed ring, so an open gap here would read as a broken product.
 // `k` is solved per product so every thumbnail fills its box to the same 92%.
 export function BraceletThumb({ items, wrist }: { items: DesignItem[]; wrist: number }) {
-  const strandMM = items.reduce((sum, it) => sum + itemMM(it), 0) || wrist * 10;
+  // Ring size solved so the beads exactly close the loop under the arc
+  // model (beads touch along chords) — a raw mm sum left large beads
+  // overlapping at the seam.
+  const strandMM = items.length ? closedLoopCapacityMM(items.map(itemMM)) : wrist * 10;
   const maxMM = Math.max(...items.map(itemMM), 1);
   const k = 92 / (strandMM / Math.PI + maxMM);
   const r = (strandMM / (Math.PI * 2)) * k;
