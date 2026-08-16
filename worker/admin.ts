@@ -5,6 +5,23 @@ import { Env, json, sessionEmail } from "./lib";
 
 const bad = (msg: string, status = 400) => json({ error: msg }, { status });
 
+// Body parsing that can't throw, and field validators that turn a missing or
+// mistyped value into a 400 instead of letting a whole-row UPDATE overwrite
+// good columns with NULLs. `undefined` from a validator means "reject".
+const readJson = async (request: Request): Promise<Record<string, unknown> | null> => {
+  try {
+    const body = (await request.json()) as unknown;
+    return body && typeof body === "object" && !Array.isArray(body) ? (body as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+const str = (v: unknown, { max = 500, min = 0 } = {}): string | undefined =>
+  typeof v === "string" && v.length >= min && v.length <= max ? v : undefined;
+const num = (v: unknown, { min = 0, max = 1_000_000 } = {}): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) && v >= min && v <= max ? v : undefined;
+const flag = (v: unknown): number => (v === 0 || v === false ? 0 : 1);
+
 export async function handleAdmin(request: Request, env: Env, url: URL): Promise<Response | null> {
   if (!url.pathname.startsWith("/api/admin/")) return null;
   if (url.pathname === "/api/admin/me") return null; // auth.ts owns it
@@ -33,31 +50,56 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
   if (seg[0] === "stones" && seg[1]) {
     const id = decodeURIComponent(seg[1]);
     if (request.method === "PUT" && seg[2] === "sizes") {
-      const sizes = (await request.json()) as { mm: number; price_delta: number; stock: number; active?: number }[];
-      if (!Array.isArray(sizes) || !sizes.length) return bad("sizes must be a non-empty array");
-      for (const s of sizes) if (!(s.mm > 0) || s.price_delta < 0 || s.stock < 0) return bad("invalid size row");
+      let sizes: unknown;
+      try { sizes = await request.json(); } catch { return bad("invalid JSON body"); }
+      if (!Array.isArray(sizes) || !sizes.length || sizes.length > 30) return bad("sizes must be a non-empty array");
+      const rows: { mm: number; price_delta: number; stock: number; active: number }[] = [];
+      for (const s of sizes as Record<string, unknown>[]) {
+        const mm = num(s.mm, { min: 0.1, max: 40 });
+        const delta = num(s.price_delta);
+        const stock = num(s.stock);
+        if (mm === undefined || delta === undefined || stock === undefined) return bad("invalid size row");
+        rows.push({ mm, price_delta: delta, stock, active: flag(s.active) });
+      }
       await env.DB.batch([
         env.DB.prepare("DELETE FROM stone_sizes WHERE stone_id=?").bind(id),
-        ...sizes.map((s) => env.DB.prepare(
+        ...rows.map((s) => env.DB.prepare(
           "INSERT INTO stone_sizes (stone_id, mm, price_delta, stock, active) VALUES (?,?,?,?,?)"
-        ).bind(id, s.mm, s.price_delta, s.stock, s.active ?? 1)),
+        ).bind(id, s.mm, s.price_delta, s.stock, s.active)),
       ]);
       return json({ ok: true });
     }
     if (request.method === "PUT") {
-      const b = (await request.json()) as Record<string, unknown>;
+      const b = await readJson(request);
+      if (!b) return bad("invalid JSON body");
+      const zh = str(b.zh, { min: 1, max: 100 });
+      const en = str(b.en, { min: 1, max: 100 });
+      const energyZh = str(b.energy_zh, { max: 50 });
+      const price = num(b.price);
+      const note = str(b.note);
+      if (!zh || !en || energyZh === undefined || price === undefined || note === undefined) return bad("missing or invalid stone fields");
+      if (!b.energies || typeof b.energies !== "object") return bad("invalid energies");
       await env.DB.prepare(
         "UPDATE stones SET zh=?, en=?, energy_zh=?, price=?, note=?, energies=?, active=? WHERE id=?"
-      ).bind(b.zh, b.en, b.energy_zh, b.price, b.note, JSON.stringify(b.energies ?? {}), b.active ?? 1, id).run();
+      ).bind(zh, en, energyZh, price, note, JSON.stringify(b.energies), flag(b.active), id).run();
       return json({ ok: true });
     }
   }
 
   if (seg[0] === "accessories" && seg[1] && request.method === "PUT") {
-    const b = (await request.json()) as Record<string, unknown>;
+    const b = await readJson(request);
+    if (!b) return bad("invalid JSON body");
+    const zh = str(b.zh, { min: 1, max: 100 });
+    const en = str(b.en, { min: 1, max: 100 });
+    const price = num(b.price);
+    const stock = num(b.stock);
+    const note = str(b.note);
+    if (!zh || !en || price === undefined || stock === undefined || note === undefined) return bad("missing or invalid accessory fields");
+    if (b.type !== "spacer" && b.type !== "charm") return bad("type must be spacer|charm");
+    if (b.metal !== "gold" && b.metal !== "silver") return bad("metal must be gold|silver");
     await env.DB.prepare(
       "UPDATE accessories SET zh=?, en=?, type=?, metal=?, price=?, note=?, stock=?, active=? WHERE id=?"
-    ).bind(b.zh, b.en, b.type, b.metal, b.price, b.note, b.stock ?? 0, b.active ?? 1, decodeURIComponent(seg[1])).run();
+    ).bind(zh, en, b.type, b.metal, price, note, stock, flag(b.active), decodeURIComponent(seg[1])).run();
     return json({ ok: true });
   }
 
@@ -84,17 +126,29 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
   // composition spec, exactly as the storefront computes it, so the two can
   // never drift.
   if (seg[0] === "products" && seg[1] && seg[2] && request.method === "PUT") {
-    const b = (await request.json()) as Record<string, unknown>;
+    const b = await readJson(request);
+    if (!b) return bad("invalid JSON body");
+    const name = str(b.name, { min: 1, max: 100 });
+    const tagline = str(b.tagline, { max: 200 });
+    const style = str(b.style, { min: 1, max: 40 });
+    const wrist = num(b.wrist, { min: 10, max: 30 });
+    const spec = str(b.spec, { min: 1, max: 2000 });
+    if (!name || tagline === undefined || !style || wrist === undefined || !spec) return bad("missing or invalid product fields");
     await env.DB.prepare(
       "UPDATE products SET name=?, tagline=?, style=?, wrist=?, spec=?, active=? WHERE series_id=? AND id=?"
-    ).bind(b.name, b.tagline, b.style, b.wrist, b.spec, b.active ?? 1, decodeURIComponent(seg[1]), decodeURIComponent(seg[2])).run();
+    ).bind(name, tagline, style, wrist, spec, flag(b.active), decodeURIComponent(seg[1]), decodeURIComponent(seg[2])).run();
     return json({ ok: true });
   }
 
   if (seg[0] === "series" && seg[1] && request.method === "PUT") {
-    const b = (await request.json()) as { name?: string; en?: string; tone?: unknown; active?: number };
+    const b = await readJson(request);
+    if (!b) return bad("invalid JSON body");
+    const name = str(b.name, { min: 1, max: 100 });
+    const en = str(b.en, { min: 1, max: 100 });
+    if (!name || !en) return bad("missing or invalid series fields");
+    if (!b.tone || typeof b.tone !== "object") return bad("invalid tone");
     await env.DB.prepare("UPDATE series SET name=?, en=?, tone=?, active=? WHERE id=?")
-      .bind(b.name, b.en, JSON.stringify(b.tone ?? {}), b.active ?? 1, decodeURIComponent(seg[1])).run();
+      .bind(name, en, JSON.stringify(b.tone), flag(b.active), decodeURIComponent(seg[1])).run();
     return json({ ok: true });
   }
 
@@ -104,7 +158,9 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
       return json({ orders: results });
     }
     if (request.method === "PUT" && seg[1] && seg[2] === "status") {
-      const { status } = (await request.json()) as { status?: string };
+      const b = await readJson(request);
+      if (!b) return bad("invalid JSON body");
+      const status = str(b.status, { min: 1, max: 20 });
       const allowed = ["pending", "paid", "making", "shipped", "done", "cancelled"];
       if (!status || !allowed.includes(status)) return bad("invalid status");
       await env.DB.prepare("UPDATE orders SET status=? WHERE id=?").bind(status, decodeURIComponent(seg[1])).run();
@@ -113,7 +169,8 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
   }
 
   if (seg[0] === "settings" && request.method === "PUT") {
-    const b = (await request.json()) as Record<string, string>;
+    const b = await readJson(request);
+    if (!b) return bad("invalid JSON body");
     const editable = ["base_fee", "shipping_fee", "free_shipping_over"];
     const stmts = editable.filter((k) => k in b && /^\d+$/.test(String(b[k])))
       .map((k) => env.DB.prepare("UPDATE settings SET value=? WHERE key=?").bind(String(b[k]), k));
