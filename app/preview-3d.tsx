@@ -151,7 +151,6 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
       });
     }
     return new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.05, clearcoat: 0.65, clearcoatRoughness: 0.18 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [piece.id, piece.kind, piece.metal, sizeUnits]);
 
   return <mesh position={position} material={material} castShadow receiveShadow>

@@ -7,7 +7,7 @@ const {
   itemMM, itemPrice, energyScores, dominantOf, rarityOf, parseSpec, buildSpec,
   encodeDesign, decodeDesign, layoutStrand, anglesForWidths, centersForWidths,
   WRIST_CHOICES, pricing, stones, accessories, byStone, byAccessory, ENERGY_META,
-  stoneSizes, accessoryStock, sizesFor, mmOf, stockOf, inStock, sizeWeight, DEFAULT_SIZES,
+  stoneSizes, accessoryStock, sizesFor, stockOf, inStock, sizeWeight, DEFAULT_SIZES,
 } = catalog;
 
 test("itemMM sizes stones by BeadSize and accessories by spacer/charm", () => {

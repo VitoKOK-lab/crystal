@@ -1,4 +1,19 @@
-@import "tailwindcss";
+/* Base reset. This replaces the old `@import "tailwindcss"` — the site never
+   used utility classes, only Tailwind's preflight, so these rules reproduce
+   the preflight behaviours the stylesheet below actually leans on. */
+*, ::before, ::after { box-sizing: border-box; border: 0 solid #e5e7eb; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; line-height: 1.5; }
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
+ul, ol { list-style: none; }
+a { color: inherit; text-decoration: inherit; }
+b, strong { font-weight: bolder; }
+small { font-size: 80%; }
+button, input, optgroup, select, textarea { font: inherit; letter-spacing: inherit; color: inherit; }
+button, select { text-transform: none; }
+button, [type="button"], [type="submit"] { -webkit-appearance: button; background-color: transparent; background-image: none; cursor: pointer; }
+img, svg, video, canvas { display: block; vertical-align: middle; }
+img, video { max-width: 100%; height: auto; }
+:disabled { cursor: default; }
 
 /* Self-hosted rather than linked from a CDN: the pages are static on GitHub
    Pages, and a webfont that arrives late is exactly what makes a display
