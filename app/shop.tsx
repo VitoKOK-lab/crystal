@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ItemVisual, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, pricing, type DesignItem } from "./catalog";
+import { ItemVisual, accessories, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, pricing, stones, type DesignItem } from "./catalog";
 import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
 
 // A miniature of the real strand, using the studio's tangent-circle
@@ -121,7 +121,7 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
 
     <section className="shop-foot">
       <h2>都還不夠像你？</h2>
-      <span>二十一種天然礦石、三十七款隔珠與吊飾，全數開放。從一顆開始就好，其餘慢慢來。</span>
+      <span>{stones.length} 種天然礦石、{accessories.length} 款隔珠與吊飾，全數開放。從一顆開始就好，其餘慢慢來。</span>
       <button className="landing-cta" onClick={onBlankStudio}>親手串一條 <i>→</i></button>
     </section>
   </div>;

@@ -33,8 +33,8 @@ export function Accessories({ catalog, reload, notify }: TabProps) {
     {creating && <NewAccessoryForm reload={reload} notify={notify} onDone={() => setCreating(false)} />}
     {catalog.accessories.map((a) => <div key={a.id} className={`card ${a.active ? "" : "inactive"}`}>
       <button className="row" onClick={() => setOpen(open === a.id ? null : a.id)}>
-        <img src={a.photo} alt="" />
-        <div><b>{a.zh}</b><small>{a.en} · {a.type === "charm" ? "吊飾" : "隔珠"}</small></div>
+        {a.photo ? <img src={a.photo} alt="" /> : <span className="no-photo">未上傳<br />照片</span>}
+        <div><b>{a.zh}</b><small>{a.en} · {a.type === "charm" ? "吊飾" : "隔珠"}{a.photo ? "" : " · 前台隱藏中"}</small></div>
         <div className="meta">NT$ {a.price}<small>庫存 {a.stock} 個{a.active ? "" : " · 已下架"}</small></div>
       </button>
       {open === a.id && <AccessoryEditor acc={a} reload={reload} notify={notify} />}
