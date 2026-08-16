@@ -4,7 +4,7 @@
 # CSS url() references (e.g. /crystal-hero.png) via the `base` option, but it
 # does not touch plain string literals in JS, so rewrite those here. Public
 # assets only ever live at the site root (/crystal/materials/...), even for
-# the men's sub-entry (dist-pages/men/), since vite.pages-men.config.ts sets
+# the men's sub-entry (dist-pages/men/), a static redirect page copied in by
 # publicDir:false and reuses the root build's copy — so every bundle,
 # regardless of which entry produced it, rewrites to the same /crystal/ prefix.
 # Run only on a fresh build: build:pages empties both dist-pages dirs first,
