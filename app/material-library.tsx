@@ -1,6 +1,6 @@
 "use client";
 
-import { ItemVisual, RARITY_LABEL, inStock, itemPrice, rarityOf, sizesFor, type Accessory, type DesignItem, type Stone } from "./catalog";
+import { ItemVisual, RARITY_LABEL, defaultStoneMM, inStock, itemPrice, rarityOf, sizesFor, topEnergiesOf, type Accessory, type DesignItem, type Stone } from "./catalog";
 import { PRESETS } from "./presets";
 
 type Tab = "crystal" | "spacer" | "charm";
@@ -40,9 +40,9 @@ export default function MaterialLibrary({
         // with no stock stays visible but unbuyable — the customer sees the
         // option exists and is coming back.
         const ladder = sizesFor(x.id);
-        const defaultMM = (ladder.find((s) => s.mm === 10) ?? ladder[Math.min(1, ladder.length - 1)]).mm;
+        const defaultMM = defaultStoneMM(x.id);
         const item: DesignItem = { kind: "stone", id: x.id, mm: defaultMM };
-        return <article className={`material-card crystal-card rarity-${tier} ${selected.id === x.id ? "selected" : ""}`} key={x.id}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} ${defaultMM}mm`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><em>NT$ {itemPrice(item)}</em></button>
+        return <article className={`material-card crystal-card rarity-${tier} ${selected.id === x.id ? "selected" : ""}`} key={x.id}><span className="rarity-tag">{RARITY_LABEL[tier]}</span><button className="card-main" onClick={() => add(item)} aria-label={`加入 ${x.zh} ${defaultMM}mm`}><div className="visual-wrap"><ItemVisual item={item} /><span>＋</span></div><b>{x.zh}</b><small>{x.en}</small><span className="energy-chips">{topEnergiesOf(x as Stone).map((m) => <i key={m.key} style={{ "--chip": m.color } as React.CSSProperties}>{m.zh} {(x as Stone).energy[m.key]}</i>)}</span><em>NT$ {itemPrice(item)}</em></button>
           <div className="size-actions">{ladder.map((s) => {
             const sized: DesignItem = { kind: "stone", id: x.id, mm: s.mm };
             const out = !inStock(sized);

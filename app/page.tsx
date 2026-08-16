@@ -21,7 +21,7 @@ import { playClaspClick } from "./ui-sound";
 import Shop from "./shop";
 import {
   ENERGY_META, ItemVisual, WRIST_CHOICES, accessories, accessoryPhotos,
-  buildSpec, byAccessory, byStone, decodeDesign, dominantOf, encodeDesign, energyScores, itemMM,
+  buildSpec, byAccessory, byStone, decodeDesign, defaultStoneMM, dominantOf, encodeDesign, energyScores, itemMM,
   itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones, PCT_PER_MM,
   type Accessory, type BeadSize, type DesignItem, type Stone,
 } from "./catalog";
@@ -266,7 +266,7 @@ export default function Home() {
           showNotice={showNotice}
           removeByUid={removeByUid}
         />
-        <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} />
+        <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} onAddStone={(id) => add({ kind: "stone", id, mm: defaultStoneMM(id) })} />
         <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } navigate("checkout", seriesId, { scroll: false }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>

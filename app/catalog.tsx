@@ -276,6 +276,27 @@ export function dominantOf(scores: Record<EnergyType, number>) {
   return ENERGY_META.reduce((best, m) => (scores[m.key] > scores[best.key] ? m : best), ENERGY_META[0]);
 }
 
+// The stone↔energy lookup, made explicit: which stones carry an energy the
+// strongest (the answer to 「我缺 X 能量該選什麼」), and which dimensions a
+// design is currently weakest in (what the energy panel flags as gaps).
+export function stonesForEnergy(key: EnergyType, count = 3): Stone[] {
+  return [...stones].sort((a, b) => b.energy[key] - a.energy[key]).slice(0, count);
+}
+export function weakestEnergies(scores: Record<EnergyType, number>, count = 2) {
+  return [...ENERGY_META].sort((a, b) => scores[a.key] - scores[b.key]).slice(0, count);
+}
+// A stone's strongest energies, for the badge row on its material card.
+export function topEnergiesOf(stone: Stone, count = 2) {
+  return [...ENERGY_META].sort((a, b) => stone.energy[b.key] - stone.energy[a.key]).slice(0, count);
+}
+// The size the studio adds when the customer doesn't pick one: 10mm if the
+// ladder offers it, else the second rung (shared by the material grid and
+// the energy panel's quick-add).
+export function defaultStoneMM(stoneId: string): number {
+  const ladder = sizesFor(stoneId);
+  return (ladder.find((s) => s.mm === 10) ?? ladder[Math.min(1, ladder.length - 1)]).mm;
+}
+
 // Strand geometry shared by every renderer that arranges items around a
 // ring: the studio stage, shop-card thumbnails, the share-card canvas and
 // the 360° preview. Converts cumulative widths into the angle each item's
