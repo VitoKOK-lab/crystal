@@ -49,6 +49,12 @@ body { font-family: "Noto Sans TC", Arial, sans-serif; background: #f4f2ee; colo
 
 .order-lines { list-style: none; padding: 10px 12px; margin: 0; background: #faf9f6; border: 1px solid #e6e1d5; border-radius: 6px; font-size: 13px; line-height: 1.9; }
 
+/* 六維能量權重編輯 */
+.energy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; padding: 10px 12px; background: #faf9f6; border: 1px solid #e6e1d5; border-radius: 6px; }
+.energy-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
+.energy-grid span { font-weight: bold; letter-spacing: .04em; }
+.energy-grid input { padding: 6px 8px; border: 1px solid #d8d2c4; border-radius: 5px; font-size: 13px; }
+
 /* Visual composition editor: the strand as a row of real photos. */
 .spec { display: flex; flex-direction: column; gap: 8px; }
 .spec-head { display: flex; align-items: baseline; gap: 10px; font-size: 12px; color: #666; }

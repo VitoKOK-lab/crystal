@@ -47,6 +47,52 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
     });
   }
 
+  // Create a new stone. Photo starts empty — the row stays hidden from the
+  // storefront (hydration drops photo-less rows) until a photo is uploaded,
+  // so a half-entered material can never render as a blank card.
+  if (seg[0] === "stones" && !seg[1] && request.method === "POST") {
+    const b = await readJson(request);
+    if (!b) return bad("invalid JSON body");
+    const id = str(b.id, { min: 2, max: 40 });
+    const zh = str(b.zh, { min: 1, max: 100 });
+    const en = str(b.en, { min: 1, max: 100 });
+    const energyZh = str(b.energy_zh, { max: 50 }) ?? "";
+    const price = num(b.price);
+    if (!id || !/^[a-z0-9-]+$/.test(id)) return bad("id must be lowercase letters, digits, hyphens");
+    if (!zh || !en || price === undefined) return bad("missing or invalid stone fields");
+    const energies = b.energies && typeof b.energies === "object" ? b.energies : { wealth: 5, love: 5, healing: 5, protection: 5, focus: 5, power: 5 };
+    const exists = await env.DB.prepare("SELECT id FROM stones WHERE id=?").bind(id).first();
+    if (exists) return bad("id already exists", 409);
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO stones (id, zh, en, energy_zh, price, note, energies, photo, sort, active) VALUES (?,?,?,?,?,?,?,'', (SELECT COALESCE(MAX(sort),0)+1 FROM stones), 1)"
+      ).bind(id, zh, en, energyZh, price, str(b.note) ?? "", JSON.stringify(energies)),
+      ...[8, 10, 12].map((mm, i) => env.DB.prepare(
+        "INSERT INTO stone_sizes (stone_id, mm, price_delta, stock, active) VALUES (?,?,?,0,1)"
+      ).bind(id, mm, i * 80)),
+    ]);
+    return json({ ok: true, id }, { status: 201 });
+  }
+
+  if (seg[0] === "accessories" && !seg[1] && request.method === "POST") {
+    const b = await readJson(request);
+    if (!b) return bad("invalid JSON body");
+    const id = str(b.id, { min: 2, max: 40 });
+    const zh = str(b.zh, { min: 1, max: 100 });
+    const en = str(b.en, { min: 1, max: 100 });
+    const price = num(b.price);
+    if (!id || !/^[a-z0-9-]+$/.test(id)) return bad("id must be lowercase letters, digits, hyphens");
+    if (!zh || !en || price === undefined) return bad("missing or invalid accessory fields");
+    if (b.type !== "spacer" && b.type !== "charm") return bad("type must be spacer|charm");
+    if (b.metal !== "gold" && b.metal !== "silver") return bad("metal must be gold|silver");
+    const exists = await env.DB.prepare("SELECT id FROM accessories WHERE id=?").bind(id).first();
+    if (exists) return bad("id already exists", 409);
+    await env.DB.prepare(
+      "INSERT INTO accessories (id, zh, en, type, metal, price, note, photo, stock, sort, active) VALUES (?,?,?,?,?,?,?,'', ?, (SELECT COALESCE(MAX(sort),0)+1 FROM accessories), 1)"
+    ).bind(id, zh, en, b.type, b.metal, price, str(b.note) ?? "", num(b.stock) ?? 0).run();
+    return json({ ok: true, id }, { status: 201 });
+  }
+
   if (seg[0] === "stones" && seg[1]) {
     const id = decodeURIComponent(seg[1]);
     if (request.method === "PUT" && seg[2] === "sizes") {

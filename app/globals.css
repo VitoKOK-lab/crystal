@@ -301,6 +301,17 @@ button,input { font:inherit; } button { cursor:pointer; }
 .co-primary span { margin-left:10px; color:#c9a355; }
 .co-secondary { border:1px solid #141414; background:#fff; color:#141414; padding:15px 22px; border-radius:9px; font-size:13px; transition:.15s; }
 .co-secondary:hover { border-color:#8a6d1f; color:#8a6d1f; }
+/* 頂端公告列 */
+.announce-bar { display:flex; justify-content:center; padding:8px 14px; background:#141414; color:#e8dcbf; font-size:10.5px; letter-spacing:.12em; text-align:center; }
+.announce-bar button { border:0; background:transparent; color:#e8dcbf; font-size:10.5px; letter-spacing:.12em; cursor:pointer; text-decoration:underline; text-underline-offset:3px; text-decoration-color:#c9a35566; }
+.announce-bar span, .announce-bar button { animation:announce-in .4s ease; }
+@keyframes announce-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+/* 結帳頁的製作承諾 */
+.co-promise { display:flex; flex-direction:column; gap:7px; margin-top:18px; padding:14px 16px; border:1px solid #eee9dd; border-radius:10px; background:#fdfcf9; }
+.co-promise b { color:#8a6d1f; font-size:10px; letter-spacing:.18em; }
+.co-promise span { color:#6b6b6b; font-size:10.5px; line-height:1.7; }
+
 /* 生日選石測驗 */
 .quiz { min-height:100vh; background:#faf9f6; }
 .quiz-form, .quiz-result { max-width:640px; margin:0 auto; padding:34px 24px 80px; text-align:center; }

@@ -99,7 +99,7 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
       <p className="done-eyebrow">RITUAL COMPLETE · 圓滿</p>
       <h1>你的手鍊，開始成形了</h1>
       <div className="done-order-id">{orderId}</div>
-      <p className="done-note">謝謝你把這條交給我們。珠寶顧問會在一個工作天內與你確認手圍、付款與出貨細節——在那之前，一切都還可以更動。</p>
+      <p className="done-note">謝謝你把這條交給我們。珠寶顧問會在一個工作天內與你確認手圍、付款與出貨細節——在那之前，一切都還可以更動。確認後 1–2 天為你排單揀珠、3–5 天親手串製完成出貨。</p>
       <div className="done-summary">
         {lines.map((l) => <div className="done-line" key={l.key}><span className="dl-visual">{l.visual}</span><span className="dl-name">{l.name}<i>{l.sub}</i></span><span className="dl-qty">× {l.qty}</span><b>NT$ {(l.unit * l.qty).toLocaleString()}</b></div>)}
         <div className="done-line fee"><span /><span className="dl-name">設計串製費</span><span /><b>NT$ {baseFee.toLocaleString()}</b></div>
@@ -143,7 +143,7 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
           <label className={errors.name ? "err" : ""}><span>收件人姓名 *</span><input value={form.name} onChange={set("name")} placeholder="王小明" autoComplete="name" />{errors.name && <em>{errors.name}</em>}</label>
           <label className={errors.phone ? "err" : ""}><span>手機號碼 *</span><input value={form.phone} onChange={set("phone")} placeholder="0912345678" inputMode="numeric" autoComplete="tel" />{errors.phone && <em>{errors.phone}</em>}</label>
           <label className={errors.email ? "err" : ""}><span>Email（選填）</span><input value={form.email} onChange={set("email")} placeholder="you@example.com" inputMode="email" autoComplete="email" />{errors.email && <em>{errors.email}</em>}</label>
-          <label><span>手圍尺寸</span><select value={form.wrist} onChange={set("wrist")}>{WRIST_SIZES.map((w) => <option key={w} value={w}>{w} cm</option>)}<option value="unsure">不確定，請顧問協助</option></select></label>
+          <label><span>手圍尺寸</span><select value={form.wrist} onChange={set("wrist")}>{WRIST_SIZES.map((w) => <option key={w} value={w}>{w} cm{w === "14" ? " · 最多人選" : ""}</option>)}<option value="unsure">不確定，請顧問協助</option></select></label>
           <label className={`co-wide ${errors.address ? "err" : ""}`}><span>收件地址 *</span><input value={form.address} onChange={set("address")} placeholder="縣市、區、路街巷弄門牌樓層" autoComplete="street-address" />{errors.address && <em>{errors.address}</em>}</label>
           <label className="co-wide"><span>備註（選填）</span><textarea value={form.note} onChange={set("note")} rows={2} placeholder="包裝需求、指定到貨時段…" /></label>
         </div>
@@ -156,6 +156,12 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
         <button className="co-primary co-submit" onClick={submit} disabled={submitting}>{submitting ? "送出中…" : <>確認下單 · NT$ {grand.toLocaleString()} <span>→</span></>}</button>
         {submitError && <p className="co-error">{submitError}</p>}
         <p className="co-tip">送出後由珠寶顧問與你確認細節，確認前不會請款。慢慢想，不急。</p>
+        <div className="co-promise">
+          <b>OMA 的製作承諾</b>
+          <span>接單後 1–2 天排單與揀珠——每一顆都親手挑過紋理，這段時間是為你選石的儀式，不是等待。</span>
+          <span>天然晶石的冰裂、棉絮與色差不是瑕疵，是這顆石頭獨一無二的簽名；珠徑公差 ±0.4mm。</span>
+          <span>若收到時有運送損傷，48 小時內拍照聯繫我們，直接為你重製。</span>
+        </div>
       </div>
     </div>
   </section>;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  ENERGY_META, byStone, nextUid, stonePhotos, stonesForEnergy,
+  ENERGY_META, nextUid, stonePhotos, stonesForEnergy,
   type DesignItem, type EnergyType, type Stone,
 } from "./catalog";
 import { BraceletThumb } from "./shop";
