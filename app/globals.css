@@ -869,3 +869,28 @@ button,input { font:inherit; } button { cursor:pointer; }
 }
 /* 測驗頁的縮圖直接坐在奶油底上，不帶白色方塊 */
 .quiz .shop-thumb { background:transparent; }
+
+/* ── 360° 預覽等待動畫：多色圓弧旋轉＋中心圓點＋點點文字 ────────── */
+.pv-loader { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; pointer-events:none; transition:opacity .4s ease; }
+.pv-loader.fading { opacity:0; }
+.pv-spinner { position:relative; width:104px; height:104px; }
+.pv-spinner span { position:absolute; border-radius:50%; border:4.5px solid transparent; }
+/* 外圈青綠長弧、中圈桃紅短弧（反向）、內外交錯一道琥珀弧——三種速度 */
+.pv-spinner span:nth-child(1) { inset:0; border-top-color:#3ecfc0; border-left-color:#3ecfc0; }
+.pv-spinner span:nth-child(2) { inset:11px; border-top-color:#d24fd0; }
+.pv-spinner span:nth-child(3) { inset:5px; border-bottom-color:#f0a63c; }
+.pv-spinner i { position:absolute; left:50%; top:50%; width:38px; height:38px; border-radius:50%; translate:-50% -50%;
+  background:radial-gradient(circle at 34% 30%, #7fe4d8, #3ecfc0 70%); box-shadow:0 6px 14px #3ecfc04d; }
+.pv-loading-text { color:#6b6b6b; font-size:12px; letter-spacing:.24em; }
+.pv-dots { display:inline-block; width:1.6em; text-align:left; font-style:normal; }
+@media (prefers-reduced-motion: no-preference) {
+  .pv-spinner span:nth-child(1) { animation:pv-spin 1.5s linear infinite; }
+  .pv-spinner span:nth-child(2) { animation:pv-spin 1.05s linear infinite reverse; }
+  .pv-spinner span:nth-child(3) { animation:pv-spin 1.9s linear infinite; }
+  .pv-spinner i { animation:pv-pulse 1.6s ease-in-out infinite; }
+  .pv-dots::after { content:""; animation:pv-dots 1.4s steps(1) infinite; }
+  @keyframes pv-spin { to { rotate:360deg; } }
+  @keyframes pv-pulse { 0%,100% { scale:1; } 50% { scale:1.12; } }
+  @keyframes pv-dots { 0% { content:""; } 25% { content:"."; } 50% { content:".."; } 75% { content:"..."; } }
+}
+@media (prefers-reduced-motion: reduce) { .pv-dots::after { content:"…"; } }
