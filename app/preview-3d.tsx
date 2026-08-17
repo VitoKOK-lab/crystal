@@ -488,11 +488,10 @@ const PV_PALETTES: Record<string, Record<string, string>> = {
   power: { "--pv-glow": "#fffbf6", "--pv-hi": "#f7f0e7", "--pv-top": "#f4ece1", "--pv-mid": "#ecddcc", "--pv-low": "#dcc3a8", "--pv-floor": "#caa98a", "--pv-band": "#b0885f33", "--pv-pool": "#fff0dd59", "--pv-mark": "#8f5a2e55" },
 };
 
-// 等待動畫：三顆金珠彈跳＋真實材質載入進度條（不放數字——寬度就是
-// 0→100）。useProgress 追蹤 TextureLoader 的載入；全部就緒（或根本沒有
-// 要載的東西）後淡出並卸載。
+// 等待動畫：多色圓弧旋轉＋中心圓點＋逐字點點（店主指定樣式）。
+// useProgress 只負責「何時淡出」：材質全就緒（或快取命中）就走人。
 function LoadingVeil() {
-  const { active, progress } = useProgress();
+  const { active } = useProgress();
   const [gone, setGone] = useState(false);
   const [fading, setFading] = useState(false);
   useEffect(() => {
@@ -504,9 +503,8 @@ function LoadingVeil() {
   }, [active]);
   if (gone) return null;
   return <div className={`pv-loader ${fading ? "fading" : ""}`} aria-hidden="true">
-    <div className="pv-loader-beads"><i /><i /><i /></div>
-    <div className="pv-loader-bar"><i style={{ width: `${active ? Math.max(6, progress) : 100}%` }} /></div>
-    <span>正在把手鍊擺上展示台…</span>
+    <div className="pv-spinner"><span /><span /><span /><i /></div>
+    <span className="pv-loading-text">正在把手鍊擺上展示台<i className="pv-dots" /></span>
   </div>;
 }
 
