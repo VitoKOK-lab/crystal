@@ -69,7 +69,26 @@ button,input { font:inherit; } button { cursor:pointer; }
 .drawer-handle { display:none; }
 .drawer-body { display:contents; }
 .materials-panel { position:relative;display:flex;flex-direction:column;min-height:820px;overflow:hidden;background:#ffffff;border-left:1px solid var(--line); }.materials-head { padding:30px 32px 22px;background:linear-gradient(125deg,#ffffff 0 64%,#f6f4ee 140%); }.materials-head p,.selected-detail p { margin:0 0 10px;color:#b8923f;font-size:9px;letter-spacing:.19em; }.materials-head h1 { margin:0;color:#141414;font:31px/1.18 var(--display);letter-spacing:.02em; }.materials-head h1 em { color:#8a6d1f;font-style:italic; }.materials-head>span { display:block;margin-top:13px;max-width:370px;color:#6b6b6b;font-size:11px;line-height:1.7; }.tabs { display:grid;grid-template-columns:repeat(3,1fr);padding:0 20px;border-bottom:1px solid var(--line); }.tabs button { padding:15px 5px 13px;border:0;border-bottom:2px solid transparent;background:transparent;color:#6b6b6b;font-size:11px; }.tabs .active { border-color:#141414;color:#141414;font-weight:bold; }.search { display:flex;align-items:center;gap:9px;margin:16px 24px 4px;padding:10px 12px;border:1px solid #141414;background:#fff;color:#6b6b6b; }.search input { width:100%;border:0;outline:0;background:transparent;color:#141414;font-size:11px; }.material-grid { flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;overflow:auto;padding:12px 24px 18px; }.material-card { min-height:151px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px;border:1px solid #dedad0;background:#fff;color:#2a2a2a;transition:.16s; }.material-card:hover,.material-card.selected { border-color:#141414;box-shadow:0 9px 18px #14141414;transform:translateY(-2px); }.visual-wrap { position:relative;display:grid;place-items:center;width:56px;height:60px; }.visual-wrap>span { position:absolute;right:-5px;bottom:1px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#141414;color:#fff;box-shadow:0 2px 7px #00000030;font-size:15px; }.material-card b { margin-top:8px;font-size:11px; }.material-card small { display:block;max-width:95%;margin-top:3px;overflow:hidden;color:#8a8f93;font-size:8px;text-overflow:ellipsis;white-space:nowrap; }.material-card em { margin-top:6px;color:#b8923f;font-size:9px;font-style:normal; }.selected-detail { display:grid;grid-template-columns:68px 1fr auto;gap:12px;align-items:center;padding:16px 24px;border-top:1px solid var(--line);background:#faf9f6; }.detail-visual { display:grid;place-items:center;width:64px;height:64px;background:#fff;border:1px solid #dedad0;border-radius:50%;box-shadow:0 5px 12px #00000010; }.selected-detail p { margin-bottom:5px;font-size:8px; }.selected-detail b { display:block;color:#141414;font:15px var(--display); }.selected-detail span { display:block;margin-top:5px;color:#6b6b6b;font-size:9px;line-height:1.5; }.selected-detail>button { border:0;background:#141414;color:#fff;padding:10px;font-size:10px;white-space:nowrap; }.selected-detail strong { color:#c9a355;font-size:14px; }.atelier-note { padding:86px 20px;text-align:center;color:#fff;background:radial-gradient(circle at 30% 20%,#2a2a2a,transparent 60%),#141414; }.atelier-note p { margin:0;color:#c9a355;font-size:9px;letter-spacing:.25em; }.atelier-note h2 { margin:15px 0;color:#fff;font:34px var(--display); }.atelier-note span { display:block;max-width:570px;margin:auto;color:#d8d8d8;font-size:12px;line-height:1.8; }
-@media (max-width:980px) { .studio-shell { grid-template-columns:1fr; }.materials-panel { min-height:0;border-left:0;border-top:1px solid var(--line); }.material-grid { max-height:560px; }.bracelet-stage { width:min(540px,100%); }.canvas-panel { min-height:650px;padding:22px 16px; }.head-note { display:none; } }
+/* Single-column mode. Everything below 980px shares the compaction that
+   used to live only in the ≤560px phone block — the 561-980 range (large
+   phones with page zoom, small tablets, split-screen) was getting the
+   single-column layout with full desktop-sized chrome stacked into it,
+   which is exactly the "crowded" complaint. The fixed bottom-drawer split
+   screen stays a ≤560px behaviour; this block only shrinks chrome. */
+@media (max-width:980px) {
+  .studio-shell { grid-template-columns:1fr; }
+  .materials-panel { min-height:0;border-left:0;border-top:1px solid var(--line); }
+  .material-grid { max-height:480px; }
+  .bracelet-stage { width:min(460px,100%); }
+  .canvas-panel { min-height:0;padding:16px 16px 10px; }
+  .head-note { display:none; }
+  .stats { gap:14px; }
+  .stats span:nth-child(3) { display:none; } /* CHARMS 數量：手鍊上看得到，不值一欄 */
+  .stats small,.price small { font-size:8px; }
+  .stats b { font-size:13px; }
+  .price b { font-size:17px; }
+  .materials-head { display:none; }
+}
 @media (max-width:560px) { .studio-head { height:64px;padding:0 16px; }.wordmark { font-size:18px; }.studio-head .quiet { font-size:10px; }.canvas-top { align-items:flex-start; }.stats { gap:9px; }.stats span:nth-child(3) { display:none; }.stats small,.price small { font-size:7px; }.stats b { font-size:12px; }.price b { font-size:15px; }.bracelet-stage { width:100%;margin-top:15px; }.design-item { width:51px;height:51px; }.design-item:has(.crystal.xlarge) { width:72px;height:72px; }.design-item.is-charm { width:61px;height:61px; }.crystal { width:45px;height:45px; }.crystal.xlarge { width:62px;height:62px; }.crystal.large { width:45px;height:45px; }.crystal.small { width:37px;height:37px; }.hardware { width:43px;height:43px; }.hardware.charm { width:50px;height:50px; }.stage-tip { font-size:8px;bottom:3px; }.canvas-actions { gap:5px; }.canvas-actions button { padding:10px 8px;font-size:9px; }.canvas-actions .primary { padding-inline:10px; }.materials-head { padding:25px 19px 18px; }.materials-head h1 { font-size:27px; }.tabs { padding-inline:9px; }.tabs button { font-size:10px; }.search { margin-inline:14px; }.material-grid { grid-template-columns:repeat(3,1fr);padding:10px 14px;gap:6px; }.material-card { min-height:128px; }.selected-detail { padding:13px 14px;grid-template-columns:58px 1fr auto;gap:8px; }.detail-visual { width:54px;height:54px; }.selected-detail span { font-size:8px; }.atelier-note { padding:62px 22px; }.atelier-note h2 { font-size:27px; } }
 /* 每顆石頭最強的兩個能量，直接標在素材卡上 */
 .energy-chips { display:flex;gap:4px;margin-top:4px; }
@@ -626,7 +645,9 @@ button,input { font:inherit; } button { cursor:pointer; }
 .sc-visual { position:relative; }
 .sc-look { display:block; width:100%; padding:0; border:0; background:#f3f1ec; cursor:zoom-in; }
 .sc-look img { display:block; width:100%; aspect-ratio:4 / 3; object-fit:cover; }
-.sc-visual:not(.no-look) .shop-thumb { position:absolute; right:8px; bottom:8px; width:74px; height:74px; aspect-ratio:auto; border-radius:50%; background:#fffdf8f2; border:1px solid #e6e2d8; box-shadow:0 4px 12px #14141422; }
+/* 實景照獨占卡片視覺（配置小抄會擋住照片——燈箱已註明以實際珠列為準，
+   微客制進工作室也看得到真配置）；照片缺席時縮圖恢復為主視覺。 */
+.sc-visual:not(.no-look) .shop-thumb { display:none; }
 .sc-visual.no-look .sc-look { display:none; }
 .look-overlay { position:fixed; inset:0; z-index:90; display:grid; place-items:center; padding:20px; background:#141414b8; backdrop-filter:blur(3px); }
 .look-box { position:relative; max-width:min(880px,94vw); background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 30px 80px #00000066; }
@@ -719,10 +740,6 @@ button,input { font:inherit; } button { cursor:pointer; }
 /* Appears once the strand passes 88% so sizing up stays the customer's
    choice, instead of the wrist silently auto-growing under them when the
    next bead no longer fits. One tap applies the next size. */
-.wrist-hint { margin-top:5px; padding:3px 8px; border:1px solid #e3b04b; border-radius:99px; background:#fffaf0; color:#8a6d1f; font-size:9px; letter-spacing:.04em; white-space:nowrap; animation:wrist-hint-in .24s ease; transition:.16s; }
-.wrist-hint:hover { background:#8a6d1f; border-color:#8a6d1f; color:#fff; }
-@keyframes wrist-hint-in { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:none; } }
-@media (max-width:560px) { .wrist-hint { padding:2px 6px; font-size:8px; } }
 
 /* Blocked-add feedback: the wrist selector is the thing that has to change,
    so point at it rather than leaving the reason only in the notice bar. */
@@ -767,3 +784,88 @@ button,input { font:inherit; } button { cursor:pointer; }
 .size-actions button.out,.material-card.out { position:relative; opacity:.5; cursor:not-allowed; }
 .size-actions button.out i { position:absolute; inset:auto 0 -1px 0; font-style:normal; font-size:7px; color:#b04a4a; }
 .material-card.out .rarity-tag { background:#b04a4a; color:#fff; }
+
+/* ── 單欄模式（≤980px）的元件緊湊化 ────────────────────────────────
+   放在檔尾：這些覆寫的目標元件（preset-row、color-chips、energy-fab…）
+   基礎樣式定義在檔案中段，早於中段的 media 區塊會被同權重的基礎樣式
+   反壓回去——曾經只有 ≤560px 生效、561-980 的單欄「平板死區」擠成一
+   團，就是這個 cascade 順序造成的。 */
+@media (max-width:980px) {
+  .energy-fab { top:78px; right:14px; width:44px; height:44px; font-size:13px; }
+  .energy-fab span { font-size:7px; }
+  .preset-row { flex-wrap:nowrap; overflow-x:auto; padding:8px 14px; gap:6px; -webkit-overflow-scrolling:touch; }
+  .preset-row > span { flex:none; font-size:8px; }
+  .preset-row button { flex:none; min-width:0; padding:7px 14px; font-size:10px; }
+  .color-chips { flex-wrap:nowrap; overflow-x:auto; margin:8px 14px 0; padding-bottom:3px; -webkit-overflow-scrolling:touch; }
+  .color-chips button { flex:none; }
+  .library-label { margin:3px 14px 0; }
+  .canvas-actions { gap:6px; }
+  .canvas-actions button { padding:11px 8px; font-size:10px; }
+}
+
+/* ── 香檳軟浮雕（soft-emboss）質感語言＋微動效 ────────────────────
+   參考 neumorphism 的觸感：亮部左上、暖影右下的雙陰影浮雕，輸入框內
+   凹、按鈕凸起、按下去真的「陷進去」。原版的灰藍冷光換成品牌的香檳
+   暖色（亮 #fffdf6／影 #ddd3c0），立體感一樣、氣質是我們的。 */
+:root { --emb-bg:#fbfcfe; --emb-hi:#ffffff; --emb-sh:#dde4ee; --emb-blue:#8fb2dd; }
+
+/* 測驗頁＝質感展示間（對位參考影片的 OTP 卡片） */
+.quiz { background:linear-gradient(160deg,#ffffff 0%, #f3f6fb 55%, #eef3fa 100%); min-height:100vh; }
+.quiz-form { margin:26px auto 70px; padding:38px 30px 44px; background:var(--emb-bg); border-radius:26px;
+  box-shadow:10px 10px 26px #dde4ee80, -10px -10px 26px var(--emb-hi); }
+.quiz-fields input, .quiz-wish { border:0; border-radius:13px; background:var(--emb-bg); color:#141414;
+  box-shadow:inset 4px 4px 9px #dde4ee99, inset -4px -4px 9px var(--emb-hi);
+  transition:box-shadow .22s ease; }
+.quiz-fields input:focus, .quiz-wish:focus { outline:0;
+  box-shadow:inset 4px 4px 9px #dde4ee99, inset -4px -4px 9px var(--emb-hi), 0 0 0 3px #8fb2dd4d; }
+.quiz-chips button, .quiz-modes button { border:0; background:var(--emb-bg); color:#6b6b6b;
+  box-shadow:3px 3px 7px #dde4ee8c, -3px -3px 7px var(--emb-hi);
+  transition:box-shadow .18s ease, color .18s ease, transform .12s ease; }
+.quiz-chips button.on, .quiz-modes button.on { background:var(--emb-bg); color:var(--chip,#5d87bd); font-weight:bold;
+  box-shadow:inset 3px 3px 7px #d3dceb, inset -3px -3px 7px var(--emb-hi), 0 0 0 1px #8fb2dd33; }
+.quiz-chips button:active, .quiz-modes button:active { transform:scale(.96); }
+.quiz-ai { background:var(--emb-bg); border:0;
+  box-shadow:6px 6px 16px #dde4ee73, -6px -6px 16px var(--emb-hi); }
+.quiz-stone { border:0; background:var(--emb-bg);
+  box-shadow:5px 5px 14px #dde4ee73, -5px -5px 14px var(--emb-hi); }
+.pair-card { border:0; background:var(--emb-bg);
+  box-shadow:8px 8px 20px #dde4ee80, -8px -8px 20px var(--emb-hi); }
+
+/* 工作室控制列的觸感 */
+.canvas-actions button:not(.primary) { border:0; border-radius:12px; background:#fdfdfe;
+  box-shadow:4px 4px 10px #dde4ee8c, -4px -4px 10px #ffffff; }
+.canvas-actions button:not(.primary):hover { color:#5d87bd; }
+.canvas-actions button:not(.primary):active { box-shadow:inset 3px 3px 8px #d3dceb, inset -3px -3px 8px #ffffff; }
+.preset-row button { border:0; border-radius:11px; background:#fdfdfe;
+  box-shadow:3px 3px 8px #dde4ee80, -3px -3px 8px #ffffff; }
+.preset-row button:hover { transform:translateY(-1px); box-shadow:4px 5px 10px #d5deea, -3px -3px 8px #ffffff; }
+.color-chips button { border:0; background:#fdfdfe;
+  box-shadow:2px 2px 6px #dde4ee80, -2px -2px 6px #ffffff; }
+.color-chips button.on { color:#5d87bd; font-weight:bold;
+  box-shadow:inset 2px 2px 6px #d3dceb, inset -2px -2px 6px #ffffff, 0 0 0 1px #8fb2dd33; }
+
+/* 微動效：按壓、錯誤搖晃、結果彈入、加珠彈跳、提示滑入 */
+.landing-cta:active, .sc-buy:active, .sc-custom:active, .canvas-actions .primary:active { transform:scale(.97); }
+.landing-cta, .sc-buy, .sc-custom, .canvas-actions button, .color-chips button, .preset-row button { transition:transform .13s ease, box-shadow .18s ease, color .15s ease; }
+@media (prefers-reduced-motion: no-preference) {
+  .co-error { animation:err-shake .4s ease; }
+  @keyframes err-shake { 0%,100% { translate:0 0; } 20% { translate:-7px 0; } 40% { translate:6px 0; } 60% { translate:-4px 0; } 80% { translate:3px 0; } }
+  /* 結果區進場：整體解讀先彈入（帶一點過衝），逐石卡片依序浮上 */
+  .quiz-result .quiz-ai, .quiz-result .quiz-lack { animation:pop-in .5s cubic-bezier(.34,1.56,.64,1) backwards; }
+  .quiz-result .quiz-preview { animation:pop-in .55s cubic-bezier(.34,1.56,.64,1) .08s backwards; }
+  .quiz-result .quiz-stone { animation:rise-in .5s ease .1s backwards; }
+  .quiz-result .quiz-stone:nth-child(2) { animation-delay:.18s; }
+  .quiz-result .quiz-stone:nth-child(3) { animation-delay:.26s; }
+  .quiz-result .quiz-stone:nth-child(4) { animation-delay:.34s; }
+  .quiz-result .quiz-stone:nth-child(5) { animation-delay:.42s; }
+  @keyframes pop-in { from { scale:.82; opacity:0; } to { scale:1; opacity:1; } }
+  @keyframes rise-in { from { translate:0 16px; opacity:0; } to { translate:0 0; opacity:1; } }
+  /* 加珠：新珠以過衝彈入（scale 屬性獨立於 inline transform，不打架） */
+  .design-item { animation:bead-pop .38s cubic-bezier(.34,1.56,.64,1) backwards; }
+  @keyframes bead-pop { from { scale:.45; opacity:0; } to { scale:1; opacity:1; } }
+  .notice { animation:notice-in .28s cubic-bezier(.34,1.4,.64,1); }
+  @keyframes notice-in { from { translate:0 -10px; opacity:0; } to { translate:0 0; opacity:1; } }
+  .look-box, .gal-modal { animation:pop-in .32s cubic-bezier(.34,1.45,.64,1); }
+}
+/* 測驗頁的縮圖直接坐在奶油底上，不帶白色方塊 */
+.quiz .shop-thumb { background:transparent; }
