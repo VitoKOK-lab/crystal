@@ -35,6 +35,8 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState("");
 
   const baseFee = pricing.baseFee;
   const itemsTotal = lines.reduce((s, l) => s + l.unit * l.qty, 0);
@@ -80,6 +82,34 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
     }
   };
 
+  // 綠界付款：跟後端要簽好章的表單欄位，組一個隱藏 form POST 到綠界
+  // 收銀台（金流頁必須用表單導轉，不能用 fetch）。
+  const payWithEcpay = async () => {
+    setPaying(true);
+    setPayError("");
+    try {
+      const res = await fetch("/api/pay/ecpay", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ order: orderId }),
+      });
+      const data = (await res.json().catch(() => null)) as { action?: string; fields?: Record<string, string>; error?: string } | null;
+      if (!res.ok || !data?.action || !data.fields) throw new Error(data?.error ?? `pay failed (${res.status})`);
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = data.action;
+      for (const [k, v] of Object.entries(data.fields)) {
+        const input = document.createElement("input");
+        input.type = "hidden"; input.name = k; input.value = v;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+    } catch {
+      setPayError("前往付款頁失敗，稍等一下再按一次；訂單已成立，不會不見");
+      setPaying(false);
+    }
+  };
+
   const orderText = () => [
     `OMA CRYSTAL 訂單 ${orderId}`,
     `主屬性：${dominant.zh} ${dominant.en}（總能量 ${totalEnergy.toLocaleString()}）`,
@@ -109,8 +139,10 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
       <div className="done-energy">此手鍊的主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b>・總能量 <em>{totalEnergy.toLocaleString()}</em></div>
       <div className="done-actions">
         <button className="co-secondary" onClick={() => navigator.clipboard?.writeText(orderText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "已複製 ✓" : "複製訂單明細"}</button>
-        <button className="co-primary" onClick={onBack}>回到工作室</button>
+        {payment === "card" && <button className="co-primary" disabled={paying} onClick={payWithEcpay}>{paying ? "正在前往綠界…" : "前往綠界線上付款 →"}</button>}
+        <button className={payment === "card" ? "co-secondary" : "co-primary"} onClick={onBack}>回到工作室</button>
       </div>
+      {payError && <p className="co-error">{payError}</p>}
     </div>
   </section>;
 

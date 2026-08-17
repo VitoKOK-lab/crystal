@@ -103,6 +103,19 @@ export default function Home() {
 
     // Initial load: a shared design link (?d=) wins and opens the studio.
     const params = new URLSearchParams(window.location.search);
+    // 綠界付款導回：顯示結果訊息後把參數從網址拿掉（重新整理不重播）。
+    const pay = params.get("pay");
+    if (pay) {
+      const order = params.get("order");
+      showNotice(pay === "ok"
+        ? `付款成功！${order ? `訂單 ${order} ` : ""}已確認，我們會盡快為你揀珠串製`
+        : pay === "back"
+          ? "已離開付款頁——訂單保留中，隨時可以回來完成付款"
+          : "付款未完成，訂單保留中；可以再試一次或改用其他方式");
+      params.delete("pay"); params.delete("order");
+      const qs = params.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    }
     const code = params.get("d");
     const decoded = code ? decodeDesign(code) : null;
     if (decoded) {

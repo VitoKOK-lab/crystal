@@ -4,6 +4,7 @@
 // admin auth, and the admin management API.
 import { handleAdmin } from "./admin";
 import { handleAuth } from "./auth";
+import { handleEcpay } from "./ecpay";
 import { Env, json } from "./lib";
 import { handleOrders } from "./orders";
 import { handleAi } from "./ai";
@@ -77,6 +78,9 @@ export default {
 
     const orderRes = await handleOrders(request, env, url);
     if (orderRes) return orderRes;
+
+    const ecpayRes = await handleEcpay(request, env, url);
+    if (ecpayRes) return ecpayRes;
 
     const authRes = await handleAuth(request, env, url);
     if (authRes) return authRes;

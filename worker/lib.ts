@@ -36,6 +36,12 @@ export interface Env {
   KIMI_API_KEY?: string;
   KIMI_BASE_URL?: string;
   KIMI_MODEL?: string;
+  // 綠界金流。不設定時用官方公開的測試商店（stage）；正式上線以
+  // wrangler secret 覆蓋這四個值。
+  ECPAY_MERCHANT_ID?: string;
+  ECPAY_HASH_KEY?: string;
+  ECPAY_HASH_IV?: string;
+  ECPAY_BASE?: string;
 }
 
 export const json = (data: unknown, init: ResponseInit & { headers?: Record<string, string> } = {}) =>

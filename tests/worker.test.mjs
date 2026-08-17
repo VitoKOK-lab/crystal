@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { importCompiled } from "./esbuild-import.mjs";
 
-const { lib, admin, orders, quizReading, ai } = await importCompiled("tests/fixtures/worker-entry.ts");
+const { lib, admin, orders, quizReading, ai, ecpay } = await importCompiled("tests/fixtures/worker-entry.ts");
 
 // --- Fake D1 -------------------------------------------------------------
 
@@ -21,6 +21,7 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
     quizReadings: new Map(),
     aiTexts: new Map(),   // key -> {kind, payload}
     wishStones: [],       // rows for the wish menu query
+    orderRow: null,       // ecpay's order lookups
   };
   const exec = (sql, args) => {
     if (sql.includes("FROM settings WHERE key='session_signing_key'")) {
@@ -85,6 +86,9 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
     }
     if (sql.startsWith("SELECT id, zh, energies FROM stones")) {
       return state.wishStones;
+    }
+    if (sql.startsWith("SELECT id, total, status FROM orders") || sql.startsWith("SELECT total, status FROM orders")) {
+      return state.orderRow ? [state.orderRow] : [];
     }
     if (/^(UPDATE|INSERT|DELETE)/.test(sql)) {
       state.writes.push({ sql, args });
@@ -396,4 +400,68 @@ test("a key from the international platform falls through .cn's 401 to .ai", asy
     assert.equal(res.status, 200, "the .ai retry must succeed");
     assert.deepEqual(hits, ["api.moonshot.cn", "api.moonshot.ai"]);
   } finally { globalThis.fetch = realFetch; }
+});
+
+// --- 綠界金流 ---------------------------------------------------------------
+
+const ecpayReq = (path, body, form = false) => new Request(`https://shop.example${path}`, {
+  method: "POST",
+  headers: { "content-type": form ? "application/x-www-form-urlencoded" : "application/json" },
+  body: form ? body : JSON.stringify(body),
+});
+
+test("pay/ecpay signs a form for a pending order and refuses non-pending", async () => {
+  const db = fakeDb();
+  db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "pending" };
+  const res = await call(ecpay.handleEcpay, ecpayReq("/api/pay/ecpay", { order: "OMA-TEST01" }), envWith(db));
+  assert.equal(res.status, 200);
+  const { action, fields } = await res.json();
+  assert.ok(action.endsWith("/Cashier/AioCheckOut/V5"));
+  assert.equal(fields.TotalAmount, "4890");
+  assert.equal(fields.CustomField1, "OMA-TEST01");
+  assert.equal(fields.MerchantID, "3362787");
+  assert.ok(/^[A-Za-z0-9]{1,20}$/.test(fields.MerchantTradeNo), "trade no must be <=20 alnum");
+  const expected = await ecpay.checkMacValue(fields, "5tzn8qyhl9EwzwuT", "iz8YXaAUx60tijdL");
+  assert.equal(fields.CheckMacValue, expected, "signature covers exactly the posted fields");
+
+  db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "paid" };
+  const again = await call(ecpay.handleEcpay, ecpayReq("/api/pay/ecpay", { order: "OMA-TEST01" }), envWith(db));
+  assert.equal(again.status, 409, "already-paid order can't start another payment");
+});
+
+async function signedCallback(overrides = {}) {
+  const params = {
+    MerchantID: "3362787", MerchantTradeNo: "OMATEST01T1", TradeNo: "2508170000001",
+    RtnCode: "1", RtnMsg: "交易成功", TradeAmt: "4890", CustomField1: "OMA-TEST01",
+    PaymentDate: "2026/08/17 12:00:00", PaymentType: "Credit_CreditCard", ...overrides,
+  };
+  params.CheckMacValue = await ecpay.checkMacValue(params, "5tzn8qyhl9EwzwuT", "iz8YXaAUx60tijdL");
+  return new URLSearchParams(params).toString();
+}
+
+test("ecpay/return marks the order paid only on a valid, amount-matching callback", async () => {
+  const db = fakeDb();
+  db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "pending" };
+  const ok = await call(ecpay.handleEcpay, ecpayReq("/api/ecpay/return", await signedCallback(), true), envWith(db));
+  assert.equal(await ok.text(), "1|OK");
+  assert.ok(db.state.writes.some((w) => w.sql.includes("SET status='paid'")), "order flipped to paid");
+
+  db.state.writes.length = 0;
+  const badAmount = await call(ecpay.handleEcpay, ecpayReq("/api/ecpay/return", await signedCallback({ TradeAmt: "1" }), true), envWith(db));
+  assert.equal(await badAmount.text(), "0|Amount Mismatch");
+  assert.equal(db.state.writes.length, 0);
+
+  const tampered = (await signedCallback()).replace("TradeAmt=4890", "TradeAmt=9999");
+  const badMac = await call(ecpay.handleEcpay, ecpayReq("/api/ecpay/return", tampered, true), envWith(db));
+  assert.equal(await badMac.text(), "0|CheckMacValue Error");
+});
+
+test("ecpay/result redirects the browser with the outcome, touching nothing", async () => {
+  const db = fakeDb();
+  const res = await call(ecpay.handleEcpay, ecpayReq("/api/ecpay/result", await signedCallback(), true), envWith(db));
+  assert.equal(res.status, 302);
+  const loc = new URL(res.headers.get("location"));
+  assert.equal(loc.searchParams.get("pay"), "ok");
+  assert.equal(loc.searchParams.get("order"), "OMA-TEST01");
+  assert.equal(db.state.writes.length, 0, "result page never writes");
 });
