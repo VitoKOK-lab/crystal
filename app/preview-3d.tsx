@@ -53,9 +53,9 @@ const STONE_TEXTURES: Record<string, string> = Object.fromEntries([
 const UNITS_PER_MM = 0.016;
 // Accessories occupy only 3-5mm of cord but their bodies draw wider, same
 // as the 2D studio's sprites: display sizes, not cord footprints. Matched
-// to the 2D studio's proportions (spacer ≈ 0.55×, charm ≈ 0.74× of a 20mm
-// focal stone) so a piece reads the same in both previews.
-const SPACER_DISPLAY_MM = 11;
+// to the 2D studio's proportions (charm ≈ 0.74× of a 20mm focal stone) so
+// a piece reads the same in both previews.
+const SPACER_DISPLAY_MM = 8.5;
 const CHARM_DISPLAY_MM = 14.5;
 
 function beadPlacement(piece: PreviewPiece, angle: number, radiusUnits: number) {
@@ -94,13 +94,16 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     const matte = MATTE_STONES.has(piece.id);
     const mat = new THREE.MeshPhysicalMaterial({
       map, color: "#ffffff",
-      roughness: matte ? 0.78 : translucent ? 0.14 : faceted ? 0.16 : 0.22,
+      roughness: matte ? 0.78 : translucent ? 0.12 : faceted ? 0.14 : 0.2,
       metalness: piece.id === "hematite" ? 0.55 : 0.02,
-      clearcoat: matte ? 0.05 : translucent ? 1 : 0.8, clearcoatRoughness: matte ? 0.6 : 0.12,
+      clearcoat: matte ? 0.05 : translucent ? 1 : 0.85, clearcoatRoughness: matte ? 0.6 : 0.1,
+      // The softbox windows in the environment are what sell the glass —
+      // reflect them a touch brighter than physically neutral.
+      envMapIntensity: matte ? 0.6 : 1.25,
       // Flat shading turns the coarse facet geometry into crisp mirror
       // planes — each facet catches its own highlight, like a real cut.
       flatShading: faceted,
-      ...(translucent ? { transmission: 0.3, thickness: sizeUnits * 2, ior: 1.54 } : {}),
+      ...(translucent ? { transmission: 0.38, thickness: sizeUnits * 2, ior: 1.54 } : {}),
     });
     // Sphere UVs pinch any texture into a starburst at the two poles, and on
     // a strand some pole always ends up on some bead's visible silhouette.
@@ -152,11 +155,11 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
       // pale ghost (and moonstone picked up its neighbours' colours like a
       // lens). Real tumbled quartz scatters most of what enters it.
       return new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.16, transmission: 0.45, thickness: sizeUnits * 2, ior: 1.54,
+        color, roughness: 0.16, transmission: 0.45, thickness: sizeUnits * 2, ior: 1.54, envMapIntensity: 1.25,
         clearcoat: 1, clearcoatRoughness: 0.08, attenuationColor: new THREE.Color(color), attenuationDistance: 0.25,
       });
     }
-    return new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.05, clearcoat: 0.65, clearcoatRoughness: 0.18 });
+    return new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.05, clearcoat: 0.65, clearcoatRoughness: 0.18, envMapIntensity: 1.15 });
   }, [piece.id, piece.kind, piece.metal, sizeUnits]);
 
   return <mesh position={position} material={material} castShadow receiveShadow>
@@ -164,17 +167,39 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
   </mesh>;
 }
 
-// Accessories (charms, spacers, figurine beads) are flat product cutouts,
-// not spheres — mapping their photo onto a ball made every compass a gold
-// marble. Render each as its transparent cutout on a camera-facing plane,
-// ROLLED so its orientation follows the strand's circle exactly like the
-// 2D studio: a spacer's top edge points radially outward, a charm's bail
-// points at the ring's centre with its body extending outward past the
-// cord. As the showcase spins, every accessory turns with the circle
-// instead of standing upright like a sticker.
-const _camRight = new THREE.Vector3();
-const _camUp = new THREE.Vector3();
+// Spacers are real 3D metal: a rondelle (sphere squashed along its hole
+// axis) threaded on the cord, its axis following the strand's tangent like
+// the real thing. The photo-billboard version read as a flat sticker the
+// moment the showcase turned — a solid metallic body catches the softbox
+// windows and grounds the whole strand. Identity comes from the sampled
+// photo colour (gold/silver/rose metals differ visibly); shape stays a
+// generic rondelle, which is what most spacers physically are.
+function SpacerBead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: number; radiusUnits: number }) {
+  const { position } = beadPlacement(piece, angle, radiusUnits);
+  const sizeUnits = SPACER_DISPLAY_MM * UNITS_PER_MM;
+  const quaternion = useMemo(() => {
+    const tangent = new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)).normalize();
+    // Local X becomes the hole axis → the squash below flattens along the cord.
+    return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), tangent);
+  }, [angle]);
+  const material = useMemo(() => {
+    // Fixed metal colours, not the sampled photo median: a photo's median
+    // averages highlight and shadow into a pale beige that reads as bone
+    // under metalness 1. Real 14k gold albedo is deep and warm.
+    const color = piece.metal === "gold" ? "#c9922e" : "#b9bfc4";
+    return new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: 0.14, clearcoat: 0.5, clearcoatRoughness: 0.2, envMapIntensity: 1.5 });
+  }, [piece.metal]);
+  return <group position={position} quaternion={quaternion} scale={[0.42, 1, 1]}>
+    <mesh material={material} castShadow receiveShadow>
+      <sphereGeometry args={[sizeUnits / 2, 32, 32]} />
+    </mesh>
+  </group>;
+}
 
+// Charms are flat product cutouts, not spheres — mapping their photo onto
+// a ball made every compass a gold marble. Render each as its transparent
+// cutout on a camera-facing plane; a charm dangles from its jump ring, so
+// it hangs straight down wherever it sits on the ring.
 function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: PreviewPiece; angle: number; radiusUnits: number; cordRadius: number }) {
   const texture = useLoader(THREE.TextureLoader, piece.src as string);
   const map = useMemo(() => {
@@ -183,30 +208,18 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
     t.anisotropy = 4;
     return t;
   }, [texture]);
-  const side = (piece.isCharm ? CHARM_DISPLAY_MM : SPACER_DISPLAY_MM) * UNITS_PER_MM;
+  const side = CHARM_DISPLAY_MM * UNITS_PER_MM;
   const x = Math.cos(angle) * radiusUnits;
   const z = Math.sin(angle) * radiusUnits;
   // A charm dangles from its jump ring: gravity decides where it points,
   // so it hangs straight down from its cord point wherever it sits on the
   // ring (matching the 2D stage). Its photo is shot bail-up, so hanging
   // means no in-plane roll at all — just drop it half a body so the bail
-  // still meets the cord. Spacers are threaded ON the cord, and their
-  // photos are shot with the drill axis vertical, so those roll to follow
-  // the TANGENT — a ridged cylinder must lie along the strand, not across
-  // it.
-  const y = piece.isCharm ? -side / 2 + side * 0.13 : 0;
-  const tangent = useMemo(() => new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)), [angle]);
+  // still meets the cord.
+  const y = -side / 2 + side * 0.13;
   const groupRef = useRef<THREE.Group>(null);
   useFrame(({ camera }) => {
-    const g = groupRef.current;
-    if (!g) return;
-    g.quaternion.copy(camera.quaternion);
-    if (piece.isCharm) return; // camera-facing and upright: it hangs
-    // Spacers: roll in-plane so the sprite's up-axis tracks the screen
-    // projection of the cord's tangent.
-    _camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
-    _camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
-    g.rotateZ(Math.atan2(-tangent.dot(_camRight), tangent.dot(_camUp)));
+    groupRef.current?.quaternion.copy(camera.quaternion); // camera-facing and upright: it hangs
   });
   return <group ref={groupRef} position={[x, y, z]}>
     {/* Nudged toward the camera so the cord's front half doesn't slice
@@ -221,37 +234,55 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
 }
 
 function AnyBead(props: { piece: PreviewPiece; angle: number; radiusUnits: number; cordRadius: number }) {
-  if (props.piece.kind === "accessory" && props.piece.src) return <AccessoryPiece {...props} />;
+  if (props.piece.kind === "accessory") {
+    if (!props.piece.isCharm) return <SpacerBead {...props} />;
+    if (props.piece.src) return <AccessoryPiece {...props} />;
+  }
   const textureUrl = props.piece.kind === "stone" ? STONE_TEXTURES[props.piece.id] ?? SF_STONE_TEXTURES[props.piece.id] : undefined;
   if (textureUrl) return <TexturedStoneBead {...props} textureUrl={textureUrl} />;
   return <Bead {...props} />;
 }
 
-// A hand-built environment out of a few flat, hard-edged emissive panels
-// reflects those hard edges straight onto every glossy sphere as visible
-// stripes — that's exactly the artifact this produced on the first pass.
-// A smoothly-varying gradient has no edges to reflect, so it can't do that;
-// generated on a <canvas> (no HDRI fetch, self-contained on a static site).
+// A hand-built environment out of a few flat, HARD-edged emissive panels
+// reflects those edges onto every glossy sphere as visible stripes — the
+// first pass's artifact. But the fix that shipped (a pure gradient with no
+// features at all) over-corrected: with nothing distinct to reflect, every
+// bead read as uniformly-lit ceramic. Real jewellery photography sells
+// "glass" with big SOFT-EDGED softbox windows — large bright shapes whose
+// edges fade over many pixels. Radial gradients stretched into bars give
+// exactly that: window-shaped highlights with no hard edge to alias.
+// Generated on a <canvas> (no HDRI fetch, self-contained on a static site).
 function useGradientEnvTexture() {
   return useMemo(() => {
     const canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 32;
+    canvas.width = 256;
+    canvas.height = 128;
     const ctx = canvas.getContext("2d")!;
     const vertical = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    vertical.addColorStop(0, "#fffaf0");
-    vertical.addColorStop(0.4, "#f7f0e4");
-    vertical.addColorStop(0.7, "#e7ddcf");
-    vertical.addColorStop(1, "#cfc4b4");
+    vertical.addColorStop(0, "#fbf6ec");
+    vertical.addColorStop(0.45, "#efe8da");
+    vertical.addColorStop(0.7, "#ded4c2");
+    vertical.addColorStop(1, "#bfb3a0");
     ctx.fillStyle = vertical;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // A soft, blurred key-light glow — a radial gradient has no hard edge,
-    // so it can't produce the stripe artifact a flat panel does.
-    const glow = ctx.createRadialGradient(46, 7, 0, 46, 7, 16);
-    glow.addColorStop(0, "rgba(255,255,255,0.85)");
-    glow.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Softbox windows: elongated radial gradients (scaled circles), each
+    // bright in the middle and fading to nothing — a wide key above-left,
+    // a dimmer fill on the right, and a faint cool strip low behind.
+    const softbox = (cx: number, cy: number, rx: number, ry: number, alpha: number) => {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(rx / 40, ry / 40);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+      g.addColorStop(0, `rgba(255,255,255,${alpha})`);
+      g.addColorStop(0.55, `rgba(255,253,248,${alpha * 0.7})`);
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(-40, -40, 80, 80);
+      ctx.restore();
+    };
+    softbox(70, 22, 58, 20, 1);     // key: broad window up-left
+    softbox(200, 34, 40, 15, 0.55); // fill: smaller window right
+    softbox(140, 86, 90, 12, 0.18); // faint low bounce strip
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.mapping = THREE.EquirectangularReflectionMapping;
