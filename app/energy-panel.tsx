@@ -26,7 +26,7 @@ export function useCountUp(value: number) {
   return display;
 }
 
-export default function EnergyPanel({ scores, total, dominant, open, onToggle, tone, onAddStone }: { scores: Record<EnergyType, number>; total: number; dominant: (typeof ENERGY_META)[number]; open: boolean; onToggle: () => void; tone: SeriesTone; onAddStone: (stoneId: string) => void }) {
+export default function EnergyPanel({ scores, total, dominant, open, onToggle, tone, onAddStone, energyFilter, onFilterEnergy }: { scores: Record<EnergyType, number>; total: number; dominant: (typeof ENERGY_META)[number]; open: boolean; onToggle: () => void; tone: SeriesTone; onAddStone: (stoneId: string) => void; energyFilter: string | null; onFilterEnergy: (key: string | null) => void }) {
   const displayTotal = useCountUp(total);
   const max = Math.max(...ENERGY_META.map((m) => scores[m.key]), 1);
   const cx = 110, cy = 92, R = 62;
@@ -78,5 +78,19 @@ export default function EnergyPanel({ scores, total, dominant, open, onToggle, t
         </div>;
       })}
     </div>}
+    {/* 用能量挑石：點一個維度，右側素材櫃只留強在這個能量的石頭（權重
+        ≥7/10）。再點一次取消。與顏色篩選並存，各自獨立。 */}
+    <div className="ep-filter">
+      <p>用能量挑石</p>
+      <span>
+        {ENERGY_META.map((m) => <button
+          key={m.key}
+          className={energyFilter === m.key ? "on" : ""}
+          style={{ "--chip": m.color } as React.CSSProperties}
+          onClick={() => onFilterEnergy(energyFilter === m.key ? null : m.key)}
+          aria-pressed={energyFilter === m.key}
+        >{m.zh}</button>)}
+      </span>
+    </div>
   </div>;
 }

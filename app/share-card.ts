@@ -24,8 +24,10 @@ export async function generateShareCard(opts: {
   wristCm: number;
   beads: number;
   url: string;
+  // AI 命名＋籤詩（/api/design-poem）。拿不到就不畫，卡片跟以前一樣。
+  poem?: { title: string; verse: string } | null;
 }): Promise<Blob> {
-  const { pieces, capacityMM, energies, dominant, totalEnergy, priceNTD, wristCm, beads, url } = opts;
+  const { pieces, capacityMM, energies, dominant, totalEnergy, priceNTD, wristCm, beads, url, poem } = opts;
   const W = 1080, H = 1350;
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
@@ -53,6 +55,16 @@ export async function generateShareCard(opts: {
   ctx.fillStyle = "#6b6b6b";
   ctx.font = "500 17px Arial, sans-serif";
   ctx.fillText("M A K E   Y O U R   O W N   E N E R G Y", W / 2, 186);
+
+  // AI 命名＋籤詩：名字用書名號如作品標題，籤詩小一號在下面
+  if (poem) {
+    ctx.fillStyle = "#141414";
+    ctx.font = "500 46px Georgia, serif";
+    ctx.fillText(`《${poem.title}》`, W / 2, 262);
+    ctx.fillStyle = "#8a6d1f";
+    ctx.font = "500 24px Georgia, serif";
+    ctx.fillText(poem.verse, W / 2, 306);
+  }
 
   // bracelet ring at true proportions
   const cx = W / 2, cy = 600;

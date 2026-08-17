@@ -105,6 +105,20 @@ button,input { font:inherit; } button { cursor:pointer; }
 .ep-total span { color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
 .ep-total b { color:#ffd76a; font:600 17px var(--display); letter-spacing:.04em; text-shadow:0 0 12px #ffd76a55; }
 /* 能量缺口：最弱的兩個維度 + 一鍵補石 */
+/* 用能量挑石：能量矩陣裡的礦石篩選 chips */
+.ep-filter { margin-top:9px; padding-top:8px; border-top:1px solid #ffffff14; }
+.ep-filter > p { margin:0 0 6px; color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
+.ep-filter span { display:flex; flex-wrap:wrap; gap:5px; }
+.ep-filter button { padding:4px 9px; border:1px solid #ffffff26; border-radius:999px; background:#ffffff0d; color:#cfe4e0; font-size:9px; letter-spacing:.1em; cursor:pointer; transition:.15s; }
+.ep-filter button:hover { border-color:var(--chip); color:#fff; }
+.ep-filter button.on { background:var(--chip); border-color:var(--chip); color:#10201e; font-weight:700; }
+/* 素材櫃的顏色分類 chips */
+.color-chips { display:flex; flex-wrap:wrap; gap:5px; margin:8px 24px 0; }
+.color-chips button { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border:1px solid #dedad0; border-radius:999px; background:#fff; color:#6b6b6b; font-size:9px; letter-spacing:.08em; cursor:pointer; transition:.15s; }
+.color-chips button i { width:9px; height:9px; border-radius:50%; background:var(--dot); border:1px solid #00000014; }
+.color-chips button:hover { border-color:#c9b98a; color:#2a2a2a; }
+.color-chips button.on { border-color:#8a6d1f; background:#faf6ec; color:#8a6d1f; font-weight:700; }
+.energy-filter-tag { margin-right:auto; margin-left:10px; padding:2px 8px; border:1px solid var(--chip); border-radius:999px; background:transparent; color:var(--chip); font-size:9px; letter-spacing:.08em; cursor:pointer; }
 .ep-gaps { margin-top:9px; padding-top:8px; border-top:1px solid #ffffff14; }
 .ep-gaps > p { margin:0 0 6px; color:#9cc4bf; font-size:8px; letter-spacing:.22em; }
 .ep-gap { display:flex; align-items:center; gap:8px; padding:4px 0; }
@@ -124,7 +138,8 @@ button,input { font:inherit; } button { cursor:pointer; }
 .center-intention { position:absolute; z-index:7; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:5px; max-width:64%; text-align:center; pointer-events:none; }
 .center-intention small { color:#8a6d1f; font-size:9px; letter-spacing:.3em; line-height:1.6; }
 .center-intention b { color:#8a6d1f; font:600 clamp(19px,2.4vw,26px) var(--display); letter-spacing:.15em; text-shadow:0 0 10px #fff,0 0 10px #fff,0 0 16px #ffd76aa0; }
-.center-intention .ci-score { color:#8a6d1f; font:500 16px var(--display); letter-spacing:.06em; text-shadow:0 0 8px #fff,0 0 14px #ffd76a80; }
+.center-intention .ci-score { color:#8a6d1f; font:500 18px var(--display); letter-spacing:.06em; text-shadow:0 0 8px #fff,0 0 14px #ffd76a80; }
+.center-intention .ci-score i { font-style:normal; font-size:12px; color:#a08a4f; }
 .center-intention .ci-note { margin-top:3px; color:#6b6b6b; font-size:9px; letter-spacing:.16em; line-height:1.5; }
 
 /* ── Charm photos: no baked shadow, fully transparent backing ────── */
@@ -343,49 +358,27 @@ button,input { font:inherit; } button { cursor:pointer; }
 .quiz-stone p { margin:5px 0 0; color:#4b4b4b; font-size:12px; line-height:1.7; }
 .quiz-stone small { display:block; margin-top:3px; color:#8a8f93; font-size:10px; }
 .quiz-note { margin:14px auto 0; max-width:420px; color:#8a8f93; font-size:10px; line-height:1.7; }
-
-/* 靈感藝廊 */
-.gallery { min-height:100vh; background:#faf9f6; }
-.gal-filters { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:6px 20px 20px; }
-.gal-filters button { padding:8px 18px; border:1px solid #dedad0; border-radius:99px; background:#fff; color:#6b6b6b; font-size:11px; letter-spacing:.08em; transition:.15s; }
-.gal-filters button.on { border-color:var(--chip,#141414); color:var(--chip,#141414); background:color-mix(in srgb, var(--chip,#141414) 8%, #fff); font-weight:bold; }
-.gal-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; max-width:1080px; margin:0 auto; padding:0 24px 70px; }
-.gal-card { background:#fff; border:1px solid #e6e2d8; border-radius:14px; overflow:hidden; transition:.16s; }
-.gal-card:hover { border-color:#141414; box-shadow:0 12px 26px #14141414; transform:translateY(-2px); }
-.gal-open { display:flex; flex-direction:column; align-items:center; width:100%; padding:16px 12px 16px; border:0; background:transparent; text-align:center; }
-.gal-open .shop-thumb { width:150px; height:150px; position:relative; }
-.gal-open b { margin-top:10px; font:16px var(--display); color:#141414; }
-.gal-open small { margin-top:2px; color:#8a8f93; font-size:9px; letter-spacing:.08em; }
-.gal-meta { display:flex; align-items:center; gap:8px; margin-top:7px; font-size:9px; }
-.gal-meta em { font-style:normal; letter-spacing:.12em; font-weight:bold; }
-.gal-meta i { font-style:normal; color:#8a8f93; }
-.gal-price { margin-top:6px; color:#8a6d1f; font-size:11px; }
-.gal-modal-overlay { position:fixed; inset:0; z-index:80; display:grid; place-items:center; padding:18px; background:#141414a8; backdrop-filter:blur(3px); }
-.gal-modal { position:relative; display:grid; grid-template-columns:280px 1fr; gap:8px; width:min(760px,100%); max-height:88vh; overflow:auto; background:#fff; border-radius:16px; box-shadow:0 30px 80px #00000059; }
-.gal-close { position:absolute; top:10px; right:12px; z-index:2; border:0; background:transparent; color:#6b6b6b; font-size:16px; }
-.gal-modal-vis { display:grid; place-items:center; padding:26px 8px; background:#faf9f6; }
-.gal-modal-vis .shop-thumb { width:230px; height:230px; position:relative; }
-.gal-modal-body { padding:26px 26px 24px 12px; }
-.gal-eyebrow { margin:0; color:#8a8f93; font-size:9px; letter-spacing:.1em; }
-.gal-eyebrow b { letter-spacing:.14em; }
-.gal-modal-body h2 { margin:6px 0 2px; font:24px var(--display); color:#141414; }
-.gal-tagline { display:block; color:#6b6b6b; font-size:11px; line-height:1.7; }
-.gal-bom { margin-top:14px; border:1px solid #eee9dd; border-radius:10px; padding:6px 12px; background:#fdfcf9; }
-.gal-bom-line { display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid #f2eee4; font-size:11px; }
-.gal-bom-line:last-child { border-bottom:0; }
-.gb-name { color:#141414; }
-.gb-name i { display:block; margin-top:1px; color:#8a8f93; font-style:normal; font-size:9px; line-height:1.5; }
-.gb-qty { color:#8a8f93; }
-.gal-bom-line b { color:#141414; font-size:11px; }
-.gal-bom-line.fee .gb-name, .gal-bom-line.fee b { color:#6b6b6b; }
-.gal-bom-line.total b { color:#8a6d1f; font-size:13px; }
-.gal-ctas { display:flex; gap:10px; margin-top:16px; }
-.gal-ctas .co-primary { flex:1; }
-@media (max-width:640px) {
-  .gal-modal { grid-template-columns:1fr; }
-  .gal-modal-vis { padding:18px; }
-  .gal-modal-body { padding:0 20px 22px; }
-}
+/* AI 個人化解讀卡 */
+.quiz-ai { margin:16px auto 0; max-width:500px; padding:16px 20px; text-align:left; background:#fdfbf5; border:1px solid #e6dcc2; border-radius:12px; }
+.quiz-ai p { margin:0; color:#4b4b4b; font-size:13px; line-height:1.9; }
+.quiz-ai span { display:block; margin-top:8px; color:#8a6d1f; font-size:10px; letter-spacing:.08em; text-align:right; }
+.quiz-ai.loading { border-style:dashed; color:#8a8f93; font-size:11px; text-align:center; animation:quizAiPulse 1.6s ease-in-out infinite; }
+@keyframes quizAiPulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+.quiz-blessing { margin:14px auto 2px; max-width:440px; color:#8a6d1f; font-size:13px; line-height:1.8; font-family:var(--display); }
+/* 測驗三模式切換 */
+.quiz-modes { display:flex; justify-content:center; gap:8px; margin:18px 0 4px; }
+.quiz-modes button { padding:9px 20px; border:1px solid #dedad0; border-radius:99px; background:#fff; color:#6b6b6b; font-size:12px; transition:.15s; }
+.quiz-modes button.on { border-color:#8a6d1f; background:#faf6ec; color:#8a6d1f; font-weight:bold; }
+.quiz-wish { padding:12px 14px; border:1px solid #dedad0; border-radius:8px; background:#fff; font-size:14px; font-family:inherit; line-height:1.7; resize:vertical; }
+/* 合盤結果 */
+.pair-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0 6px; }
+.pair-card { display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 14px 16px; background:#fff; border:1px solid #e6e2d8; border-radius:14px; }
+.pair-card .quiz-preview { width:170px; height:170px; margin:6px auto 2px; }
+.pair-card .quiz-stone { width:100%; text-align:left; border:0; padding:8px 4px 0; background:transparent; }
+.pair-card .landing-cta { margin-top:10px; font-size:12px; padding:12px 20px; }
+.pair-name { font:22px var(--display); color:#141414; }
+.bond-stone { max-width:500px; margin:12px auto 0; text-align:left; }
+@media (max-width:640px) { .pair-grid { grid-template-columns:1fr; } }
 
 .co-submit { width:100%; margin-top:22px; }
 .co-submit:disabled { opacity:.55; cursor:default; }
@@ -628,6 +621,19 @@ button,input { font:inherit; } button { cursor:pointer; }
 .shop-card { display:flex; flex-direction:column; border:1px solid #e6e2d8; border-radius:0; background:#fff; overflow:hidden; transition:.18s; }
 .shop-card:hover { border-color:var(--series-accent); box-shadow:0 16px 32px #14141414; transform:translateY(-3px); }
 .shop-thumb { position:relative; width:100%; aspect-ratio:1 / 1; background:radial-gradient(circle at 50% 46%,#fff 0 44%,#faf9f6 78%,#f3f1ec 100%); }
+/* 實景照為主視覺、配置縮圖縮成右下角圓形小抄；照片載入失敗（尚未生成
+   的新品）整組退回原本的純縮圖。 */
+.sc-visual { position:relative; }
+.sc-look { display:block; width:100%; padding:0; border:0; background:#f3f1ec; cursor:zoom-in; }
+.sc-look img { display:block; width:100%; aspect-ratio:4 / 3; object-fit:cover; }
+.sc-visual:not(.no-look) .shop-thumb { position:absolute; right:8px; bottom:8px; width:74px; height:74px; aspect-ratio:auto; border-radius:50%; background:#fffdf8f2; border:1px solid #e6e2d8; box-shadow:0 4px 12px #14141422; }
+.sc-visual.no-look .sc-look { display:none; }
+.look-overlay { position:fixed; inset:0; z-index:90; display:grid; place-items:center; padding:20px; background:#141414b8; backdrop-filter:blur(3px); }
+.look-box { position:relative; max-width:min(880px,94vw); background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 30px 80px #00000066; }
+.look-box img { display:block; width:100%; max-height:76vh; object-fit:cover; }
+.look-box p { margin:0; padding:12px 18px 14px; color:#6b6b6b; font-size:11px; letter-spacing:.04em; }
+.look-box p b { color:#141414; font-size:13px; margin-right:6px; }
+.look-close { position:absolute; top:10px; right:12px; z-index:2; width:32px; height:32px; border:0; border-radius:50%; background:#141414a0; color:#fff; font-size:14px; cursor:pointer; }
 .st-string { position:absolute; border:1.5px solid #14141433; border-radius:50%; box-shadow:inset 0 0 0 1px #fff; }
 .st-bead { position:absolute; display:grid; place-items:center; }
 .st-bead .crystal, .st-bead .hardware { width:100%; height:100%; }

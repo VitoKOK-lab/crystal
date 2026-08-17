@@ -75,6 +75,16 @@ jobs:
             echo "GOOGLE_CLIENT_SECRET not set yet — admin login stays disabled"
           fi
 
+      - name: Sync Kimi API key (when configured)
+        env:
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+        run: |
+          if [ -n "$KIMI_API_KEY" ]; then
+            echo "$KIMI_API_KEY" | npx wrangler secret put KIMI_API_KEY
+          else
+            echo "KIMI_API_KEY not set yet — quiz AI reading falls back to built-in copy"
+          fi
+
       - name: Deploy Worker
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}

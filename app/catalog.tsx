@@ -1,5 +1,7 @@
 "use client";
 
+import { STONE_COLORS } from "./bead-colors";
+
 // Shared material catalogue for the whole site.
 //
 // The men's line and the women's line used to be two separate apps with two
@@ -307,8 +309,102 @@ export function centersForWidths(widths: number[]): number[] {
   let cum = 0;
   return widths.map((mm) => { const center = cum + mm / 2; cum += mm; return center; });
 }
+// A bead on a ring occupies more arc than its diameter: adjacent beads touch
+// along the CHORD between their centres, so a bead of width w subtends
+// 2·asin(w/2R) of the circle. Spending plain millimetres of arc per bead
+// (the old model) made large beads overlap their neighbours and let a
+// "full" strand hold more than physically fits — the wider the beads, the
+// worse the lie (the effect is invisible at 8mm, ~4% at 20mm on a 14cm
+// wrist). All fill math and every renderer goes through these two.
+export function arcWidthMM(widthMM: number, capacityMM: number): number {
+  const R = capacityMM / (Math.PI * 2);
+  return 2 * R * Math.asin(Math.min(widthMM / (2 * R), 1));
+}
+export function strandArcMM(widths: number[], capacityMM: number): number {
+  return widths.reduce((sum, w) => sum + arcWidthMM(w, capacityMM), 0);
+}
 export function anglesForWidths(widths: number[], capacityMM: number): number[] {
-  return centersForWidths(widths).map((center) => -Math.PI / 2 + (center / capacityMM) * Math.PI * 2);
+  const arcs = widths.map((w) => arcWidthMM(w, capacityMM));
+  return centersForWidths(arcs).map((center) => -Math.PI / 2 + (center / capacityMM) * Math.PI * 2);
+}
+// The ring circumference at which these beads exactly close the loop
+// (Σ 2·asin(wᵢ/2R) = 2π), for thumbnails that draw a finished bracelet
+// rather than a wrist-sized one. Monotone in R, so bisection converges
+// fast; asin x ≥ x guarantees the true R is at least Σw/2π.
+export function closedLoopCapacityMM(widths: number[]): number {
+  const sum = widths.reduce((a, b) => a + b, 0);
+  if (!sum) return 1;
+  let lo = sum / (Math.PI * 2), hi = sum;
+  for (let i = 0; i < 48; i++) {
+    const R = (lo + hi) / 2;
+    const total = widths.reduce((a, w) => a + 2 * Math.asin(Math.min(w / (2 * R), 1)), 0);
+    if (total > Math.PI * 2) lo = R; else hi = R;
+  }
+  return hi * Math.PI * 2;
+}
+
+// Colour families for the picker's filter chips. 109 stones is too long a
+// wall to scroll unaided, and colour is how customers actually shop ("我想要
+// 一顆綠的"). The group is derived from each stone's sampled photo colour
+// (bead-colors.ts) rather than hand-tagged, so newly photographed stones
+// classify themselves.
+export const COLOR_GROUPS = [
+  { key: "white", zh: "白透", dot: "#eeeae1" },
+  { key: "pink", zh: "粉", dot: "#e3aebc" },
+  { key: "red", zh: "紅", dot: "#b04a52" },
+  { key: "warm", zh: "橙黃", dot: "#d9a13f" },
+  { key: "green", zh: "綠", dot: "#59805f" },
+  { key: "blue", zh: "藍", dot: "#6d8fb2" },
+  { key: "purple", zh: "紫", dot: "#8465a8" },
+  { key: "brown", zh: "棕", dot: "#8a6647" },
+  { key: "dark", zh: "黑灰", dot: "#44444a" },
+] as const;
+export type ColorGroupKey = (typeof COLOR_GROUPS)[number]["key"];
+
+function hexToHsl(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  let h = 0;
+  if (d > 0) {
+    if (max === r) h = ((g - b) / d + 6) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return [h, s, l];
+}
+
+export function colorGroupOf(stoneId: string): ColorGroupKey {
+  const hex = STONE_COLORS[stoneId];
+  if (!hex) return "white";
+  const [h, s, l] = hexToHsl(hex);
+  if (l < 0.18 && s < 0.35) return "dark"; // truly dark — deep saturated stones (石榴石、孔雀石) keep their hue
+  if (s < 0.05) return l >= 0.6 ? "white" : "dark"; // pure greys: hue is numeric noise here
+  if (s < 0.13) {
+    if (l >= 0.6) return "white";
+    if (l < 0.42) return "dark";
+    // mid-lightness muted stones (綠幽靈、苔蘚瑪瑙) still read as their tint — fall through to hue
+  }
+  if (s < 0.28 && l >= 0.78) return "white"; // pale pastels read as 白透 on the shelf
+  if (l >= 0.78 && h >= 25 && h < 70) return "white"; // cream/champagne (珍珠、和田玉) is 白透 to a shopper, not 橙黃
+  if (h < 15 || h >= 345) return l >= 0.6 ? "pink" : "red";
+  if (h < 48) return l < 0.42 ? "brown" : "warm";
+  if (h < 75) return "warm";
+  if (h < 165) return "green";
+  if (h < 255) return "blue";
+  if (h < 315) return "purple";
+  return "pink";
+}
+
+// Smallest offered wrist size (at least minCm) whose circumference holds
+// these beads under the arc model — undefined when even the largest can't.
+// The studio's auto-grow, product/quiz loading and share-link decoding all
+// size through this one function.
+export function fitWristCm(widths: number[], minCm: number): number | undefined {
+  return WRIST_CHOICES.find((cm) => cm >= minCm && strandArcMM(widths, cm * 10) <= cm * 10);
 }
 
 // DesignItem-aware convenience wrapper for the studio stage and shop-card
@@ -380,8 +476,13 @@ export function decodeDesign(code: string): { wrist: number; items: DesignItem[]
       else return null;
     }
     if (!items.length || items.length > 42) return null;
-    if (items.reduce((sum, it) => sum + itemMM(it), 0) > wrist * 10) return null;
-    return { wrist, items };
+    // Links encoded under the old plain-mm capacity model can carry designs
+    // that don't quite fit their stated wrist under the honest arc math —
+    // grow to the smallest size that holds them instead of killing the link.
+    const widths = items.map(itemMM);
+    const fits = WRIST_CHOICES.find((cm) => cm >= wrist && strandArcMM(widths, cm * 10) <= cm * 10);
+    if (fits === undefined) return null;
+    return { wrist: fits, items };
   } catch { return null; }
 }
 

@@ -158,10 +158,6 @@ export const SERIES: Series[] = [
 
 export const bySeries = Object.fromEntries(SERIES.map((s) => [s.id, s])) as Record<string, Series>;
 
-// Real load counters for the 靈感藝廊, keyed "seriesId/productId". Empty at
-// build time; catalog-live fills it from the database so the gallery shows
-// honest numbers (0 renders as nothing, never a fake count).
-export const designUses: Record<string, number> = {};
 export function findProduct(seriesId: string, productId: string) {
   return bySeries[seriesId]?.products.find((p) => p.id === productId) ?? null;
 }

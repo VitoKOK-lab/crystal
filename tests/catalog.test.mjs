@@ -69,7 +69,7 @@ test("encodeDesign/decodeDesign round-trips a design", () => {
 // straight from a URL a visitor could hand-edit or share.
 test("decodeDesign rejects malformed/oversized/unknown untrusted input", () => {
   assert.equal(decodeDesign("13.3|rose.l"), null, "wrist not in WRIST_CHOICES");
-  assert.equal(decodeDesign("13|rose.x,rose.x,rose.x,rose.x,rose.x,rose.x,rose.x"), null, "overflows capacity");
+  assert.equal(decodeDesign(`13|${Array(12).fill("rose.x").join(",")}`), null, "overflows even the largest wrist");
   assert.equal(decodeDesign("14|not-a-real-id"), null, "unknown id");
   assert.equal(decodeDesign("14|"), null, "empty item list");
   assert.equal(decodeDesign("garbage"), null, "no separator at all");
@@ -79,6 +79,50 @@ test("decodeDesign rejects malformed/oversized/unknown untrusted input", () => {
 test("every catalogue id round-trips through byStone/byAccessory", () => {
   for (const s of stones) assert.equal(byStone[s.id]?.id, s.id);
   for (const a of accessories) assert.equal(byAccessory[a.id]?.id, a.id);
+});
+
+// --- Arc geometry: a bead on a ring takes 2R·asin(w/2R) of circumference,
+// more than its diameter — the physical model behind fill, layout and the
+// wrist auto-grow.
+
+test("arcWidthMM exceeds the raw diameter, and more so for big beads", () => {
+  const smallExcess = catalog.arcWidthMM(8, 140) - 8;
+  const bigExcess = catalog.arcWidthMM(20, 140) - 20;
+  assert.ok(smallExcess > 0 && smallExcess < 0.1, "8mm bead barely differs");
+  assert.ok(bigExcess > 0.5, "20mm bead needs visibly more arc");
+  assert.ok(bigExcess > smallExcess);
+});
+
+test("seven 20mm beads no longer 'exactly fill' a 14cm wrist", () => {
+  const widths = Array(7).fill(20);
+  assert.equal(widths.reduce((a, b) => a + b, 0), 140, "raw mm says it fits exactly");
+  assert.ok(catalog.strandArcMM(widths, 140) > 140, "arc math says it doesn't");
+  assert.equal(catalog.fitWristCm(widths, 13), 14.5, "the honest fit is the next half-size up");
+});
+
+test("closedLoopCapacityMM makes the widths subtend exactly 2π", () => {
+  const widths = [20, 20, 20, 20, 20, 20, 20];
+  const cap = catalog.closedLoopCapacityMM(widths);
+  assert.ok(cap > 140, "closed loop is bigger than the raw sum");
+  const R = cap / (Math.PI * 2);
+  const total = widths.reduce((a, w) => a + 2 * Math.asin(w / (2 * R)), 0);
+  assert.ok(Math.abs(total - Math.PI * 2) < 1e-6);
+});
+
+test("anglesForWidths places equal beads tangent (angular gap = 2·asin(w/2R))", () => {
+  const widths = [20, 20, 20];
+  const angles = anglesForWidths(widths, 140);
+  const R = 140 / (Math.PI * 2);
+  const expectedGap = 2 * Math.asin(20 / (2 * R));
+  assert.ok(Math.abs((angles[1] - angles[0]) - expectedGap) < 1e-9);
+  assert.ok(Math.abs((angles[2] - angles[1]) - expectedGap) < 1e-9);
+});
+
+test("decodeDesign grows the wrist for a design that no longer fits its stated size", () => {
+  const decoded = decodeDesign("13|rose.x,rose.x,rose.x,rose.x,rose.x,rose.x,rose.x");
+  assert.ok(decoded, "still decodes — old links must not die");
+  assert.equal(decoded.wrist, 14.5, "bumped to the smallest size that holds 7×20mm");
+  assert.equal(decoded.items.length, 7);
 });
 
 test("layoutStrand agrees with anglesForWidths/centersForWidths on the same items", () => {

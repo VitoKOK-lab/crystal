@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { ItemVisual, PCT_PER_MM, itemMM, type DesignItem, type StrandPlacement } from "./catalog";
+import { ItemVisual, PCT_PER_MM, arcWidthMM, itemMM, type DesignItem, type StrandPlacement } from "./catalog";
 import type { ENERGY_META } from "./catalog";
 import type { SeriesTone } from "./series";
 
@@ -14,7 +14,7 @@ type EnergyMetaEntry = (typeof ENERGY_META)[number];
 // cards, the stats bar). Before this split, every drag frame re-rendered
 // all of it, which is what made dragging feel laggy rather than live.
 export default function BraceletStage({
-  items, setItems, arcs, r, capacityMM, beads, dominant, dominantDisplay, tone, showNotice, removeByUid,
+  items, setItems, arcs, r, capacityMM, beads, dominant, strung, wristCm, tone, showNotice, removeByUid,
 }: {
   items: DesignItem[];
   setItems: (updater: (current: DesignItem[]) => DesignItem[]) => void;
@@ -23,7 +23,8 @@ export default function BraceletStage({
   capacityMM: number;
   beads: number;
   dominant: EnergyMetaEntry;
-  dominantDisplay: number;
+  strung: string;
+  wristCm: number;
   tone: SeriesTone;
   showNotice: (text: string) => void;
   removeByUid: (uid: number) => void;
@@ -55,7 +56,7 @@ export default function BraceletStage({
     const frac = ((((angle + Math.PI / 2) % TAU) + TAU) % TAU) / TAU;
     const p = frac * capacityMM;
     let cum = 0, target = rest.length;
-    for (let i = 0; i < rest.length; i++) { const w = itemMM(rest[i]); if (p < cum + w / 2) { target = i; break; } cum += w; }
+    for (let i = 0; i < rest.length; i++) { const w = arcWidthMM(itemMM(rest[i]), capacityMM); if (p < cum + w / 2) { target = i; break; } cum += w; }
     const next = [...rest];
     next.splice(target, 0, moving);
     return next.every((x, i) => x === current[i]) ? current : next;
@@ -132,7 +133,7 @@ export default function BraceletStage({
       ><ItemVisual item={item} /><span className="remove-mark">−</span></button>;
     })}
     {beads > 0
-      ? <div className="center-intention"><small>{tone.dominantEn}</small><b>{dominant.en}</b><span className="ci-score">{dominantDisplay.toLocaleString()}</span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
+      ? <div className="center-intention"><small>{tone.dominantEn}</small><b>{dominant.en}</b><span className="ci-score">{strung}<i> / {wristCm} cm</i></span><span className="ci-note">{beads} NATURAL STONES · {items.length} PIECES</span></div>
       : <div className="center-intention"><small>OMA CRYSTAL</small><b>BEGIN WITH ONE</b><span className="ci-note">從一顆開始 · 右側挑你的第一顆礦石</span></div>}
     <div className="stage-tip">輕點移除 · 按住拖曳調整位置</div>
   </div>;

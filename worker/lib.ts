@@ -29,6 +29,13 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   ADMIN_EMAILS?: string;
+  // Moonshot Kimi API for the personalised birthday reading. The key is a
+  // `wrangler secret`; without it /api/quiz-reading answers 503 and the quiz
+  // silently keeps its built-in copy. Base URL/model are optional overrides
+  // (.cn platform by default).
+  KIMI_API_KEY?: string;
+  KIMI_BASE_URL?: string;
+  KIMI_MODEL?: string;
 }
 
 export const json = (data: unknown, init: ResponseInit & { headers?: Record<string, string> } = {}) =>

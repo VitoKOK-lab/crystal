@@ -6,16 +6,17 @@ import { handleAdmin } from "./admin";
 import { handleAuth } from "./auth";
 import { Env, json } from "./lib";
 import { handleOrders } from "./orders";
+import { handleAi } from "./ai";
+import { handleQuizReading } from "./quiz-reading";
 
 async function catalogPayload(env: Env) {
-  const [stones, sizes, accessories, series, products, settings, uses] = await Promise.all([
+  const [stones, sizes, accessories, series, products, settings] = await Promise.all([
     env.DB.prepare("SELECT * FROM stones WHERE active=1 ORDER BY sort").all(),
     env.DB.prepare("SELECT * FROM stone_sizes WHERE active=1 ORDER BY stone_id, mm").all(),
     env.DB.prepare("SELECT * FROM accessories WHERE active=1 ORDER BY sort").all(),
     env.DB.prepare("SELECT * FROM series WHERE active=1 ORDER BY sort").all(),
     env.DB.prepare("SELECT * FROM products WHERE active=1 ORDER BY series_id, sort").all(),
     env.DB.prepare("SELECT * FROM settings WHERE key NOT LIKE 'session_%'").all(),
-    env.DB.prepare("SELECT key, uses FROM design_uses").all<{ key: string; uses: number }>(),
   ]);
   return {
     stones: stones.results,
@@ -24,7 +25,6 @@ async function catalogPayload(env: Env) {
     series: series.results,
     products: products.results,
     settings: Object.fromEntries(settings.results.map((r) => [r.key as string, r.value as string])),
-    designUses: Object.fromEntries(uses.results.map((r) => [r.key, r.uses])),
     generatedAt: new Date().toISOString(),
   };
 }
@@ -56,16 +56,6 @@ export default {
       return res;
     }
 
-    // Gallery use counter: fire-and-forget from the storefront when a
-    // curated design is bought or loaded into the studio.
-    if (url.pathname === "/api/track/use" && request.method === "POST") {
-      let key = "";
-      try { key = String(((await request.json()) as { key?: unknown }).key ?? ""); } catch { /* fall through to validation */ }
-      if (!/^[\w-]+\/[\w-]+$/.test(key) || key.length > 120) return json({ error: "invalid key" }, { status: 400 });
-      await env.DB.prepare("INSERT INTO design_uses (key, uses) VALUES (?, 1) ON CONFLICT(key) DO UPDATE SET uses = uses + 1").bind(key).run();
-      return json({ ok: true });
-    }
-
     // 生日選石測驗 lead intake. Fire-and-forget from the quiz result page.
     if (url.pathname === "/api/quiz-lead" && request.method === "POST") {
       let b: Record<string, unknown> = {};
@@ -78,6 +68,12 @@ export default {
         .bind(name, birthday, theme, email, stones).run();
       return json({ ok: true }, { status: 201 });
     }
+
+    const readingRes = await handleQuizReading(request, env, url);
+    if (readingRes) return readingRes;
+
+    const aiRes = await handleAi(request, env, url);
+    if (aiRes) return aiRes;
 
     const orderRes = await handleOrders(request, env, url);
     if (orderRes) return orderRes;

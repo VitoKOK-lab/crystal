@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { importCompiled } from "./esbuild-import.mjs";
 
-const { lib, admin, orders } = await importCompiled("tests/fixtures/worker-entry.ts");
+const { lib, admin, orders, quizReading, ai } = await importCompiled("tests/fixtures/worker-entry.ts");
 
 // --- Fake D1 -------------------------------------------------------------
 
@@ -18,6 +18,9 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
     accessories: new Map(Object.entries(accessories)), // id -> stock
     orders: [],
     writes: [],
+    quizReadings: new Map(),
+    aiTexts: new Map(),   // key -> {kind, payload}
+    wishStones: [],       // rows for the wish menu query
   };
   const exec = (sql, args) => {
     if (sql.includes("FROM settings WHERE key='session_signing_key'")) {
@@ -57,6 +60,31 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
     if (sql.startsWith("INSERT INTO orders")) {
       state.orders.push(args);
       return [];
+    }
+    if (sql.startsWith("SELECT reading FROM quiz_readings")) {
+      const v = state.quizReadings.get(args[0]);
+      return v === undefined ? [] : [{ reading: v }];
+    }
+    if (sql.startsWith("SELECT COUNT(*) AS n FROM quiz_readings")) {
+      return [{ n: state.quizReadings.size }];
+    }
+    if (sql.startsWith("INSERT OR IGNORE INTO quiz_readings")) {
+      state.quizReadings.set(args[0], args[1]);
+      return [];
+    }
+    if (sql.startsWith("SELECT payload FROM ai_texts")) {
+      const row = state.aiTexts.get(args[0]);
+      return row === undefined ? [] : [{ payload: row.payload }];
+    }
+    if (sql.startsWith("SELECT COUNT(*) AS n FROM ai_texts")) {
+      return [{ n: [...state.aiTexts.values()].filter((r) => r.kind === args[0]).length }];
+    }
+    if (sql.startsWith("INSERT OR IGNORE INTO ai_texts")) {
+      state.aiTexts.set(args[0], { kind: args[1], payload: args[2] });
+      return [];
+    }
+    if (sql.startsWith("SELECT id, zh, energies FROM stones")) {
+      return state.wishStones;
     }
     if (/^(UPDATE|INSERT|DELETE)/.test(sql)) {
       state.writes.push({ sql, args });
@@ -219,4 +247,137 @@ test("free shipping kicks in past the configured threshold", async () => {
   const res = await call(orders.handleOrders, jsonReq("http://x/api/orders", body), envWith(db));
   const data = await res.json();
   assert.equal(data.shipping, 0);
+});
+
+// --- 生日選石 AI 解讀代理 ---------------------------------------------------
+
+const readingBody = {
+  name: "Vito", birthday: "1995-08-16", life: 3, persona: "表達者", theme: "財富",
+  positions: [
+    { role: "主星石", stone: "白水晶", energy: "專注" },
+    { role: "內在石", stone: "薔薇輝石", energy: "愛情" },
+    { role: "行動石", stone: "圓珠茶晶", energy: "專注" },
+    { role: "流年石", stone: "圓珠消光火山岩", energy: "力量" },
+    { role: "意圖石", stone: "切面金沙石", energy: "財富" },
+  ],
+};
+const readingReq = (body) => new Request("https://x/api/quiz-reading", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+});
+
+test("quiz-reading answers 503 when no Kimi key is configured", async () => {
+  const res = await call(quizReading.handleQuizReading, readingReq(readingBody), envWith(fakeDb()));
+  assert.equal(res.status, 503);
+});
+
+test("quiz-reading validates input before spending any tokens", async () => {
+  const env = envWith(fakeDb(), { KIMI_API_KEY: "k" });
+  for (const bad of [
+    { ...readingBody, birthday: "not-a-date" },
+    { ...readingBody, name: "" },
+    { ...readingBody, life: 99 },
+    { ...readingBody, positions: readingBody.positions.slice(0, 2) },
+  ]) {
+    const res = await call(quizReading.handleQuizReading, readingReq(bad), env);
+    assert.equal(res.status, 400);
+  }
+});
+
+test("quiz-reading proxies Kimi, validates the JSON shape, and caches by identity", async () => {
+  const db = fakeDb();
+  const env = envWith(db, { KIMI_API_KEY: "k" });
+  const reading = {
+    overall: "Vito，1995 年夏天出生的你，帶著表達者的節奏走到今天，這五顆石頭排出的正是你此刻的樣子，值得慢慢戴著感受。",
+    stones: readingBody.positions.map((p) => ({ role: p.role, line: `${p.stone}陪你把${p.energy}穩穩接住。` })),
+    blessing: "願你想說的話，都有人好好聽見。",
+  };
+  const realFetch = globalThis.fetch;
+  let upstreamCalls = 0;
+  globalThis.fetch = async () => { upstreamCalls += 1; return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reading) } }] })); };
+  try {
+    const res = await call(quizReading.handleQuizReading, readingReq(readingBody), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.reading.overall, reading.overall);
+    assert.equal(data.reading.stones.length, 5);
+
+    const again = await call(quizReading.handleQuizReading, readingReq(readingBody), env);
+    const cached = await again.json();
+    assert.equal(cached.cached, true, "same name|birthday|theme is served from D1");
+    assert.equal(upstreamCalls, 1, "the model is only paid once per identity");
+
+    globalThis.fetch = async () => new Response("{}", { status: 500 });
+    const garbled = await call(quizReading.handleQuizReading, readingReq({ ...readingBody, name: "另一個人" }), env);
+    assert.equal(garbled.status, 502, "upstream failure surfaces as 502, never a fake reading");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+// --- AI 三功能（命名／許願／合盤）------------------------------------------
+
+const aiEnv = (db, over = {}) => envWith(db, { KIMI_API_KEY: "k", ...over });
+const aiReq = (path, body) => new Request(`https://x${path}`, {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+});
+const kimiResponse = (obj) => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(obj) } }] }));
+
+test("all three AI endpoints answer 503 without a key", async () => {
+  for (const [path, body] of [
+    ["/api/design-poem", { dominant: "守護", stones: ["黑曜石"] }],
+    ["/api/wish-reading", { name: "V", wish: "想撐過換工作的這半年" }],
+    ["/api/pair-reading", { relation: "閨蜜", a: {}, b: {}, bondStone: "白水晶" }],
+  ]) {
+    const res = await call(ai.handleAi, aiReq(path, body), envWith(fakeDb()));
+    assert.equal(res.status, 503, path);
+  }
+});
+
+test("design-poem caches by stone multiset regardless of order", async () => {
+  const db = fakeDb();
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls += 1; return kimiResponse({ title: "凌晨四點的溫柔", verse: "把想守住的，好好戴在手上。" }); };
+  try {
+    const first = await call(ai.handleAi, aiReq("/api/design-poem", { dominant: "守護", stones: ["黑曜石", "白水晶"] }), aiEnv(db));
+    assert.equal(first.status, 200);
+    assert.equal((await first.json()).poem.title, "凌晨四點的溫柔");
+    const swapped = await call(ai.handleAi, aiReq("/api/design-poem", { dominant: "守護", stones: ["白水晶", "黑曜石"] }), aiEnv(db));
+    assert.equal((await swapped.json()).cached, true, "order must not bust the cache");
+    assert.equal(calls, 1);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test("wish-reading only accepts stones that exist in the database menu", async () => {
+  const db = fakeDb();
+  // 15 real stones so the menu builds; Kimi answers with one fake name.
+  db.state.wishStones = Array.from({ length: 15 }, (_, i) => ({ id: `s${i}`, zh: `石頭${i}`, energies: JSON.stringify({ wealth: i % 10, love: 5, healing: 5, protection: 5, focus: 5, power: 5 }) }));
+  const good = { overall: "a".repeat(30), stones: [0, 1, 2, 3, 4].map((i) => ({ name: `石頭${i}`, role: "主願石", line: "陪你把願望穩穩接住，一步一步慢慢來。" })), blessing: "願你如願。" };
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => kimiResponse(good);
+  try {
+    const ok = await call(ai.handleAi, aiReq("/api/wish-reading", { name: "V", wish: "想撐過換工作的這半年" }), aiEnv(db));
+    assert.equal(ok.status, 200);
+    const reading = (await ok.json()).reading;
+    assert.deepEqual(reading.stones.map((s) => s.id), ["s0", "s1", "s2", "s3", "s4"], "names map back to real ids");
+
+    globalThis.fetch = async () => kimiResponse({ ...good, stones: [{ ...good.stones[0], name: "不存在的石頭" }, ...good.stones.slice(1)] });
+    const bad = await call(ai.handleAi, aiReq("/api/wish-reading", { name: "V2", wish: "想撐過換工作的這半年" }), aiEnv(db));
+    assert.equal(bad.status, 502, "an invented stone name kills the reading");
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test("pair-reading validates both persons and returns the Kimi text", async () => {
+  const db = fakeDb();
+  const person = (n) => ({ name: n, birthday: "1995-08-16", life: 3, persona: "表達者", stone: "白水晶" });
+  const text = { overall: "兩個人的節奏剛好互補，一快一慢，正好接住彼此的空拍。", a_line: "白水晶替你把主場戴在手上。", b_line: "白水晶替你把主場戴在手上。", bond_line: "連結石讓你們看見它就想起彼此。", blessing: "願你們一直順手。" };
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => kimiResponse(text);
+  try {
+    const bad = await call(ai.handleAi, aiReq("/api/pair-reading", { relation: "同事", a: person("A"), b: person("B"), bondStone: "白水晶" }), aiEnv(db));
+    assert.equal(bad.status, 400, "relation outside the whitelist");
+    const ok = await call(ai.handleAi, aiReq("/api/pair-reading", { relation: "情侶", a: person("A"), b: person("B"), bondStone: "白水晶" }), aiEnv(db));
+    assert.equal(ok.status, 200);
+    assert.equal((await ok.json()).reading.overall, text.overall);
+  } finally { globalThis.fetch = realFetch; }
 });

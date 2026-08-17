@@ -125,15 +125,14 @@ function useScrollReveal() {
   return rootRef;
 }
 
-export default function Home({ onStart, onShop, onGallery, onQuiz }: { onStart: () => void; onShop: (seriesId?: string) => void; onGallery: () => void; onQuiz: () => void }) {
+export default function Home({ onStart, onShop, onQuiz }: { onStart: () => void; onShop: (seriesId?: string) => void; onQuiz: () => void }) {
   const rootRef = useScrollReveal();
   return <div className="landing" ref={rootRef}>
-    <AnnounceBar onQuiz={onQuiz} onGallery={onGallery} />
+    <AnnounceBar onQuiz={onQuiz} />
     <header className="landing-nav">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
       <div className="landing-nav-links">
         <button className="landing-nav-quiet" onClick={onQuiz}>生日選石</button>
-        <button className="landing-nav-quiet" onClick={onGallery}>靈感藝廊</button>
         <button className="landing-nav-quiet" onClick={() => onShop()}>系列</button>
         <button className="landing-nav-cta" onClick={onStart}>工作室</button>
       </div>
@@ -142,10 +141,10 @@ export default function Home({ onStart, onShop, onGallery, onQuiz }: { onStart: 
     <section className="landing-hero" id="landing-top">
       <HeroMedia />
       <div className="landing-hero-copy">
-        <p>RITUALS FOR BECOMING</p>
-        <h1>戴上，<br />你正在成為的樣子</h1>
-        <span className="hero-lede">Wear your becoming</span>
-        <span>療癒不是修補，而是把本就屬於你的光，重新戴回身上。八個系列、三十二款已為你配好；或者，親手為自己串一條。</span>
+        <p>OMA CRYSTAL ATELIER</p>
+        <h1>挑自己的石頭，<br />串自己的手鍊</h1>
+        <span className="hero-lede">Pick your stones, we string them</span>
+        <span>一百多種天然水晶，一顆一顆挑、當場看它在手圍上成形；挑好我們替你串好寄到家。沒靈感的話，八個系列、三十二款都先配好了，直接帶走也行。</span>
         <div className="landing-hero-actions">
           <button className="landing-cta" onClick={() => onShop()}>探索系列 <i>→</i></button>
           <button className="landing-cta ghost" onClick={onStart}>親手串一條</button>
