@@ -6,6 +6,7 @@ import { handleAdmin } from "./admin";
 import { handleAuth } from "./auth";
 import { Env, json } from "./lib";
 import { handleOrders } from "./orders";
+import { handleAi } from "./ai";
 import { handleQuizReading } from "./quiz-reading";
 
 async function catalogPayload(env: Env) {
@@ -70,6 +71,9 @@ export default {
 
     const readingRes = await handleQuizReading(request, env, url);
     if (readingRes) return readingRes;
+
+    const aiRes = await handleAi(request, env, url);
+    if (aiRes) return aiRes;
 
     const orderRes = await handleOrders(request, env, url);
     if (orderRes) return orderRes;

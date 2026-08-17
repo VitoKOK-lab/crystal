@@ -365,6 +365,20 @@ button,input { font:inherit; } button { cursor:pointer; }
 .quiz-ai.loading { border-style:dashed; color:#8a8f93; font-size:11px; text-align:center; animation:quizAiPulse 1.6s ease-in-out infinite; }
 @keyframes quizAiPulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
 .quiz-blessing { margin:14px auto 2px; max-width:440px; color:#8a6d1f; font-size:13px; line-height:1.8; font-family:var(--display); }
+/* 測驗三模式切換 */
+.quiz-modes { display:flex; justify-content:center; gap:8px; margin:18px 0 4px; }
+.quiz-modes button { padding:9px 20px; border:1px solid #dedad0; border-radius:99px; background:#fff; color:#6b6b6b; font-size:12px; transition:.15s; }
+.quiz-modes button.on { border-color:#8a6d1f; background:#faf6ec; color:#8a6d1f; font-weight:bold; }
+.quiz-wish { padding:12px 14px; border:1px solid #dedad0; border-radius:8px; background:#fff; font-size:14px; font-family:inherit; line-height:1.7; resize:vertical; }
+/* 合盤結果 */
+.pair-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0 6px; }
+.pair-card { display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 14px 16px; background:#fff; border:1px solid #e6e2d8; border-radius:14px; }
+.pair-card .quiz-preview { width:170px; height:170px; margin:6px auto 2px; }
+.pair-card .quiz-stone { width:100%; text-align:left; border:0; padding:8px 4px 0; background:transparent; }
+.pair-card .landing-cta { margin-top:10px; font-size:12px; padding:12px 20px; }
+.pair-name { font:22px var(--display); color:#141414; }
+.bond-stone { max-width:500px; margin:12px auto 0; text-align:left; }
+@media (max-width:640px) { .pair-grid { grid-template-columns:1fr; } }
 
 .co-submit { width:100%; margin-top:22px; }
 .co-submit:disabled { opacity:.55; cursor:default; }

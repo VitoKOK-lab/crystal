@@ -170,12 +170,25 @@ export default function Home() {
     if (!items.length) { showNotice("先加幾顆，再把它分享出去"); return; }
     showNotice("正在產生分享卡…");
     const url = `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(encodeDesign(items, wristCm))}`;
+    // AI 幫這條手鍊取名字＋一句籤詩，印在分享卡最上方。拿不到（沒設
+    // key、逾時）就照舊出卡——命名是加分項，分享不能被它卡住。
+    const poem = await Promise.race([
+      fetch("/api/design-poem", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          dominant: dominant.zh,
+          stones: items.filter((it) => it.kind === "stone").map((it) => (byStone[it.id] as Stone).zh),
+        }),
+      }).then(async (res) => (res.ok ? ((await res.json()) as { poem: { title: string; verse: string } }).poem : null)),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 9000)),
+    ]).catch(() => null);
+    if (poem) showNotice(`這條叫《${poem.title}》—— ${poem.verse}`);
     try {
       const blob = await generateShareCard({
         pieces: previewPieces, capacityMM,
         energies: ENERGY_META.map((m) => ({ zh: m.zh, en: m.en, color: m.color, score: scores[m.key] })),
         dominant: { zh: dominant.zh, en: dominant.en, color: dominant.color, score: scores[dominant.key] },
-        totalEnergy, priceNTD: total, wristCm, beads, url,
+        totalEnergy, priceNTD: total, wristCm, beads, url, poem,
       });
       const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
