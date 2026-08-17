@@ -290,7 +290,7 @@ export default function Home() {
             無縫接手（同一套視覺）。 */}
         <div className="pv-loader" aria-hidden="true">
           <div className="pv-spinner"><span /><span /><span /><i /></div>
-          <span className="pv-loading-text">正在把手鍊擺上展示台<i className="pv-dots" /></span>
+          <span className="pv-loading-text">正在努力串珠珠中<i className="pv-dots" /></span>
         </div>
       </div>
     }>

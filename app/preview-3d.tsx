@@ -504,7 +504,7 @@ function LoadingVeil() {
   if (gone) return null;
   return <div className={`pv-loader ${fading ? "fading" : ""}`} aria-hidden="true">
     <div className="pv-spinner"><span /><span /><span /><i /></div>
-    <span className="pv-loading-text">正在把手鍊擺上展示台<i className="pv-dots" /></span>
+    <span className="pv-loading-text">正在努力串珠珠中<i className="pv-dots" /></span>
   </div>;
 }
 
