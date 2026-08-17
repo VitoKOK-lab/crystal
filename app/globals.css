@@ -802,3 +802,70 @@ button,input { font:inherit; } button { cursor:pointer; }
   .canvas-actions { gap:6px; }
   .canvas-actions button { padding:11px 8px; font-size:10px; }
 }
+
+/* ── 香檳軟浮雕（soft-emboss）質感語言＋微動效 ────────────────────
+   參考 neumorphism 的觸感：亮部左上、暖影右下的雙陰影浮雕，輸入框內
+   凹、按鈕凸起、按下去真的「陷進去」。原版的灰藍冷光換成品牌的香檳
+   暖色（亮 #fffdf6／影 #ddd3c0），立體感一樣、氣質是我們的。 */
+:root { --emb-bg:#f4f0e7; --emb-hi:#fffdf6; --emb-sh:#ddd3c0; }
+
+/* 測驗頁＝質感展示間（對位參考影片的 OTP 卡片） */
+.quiz { background:linear-gradient(165deg,#f7f3ea, #efe9dc); min-height:100vh; }
+.quiz-form { margin:26px auto 70px; padding:38px 30px 44px; background:var(--emb-bg); border-radius:26px;
+  box-shadow:14px 14px 34px var(--emb-sh), -14px -14px 34px var(--emb-hi); }
+.quiz-fields input, .quiz-wish { border:0; border-radius:13px; background:var(--emb-bg); color:#141414;
+  box-shadow:inset 5px 5px 10px #ddd3c0cc, inset -5px -5px 10px var(--emb-hi);
+  transition:box-shadow .22s ease; }
+.quiz-fields input:focus, .quiz-wish:focus { outline:0;
+  box-shadow:inset 5px 5px 10px #ddd3c0cc, inset -5px -5px 10px var(--emb-hi), 0 0 0 3px #c9a35545; }
+.quiz-chips button, .quiz-modes button { border:0; background:var(--emb-bg); color:#6b6b6b;
+  box-shadow:4px 4px 9px var(--emb-sh), -4px -4px 9px var(--emb-hi);
+  transition:box-shadow .18s ease, color .18s ease, transform .12s ease; }
+.quiz-chips button.on, .quiz-modes button.on { color:var(--chip,#8a6d1f); font-weight:bold;
+  box-shadow:inset 4px 4px 8px #d8cdb8, inset -4px -4px 8px var(--emb-hi); }
+.quiz-chips button:active, .quiz-modes button:active { transform:scale(.96); }
+.quiz-ai { background:var(--emb-bg); border:0;
+  box-shadow:8px 8px 20px var(--emb-sh), -8px -8px 20px var(--emb-hi); }
+.quiz-stone { border:0; background:var(--emb-bg);
+  box-shadow:7px 7px 18px var(--emb-sh), -7px -7px 18px var(--emb-hi); }
+.pair-card { border:0; background:var(--emb-bg);
+  box-shadow:10px 10px 24px var(--emb-sh), -10px -10px 24px var(--emb-hi); }
+
+/* 工作室控制列的觸感 */
+.canvas-actions button:not(.primary) { border:0; border-radius:12px; background:#f5f1e8;
+  box-shadow:5px 5px 12px #ded4c1, -5px -5px 12px #ffffff; }
+.canvas-actions button:not(.primary):hover { color:#8a6d1f; }
+.canvas-actions button:not(.primary):active { box-shadow:inset 4px 4px 9px #d8cdb8, inset -4px -4px 9px #fffdf6; }
+.preset-row button { border:0; border-radius:11px; background:#f5f1e8;
+  box-shadow:4px 4px 9px #e2d9c8, -4px -4px 9px #ffffff; }
+.preset-row button:hover { transform:translateY(-1px); box-shadow:5px 6px 12px #dcd2bf, -4px -4px 9px #ffffff; }
+.color-chips button { border:0; background:#f5f1e8;
+  box-shadow:3px 3px 7px #e2d9c8, -3px -3px 7px #ffffff; }
+.color-chips button.on { color:#8a6d1f; font-weight:bold;
+  box-shadow:inset 3px 3px 6px #d8cdb8, inset -3px -3px 6px #fffdf6; }
+
+/* 微動效：按壓、錯誤搖晃、結果彈入、加珠彈跳、提示滑入 */
+.landing-cta:active, .sc-buy:active, .sc-custom:active, .canvas-actions .primary:active { transform:scale(.97); }
+.landing-cta, .sc-buy, .sc-custom, .canvas-actions button, .color-chips button, .preset-row button { transition:transform .13s ease, box-shadow .18s ease, color .15s ease; }
+@media (prefers-reduced-motion: no-preference) {
+  .co-error { animation:err-shake .4s ease; }
+  @keyframes err-shake { 0%,100% { translate:0 0; } 20% { translate:-7px 0; } 40% { translate:6px 0; } 60% { translate:-4px 0; } 80% { translate:3px 0; } }
+  /* 結果區進場：整體解讀先彈入（帶一點過衝），逐石卡片依序浮上 */
+  .quiz-result .quiz-ai, .quiz-result .quiz-lack { animation:pop-in .5s cubic-bezier(.34,1.56,.64,1) backwards; }
+  .quiz-result .quiz-preview { animation:pop-in .55s cubic-bezier(.34,1.56,.64,1) .08s backwards; }
+  .quiz-result .quiz-stone { animation:rise-in .5s ease .1s backwards; }
+  .quiz-result .quiz-stone:nth-child(2) { animation-delay:.18s; }
+  .quiz-result .quiz-stone:nth-child(3) { animation-delay:.26s; }
+  .quiz-result .quiz-stone:nth-child(4) { animation-delay:.34s; }
+  .quiz-result .quiz-stone:nth-child(5) { animation-delay:.42s; }
+  @keyframes pop-in { from { scale:.82; opacity:0; } to { scale:1; opacity:1; } }
+  @keyframes rise-in { from { translate:0 16px; opacity:0; } to { translate:0 0; opacity:1; } }
+  /* 加珠：新珠以過衝彈入（scale 屬性獨立於 inline transform，不打架） */
+  .design-item { animation:bead-pop .38s cubic-bezier(.34,1.56,.64,1) backwards; }
+  @keyframes bead-pop { from { scale:.45; opacity:0; } to { scale:1; opacity:1; } }
+  .notice { animation:notice-in .28s cubic-bezier(.34,1.4,.64,1); }
+  @keyframes notice-in { from { translate:0 -10px; opacity:0; } to { translate:0 0; opacity:1; } }
+  .look-box, .gal-modal { animation:pop-in .32s cubic-bezier(.34,1.45,.64,1); }
+}
+/* 測驗頁的縮圖直接坐在奶油底上，不帶白色方塊 */
+.quiz .shop-thumb { background:transparent; }
