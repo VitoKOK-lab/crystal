@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { importCompiled } from "./esbuild-import.mjs";
 
-const { lib, admin, orders, quizReading, ai, ecpay } = await importCompiled("tests/fixtures/worker-entry.ts");
+const { lib, admin, orders, quizReading, ai, ecpay, linepay } = await importCompiled("tests/fixtures/worker-entry.ts");
 
 // --- Fake D1 -------------------------------------------------------------
 
@@ -464,6 +464,94 @@ test("ecpay/result redirects the browser with the outcome, touching nothing", as
   assert.equal(loc.searchParams.get("pay"), "ok");
   assert.equal(loc.searchParams.get("order"), "OMA-TEST01");
   assert.equal(db.state.writes.length, 0, "result page never writes");
+});
+
+// --- LINE Pay ---------------------------------------------------------------
+
+const lpEnv = (db) => envWith(db, { LINE_PAY_CHANNEL_ID: "1656000000", LINE_PAY_CHANNEL_SECRET: "lp-secret" });
+const lpReq = (order) => new Request("https://shop.example/api/pay/linepay", {
+  method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ order }),
+});
+const lpConfirmReq = (qs) => new Request(`https://shop.example/api/linepay/confirm?${qs}`, { method: "GET" });
+
+test("pay/linepay answers 503 without credentials and 502 on an upstream refusal", async () => {
+  const db = fakeDb();
+  db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "pending" };
+  const off = await call(linepay.handleLinepay, lpReq("OMA-TEST01"), envWith(db));
+  assert.equal(off.status, 503, "unconfigured LINE Pay must refuse politely");
+
+  const realFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ returnCode: "1104", returnMessage: "merchant not found" }));
+    const refused = await call(linepay.handleLinepay, lpReq("OMA-TEST01"), lpEnv(db));
+    assert.equal(refused.status, 502);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test("pay/linepay requests a signed payment and hands back the payment URL", async () => {
+  const db = fakeDb();
+  db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "pending" };
+  const realFetch = globalThis.fetch;
+  let captured = null;
+  try {
+    globalThis.fetch = async (input, init) => {
+      captured = { url: String(input), headers: init.headers, body: init.body };
+      // 原文字串回應：transactionId 是 19 位整數，真實回應裡就是個
+      // 會被 JSON.parse 掉精度的數字——這裡保持原樣以驗證處理方式。
+      return new Response('{"returnCode":"0000","info":{"paymentUrl":{"web":"https://sandbox-web-pay.line.me/web/payment/wait?t=abc"},"transactionId":2025081712345678901}}');
+    };
+    const res = await call(linepay.handleLinepay, lpReq("OMA-TEST01"), lpEnv(db));
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).paymentUrl, "https://sandbox-web-pay.line.me/web/payment/wait?t=abc");
+
+    assert.ok(captured.url.endsWith("/v3/payments/request"));
+    const body = JSON.parse(captured.body);
+    assert.equal(body.amount, 4890);
+    assert.equal(body.currency, "TWD");
+    assert.equal(body.packages[0].amount, 4890, "package sum must equal the total");
+    assert.ok(body.orderId.startsWith("OMA-TEST01-"), "each attempt gets a fresh LINE orderId");
+    assert.ok(body.redirectUrls.confirmUrl.includes("order=OMA-TEST01"), "real order id rides the confirm URL");
+    assert.equal(captured.headers["X-LINE-ChannelId"], "1656000000");
+    const expected = await linepay.lineSign("lp-secret", "/v3/payments/request", captured.body, captured.headers["X-LINE-Authorization-Nonce"]);
+    assert.equal(captured.headers["X-LINE-Authorization"], expected, "signature covers secret+path+body+nonce");
+    assert.ok(db.state.writes.some((w) => w.sql.startsWith("UPDATE orders SET linepay_txn")), "attempt id recorded");
+
+    db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "paid" };
+    const again = await call(linepay.handleLinepay, lpReq("OMA-TEST01"), lpEnv(db));
+    assert.equal(again.status, 409, "already-paid order can't start another payment");
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test("linepay/confirm captures via the Confirm API before marking paid", async () => {
+  const db = fakeDb();
+  db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "pending" };
+  const realFetch = globalThis.fetch;
+  try {
+    let confirmBody = null;
+    globalThis.fetch = async (input, init) => {
+      assert.ok(String(input).endsWith("/v3/payments/2025081712345678901/confirm"));
+      confirmBody = JSON.parse(init.body);
+      return new Response(JSON.stringify({ returnCode: "0000", info: {} }));
+    };
+    const ok = await call(linepay.handleLinepay, lpConfirmReq("order=OMA-TEST01&transactionId=2025081712345678901"), lpEnv(db));
+    assert.equal(ok.status, 302);
+    assert.equal(new URL(ok.headers.get("location")).searchParams.get("pay"), "ok");
+    assert.equal(confirmBody.amount, 4890, "capture amount comes from the order row, not the URL");
+    assert.ok(db.state.writes.some((w) => w.sql.includes("SET status='paid'")), "order flipped to paid");
+
+    // LINE 拒絕請款 → fail 導回、不動訂單。
+    db.state.writes.length = 0;
+    globalThis.fetch = async () => new Response(JSON.stringify({ returnCode: "1155", returnMessage: "wrong txn" }));
+    const bad = await call(linepay.handleLinepay, lpConfirmReq("order=OMA-TEST01&transactionId=2025081712345678901"), lpEnv(db));
+    assert.equal(new URL(bad.headers.get("location")).searchParams.get("pay"), "fail");
+    assert.equal(db.state.writes.length, 0);
+
+    // 已付款的單重整導回頁 → 直接 ok，不再打 Confirm。
+    db.state.orderRow = { id: "OMA-TEST01", total: 4890, status: "paid" };
+    globalThis.fetch = async () => { throw new Error("confirm must not be called twice"); };
+    const replay = await call(linepay.handleLinepay, lpConfirmReq("order=OMA-TEST01&transactionId=2025081712345678901"), lpEnv(db));
+    assert.equal(new URL(replay.headers.get("location")).searchParams.get("pay"), "ok");
+  } finally { globalThis.fetch = realFetch; }
 });
 
 test("deep-reading validates the 7-chakra payload and returns Kimi text", async () => {

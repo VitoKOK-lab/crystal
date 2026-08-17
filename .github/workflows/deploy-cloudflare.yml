@@ -85,6 +85,18 @@ jobs:
             echo "KIMI_API_KEY not set yet — quiz AI reading falls back to built-in copy"
           fi
 
+      - name: Sync LINE Pay credentials (when configured)
+        env:
+          LINE_PAY_CHANNEL_ID: ${{ secrets.LINE_PAY_CHANNEL_ID }}
+          LINE_PAY_CHANNEL_SECRET: ${{ secrets.LINE_PAY_CHANNEL_SECRET }}
+        run: |
+          if [ -n "$LINE_PAY_CHANNEL_ID" ] && [ -n "$LINE_PAY_CHANNEL_SECRET" ]; then
+            echo "$LINE_PAY_CHANNEL_ID" | npx wrangler secret put LINE_PAY_CHANNEL_ID
+            echo "$LINE_PAY_CHANNEL_SECRET" | npx wrangler secret put LINE_PAY_CHANNEL_SECRET
+          else
+            echo "LINE Pay credentials not set yet — /api/pay/linepay answers 503"
+          fi
+
       - name: Deploy Worker
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}

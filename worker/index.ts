@@ -5,6 +5,7 @@
 import { handleAdmin } from "./admin";
 import { handleAuth } from "./auth";
 import { handleEcpay } from "./ecpay";
+import { handleLinepay } from "./linepay";
 import { Env, json } from "./lib";
 import { handleOrders } from "./orders";
 import { handleAi } from "./ai";
@@ -81,6 +82,9 @@ export default {
 
     const ecpayRes = await handleEcpay(request, env, url);
     if (ecpayRes) return ecpayRes;
+
+    const linepayRes = await handleLinepay(request, env, url);
+    if (linepayRes) return linepayRes;
 
     const authRes = await handleAuth(request, env, url);
     if (authRes) return authRes;

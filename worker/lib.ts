@@ -42,6 +42,11 @@ export interface Env {
   ECPAY_HASH_KEY?: string;
   ECPAY_HASH_IV?: string;
   ECPAY_BASE?: string;
+  // LINE Pay v3。沒有公開共用測試憑證——Sandbox 商店的 Channel
+  // ID/Secret 設成 secrets 後才啟用，未設定時 /api/pay/linepay 回 503。
+  LINE_PAY_CHANNEL_ID?: string;
+  LINE_PAY_CHANNEL_SECRET?: string;
+  LINE_PAY_BASE?: string;
 }
 
 export const json = (data: unknown, init: ResponseInit & { headers?: Record<string, string> } = {}) =>

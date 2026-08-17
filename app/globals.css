@@ -909,3 +909,7 @@ button,input { font:inherit; } button { cursor:pointer; }
 @media (max-width:640px) { .chakra-axis { gap:8px; } .ca-dot i { width:18px; height:18px; } .ca-dot span { font-size:8px; } }
 /* 重點補強標籤 */
 .qs-weak { margin-left:8px; padding:1px 7px; border-radius:99px; background:#b0413e14; color:#b0413e; font-size:9px; font-weight:normal; }
+
+/* ── LINE Pay 付款鍵：官方品牌綠 ─────────────────────────────── */
+.co-primary.co-linepay { background:#06c755; }
+.co-primary.co-linepay:hover { background:#05b34c; box-shadow:0 8px 20px #06c75540; }

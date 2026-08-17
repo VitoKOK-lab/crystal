@@ -6,3 +6,4 @@ export * as orders from "../../worker/orders";
 export * as quizReading from "../../worker/quiz-reading";
 export * as ai from "../../worker/ai";
 export * as ecpay from "../../worker/ecpay";
+export * as linepay from "../../worker/linepay";

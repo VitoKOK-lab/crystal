@@ -82,6 +82,26 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
     }
   };
 
+  // LINE Pay：後端向 LINE 要一次性的付款頁網址，整頁跳轉過去；付完
+  // LINE 會把瀏覽器帶回站上（後端請款成功才算付款完成）。
+  const payWithLinepay = async () => {
+    setPaying(true);
+    setPayError("");
+    try {
+      const res = await fetch("/api/pay/linepay", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ order: orderId }),
+      });
+      const data = (await res.json().catch(() => null)) as { paymentUrl?: string; error?: string } | null;
+      if (res.status === 503) { setPayError("LINE Pay 尚未開通，先用其他方式付款，或稍後再試"); setPaying(false); return; }
+      if (!res.ok || !data?.paymentUrl) throw new Error(data?.error ?? `pay failed (${res.status})`);
+      window.location.href = data.paymentUrl;
+    } catch {
+      setPayError("前往 LINE Pay 失敗，稍等一下再按一次；訂單已成立，不會不見");
+      setPaying(false);
+    }
+  };
+
   // 綠界付款：跟後端要簽好章的表單欄位，組一個隱藏 form POST 到綠界
   // 收銀台（金流頁必須用表單導轉，不能用 fetch）。
   const payWithEcpay = async () => {
@@ -140,7 +160,8 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
       <div className="done-actions">
         <button className="co-secondary" onClick={() => navigator.clipboard?.writeText(orderText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "已複製 ✓" : "複製訂單明細"}</button>
         {payment === "card" && <button className="co-primary" disabled={paying} onClick={payWithEcpay}>{paying ? "正在前往綠界…" : "前往綠界線上付款 →"}</button>}
-        <button className={payment === "card" ? "co-secondary" : "co-primary"} onClick={onBack}>回到工作室</button>
+        {payment === "linepay" && <button className="co-primary co-linepay" disabled={paying} onClick={payWithLinepay}>{paying ? "正在前往 LINE Pay…" : "使用 LINE Pay 付款 →"}</button>}
+        <button className={payment === "card" || payment === "linepay" ? "co-secondary" : "co-primary"} onClick={onBack}>回到工作室</button>
       </div>
       {payError && <p className="co-error">{payError}</p>}
     </div>
