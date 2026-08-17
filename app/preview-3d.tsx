@@ -1,8 +1,8 @@
 "use client";
 
-import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
+import { ContactShadows, Environment, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ComponentRef, type CSSProperties } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentRef, type CSSProperties } from "react";
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { SF_STONE_TEXTURES } from "./bead-textures";
@@ -488,6 +488,28 @@ const PV_PALETTES: Record<string, Record<string, string>> = {
   power: { "--pv-glow": "#fffbf6", "--pv-hi": "#f7f0e7", "--pv-top": "#f4ece1", "--pv-mid": "#ecddcc", "--pv-low": "#dcc3a8", "--pv-floor": "#caa98a", "--pv-band": "#b0885f33", "--pv-pool": "#fff0dd59", "--pv-mark": "#8f5a2e55" },
 };
 
+// 等待動畫：三顆金珠彈跳＋真實材質載入進度條（不放數字——寬度就是
+// 0→100）。useProgress 追蹤 TextureLoader 的載入；全部就緒（或根本沒有
+// 要載的東西）後淡出並卸載。
+function LoadingVeil() {
+  const { active, progress } = useProgress();
+  const [gone, setGone] = useState(false);
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    if (active) { setFading(false); setGone(false); return; }
+    // 不在載入中：先淡出再卸載（快取命中時幾乎立即走完這條路）。
+    setFading(true);
+    const t = setTimeout(() => setGone(true), 450);
+    return () => clearTimeout(t);
+  }, [active]);
+  if (gone) return null;
+  return <div className={`pv-loader ${fading ? "fading" : ""}`} aria-hidden="true">
+    <div className="pv-loader-beads"><i /><i /><i /></div>
+    <div className="pv-loader-bar"><i style={{ width: `${active ? Math.max(6, progress) : 100}%` }} /></div>
+    <span>正在把手鍊擺上展示台…</span>
+  </div>;
+}
+
 export default function Preview3D({ pieces, capacityMM, onClose, energy }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void; energy?: string }) {
   const R = frameRadius(pieces, capacityMM);
   return <div className="preview-overlay" style={PV_PALETTES[energy ?? ""] as CSSProperties} role="dialog" aria-label="360 度立體預覽">
@@ -502,6 +524,7 @@ export default function Preview3D({ pieces, capacityMM, onClose, energy }: { pie
       >
         <Scene pieces={pieces} capacityMM={capacityMM} />
       </Canvas>
+      <LoadingVeil />
     </div>
     <div className="pv-hint">拖曳旋轉 · 滾輪或雙指縮放</div>
   </div>;

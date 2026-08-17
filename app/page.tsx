@@ -286,6 +286,13 @@ export default function Home() {
     {previewOpen && <Suspense fallback={
       <div className="preview-overlay" role="dialog" aria-label="360 度立體預覽載入中">
         <div className="pv-head"><b>360° PREVIEW</b><span>載入中…</span><button className="pv-close" onClick={() => setPreviewOpen(false)} aria-label="關閉預覽">✕</button></div>
+        {/* 3D 引擎 chunk 下載中：拿不到真實進度，進度條用緩升動畫墊場；
+            引擎就緒後由 Preview3D 內的真實材質進度接手（同一套視覺）。 */}
+        <div className="pv-loader" aria-hidden="true">
+          <div className="pv-loader-beads"><i /><i /><i /></div>
+          <div className="pv-loader-bar"><i className="fake" /></div>
+          <span>正在把手鍊擺上展示台…</span>
+        </div>
       </div>
     }>
       <Preview3D pieces={previewPieces} capacityMM={capacityMM} energy={dominant.key} onClose={() => setPreviewOpen(false)} />
