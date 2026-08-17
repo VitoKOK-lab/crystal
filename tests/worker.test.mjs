@@ -465,3 +465,25 @@ test("ecpay/result redirects the browser with the outcome, touching nothing", as
   assert.equal(loc.searchParams.get("order"), "OMA-TEST01");
   assert.equal(db.state.writes.length, 0, "result page never writes");
 });
+
+test("deep-reading validates the 7-chakra payload and returns Kimi text", async () => {
+  const db = fakeDb();
+  const positions = ["海底輪", "臍輪", "太陽神經叢", "心輪", "喉輪", "眉心輪", "頂輪"].map((role) => ({ role, stone: "白水晶", note: "維持平衡" }));
+  const body = { name: "Mia", birthday: "1996-03-08", life: 9, persona: "完滿者", mbti: "INFJ", concerns: ["海底輪"], positions };
+  const reading = {
+    overall: "Mia，生命靈數 9 的完滿者，安靜而深的你把大家都接住了——這條七輪手鍊從海底輪開始，替你把自己的地基也顧好，一步一步把能量還給自己。",
+    stones: positions.map((p) => ({ role: p.role, line: `${p.role}的守位石，替你把該顧的顧好。` })),
+    blessing: "願你的每一個輪，都亮著剛剛好的光。",
+  };
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => kimiResponse(reading);
+  try {
+    const bad = await call(ai.handleAi, aiReq("/api/deep-reading", { ...body, mbti: "ABCD" }), aiEnv(db));
+    assert.equal(bad.status, 400, "invalid MBTI rejected");
+    const short = await call(ai.handleAi, aiReq("/api/deep-reading", { ...body, positions: positions.slice(0, 5) }), aiEnv(db));
+    assert.equal(short.status, 400, "needs exactly 7 chakra positions");
+    const ok = await call(ai.handleAi, aiReq("/api/deep-reading", body), aiEnv(db));
+    assert.equal(ok.status, 200);
+    assert.equal((await ok.json()).reading.stones.length, 7);
+  } finally { globalThis.fetch = realFetch; }
+});

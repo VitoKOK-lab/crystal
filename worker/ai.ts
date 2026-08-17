@@ -153,12 +153,71 @@ async function pairReading(request: Request, env: Env): Promise<Response> {
   return json({ reading: result.data });
 }
 
+// --- 深度配對：七脈輪 × MBTI × 生日 ---------------------------------------
+
+type DeepReading = { overall: string; stones: { role: string; line: string }[]; blessing: string };
+const validDeep = (r: unknown): r is DeepReading => {
+  const x = r as DeepReading;
+  return !!x && typeof x.overall === "string" && x.overall.length > 40 && x.overall.length < 800
+    && Array.isArray(x.stones) && x.stones.length === 7
+    && x.stones.every((s) => typeof s?.role === "string" && s.role.length <= 12 && typeof s?.line === "string" && s.line.length < 300)
+    && typeof x.blessing === "string" && x.blessing.length < 200;
+};
+
+async function deepReading(request: Request, env: Env): Promise<Response> {
+  let b: Record<string, unknown> = {};
+  try { b = (await request.json()) as Record<string, unknown>; } catch { /* validated below */ }
+  const name = str(b.name, 40);
+  const birthday = str(b.birthday, 10);
+  const persona = str(b.persona, 20);
+  const mbti = str(b.mbti, 4);
+  const life = Number(b.life);
+  const concerns: string[] = [];
+  if (Array.isArray(b.concerns)) for (const c of (b.concerns as unknown[]).slice(0, 3)) { const v = str(c, 14); if (v) concerns.push(v); }
+  const positions: { role: string; stone: string; note: string }[] = [];
+  if (Array.isArray(b.positions)) for (const p of (b.positions as unknown[]).slice(0, 7)) {
+    const row = p as Record<string, unknown>;
+    const role = str(row.role, 12), stone = str(row.stone, 40), note = str(row.note, 20);
+    if (role && stone && note) positions.push({ role, stone, note });
+  }
+  if (!name || !birthday || !/^\d{4}-\d{2}-\d{2}$/.test(birthday) || !persona
+    || !mbti || !/^[EI][SN][TF][JP]$/.test(mbti)
+    || !Number.isInteger(life) || life < 1 || life > 9 || positions.length !== 7) {
+    return json({ error: "invalid deep request" }, { status: 400 });
+  }
+
+  const key = await sha256(`${name}|${birthday}|${mbti}|${[...concerns].sort().join(",")}|${positions.map((p) => p.stone).join(",")}`);
+  const cached = await cacheGet(env, "deep", key);
+  if (cached) return json({ reading: cached, cached: true });
+  if (await overDailyCap(env, "deep", 300)) return json({ error: "daily cap reached" }, { status: 429 });
+
+  const result = await kimiJson(env, `${GUARDRAILS}
+你要為一位客人寫「七輪平衡手鍊」的深度解讀。三個訊號要織成一個連貫的人物故事，不是分段報告：生命靈數給命盤底色、MBTI 給性格的用力方式、此刻的困擾指出偏弱的脈輪。
+- 七顆石頭依海底輪→頂輪排列，各寫一句：這顆石頭在這個輪位、對「這個人」的意義（重點補強的輪要寫得更貼身）。
+- MBTI 以性格描述的方式融入（例如「習慣把計畫排到明年的你」），不要直接堆術語。
+格式：{"overall":"150-200字的整體解讀，稱呼名字，把三個訊號串成故事","stones":[{"role":"海底輪","line":"25-40字"}×7，依提供順序],"blessing":"20-30字的祝福"}`,
+  [
+    `客人稱呼：${name}`,
+    `生日：${birthday}，生命靈數 ${life}（${persona}）`,
+    `MBTI：${mbti}`,
+    concerns.length ? `此刻的困擾：${concerns.join("、")}` : "此刻的困擾：未特別勾選",
+    "七輪陣容（海底輪→頂輪）：",
+    ...positions.map((p) => `- ${p.role}：${p.stone}（${p.note}）`),
+    "請依系統規則產生深度解讀 JSON。",
+  ].join("\n"), 1300);
+  if (!result.ok) return result.res;
+  if (!validDeep(result.data)) return json({ error: "malformed reading" }, { status: 502 });
+  await cachePut(env, "deep", key, result.data);
+  return json({ reading: result.data });
+}
+
 export async function handleAi(request: Request, env: Env, url: URL): Promise<Response | null> {
   if (request.method !== "POST") return null;
   const routes: Record<string, (r: Request, e: Env) => Promise<Response>> = {
     "/api/design-poem": designPoem,
     "/api/wish-reading": wishReading,
     "/api/pair-reading": pairReading,
+    "/api/deep-reading": deepReading,
   };
   const handler = routes[url.pathname];
   if (!handler) return null;

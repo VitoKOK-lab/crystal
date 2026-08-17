@@ -894,3 +894,18 @@ button,input { font:inherit; } button { cursor:pointer; }
   @keyframes pv-dots { 0% { content:""; } 25% { content:"."; } 50% { content:".."; } 75% { content:"..."; } }
 }
 @media (prefers-reduced-motion: reduce) { .pv-dots::after { content:"…"; } }
+
+/* ── 深度配對：七脈輪能量軸＋MBTI 快測 ─────────────────────────── */
+.chakra-axis { display:flex; justify-content:center; gap:14px; margin:18px auto 6px; }
+.ca-dot { display:flex; flex-direction:column; align-items:center; gap:5px; }
+.ca-dot i { width:22px; height:22px; border-radius:50%; opacity:.4; transition:.2s; box-shadow:inset 2px 2px 4px #00000022, 0 2px 6px #00000014; }
+.ca-dot span { color:#8a8f93; font-size:9px; letter-spacing:.06em; writing-mode:horizontal-tb; }
+.ca-dot b { color:#b0413e; font-size:9px; }
+.ca-dot.weak i { opacity:1; scale:1.15; box-shadow:0 0 0 3px #ffffff, 0 0 10px 2px currentColor; }
+.ca-dot.weak span { color:#141414; font-weight:bold; }
+.ca-dot.core i { scale:1.35; }
+.mbti-grid { display:grid !important; grid-template-columns:repeat(4,1fr); }
+.mbti-grid button { padding:8px 0; }
+@media (max-width:640px) { .chakra-axis { gap:8px; } .ca-dot i { width:18px; height:18px; } .ca-dot span { font-size:8px; } }
+/* 重點補強標籤 */
+.qs-weak { margin-left:8px; padding:1px 7px; border-radius:99px; background:#b0413e14; color:#b0413e; font-size:9px; font-weight:normal; }

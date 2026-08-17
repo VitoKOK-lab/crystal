@@ -399,6 +399,56 @@ export function colorGroupOf(stoneId: string): ColorGroupKey {
   return "pink";
 }
 
+// 七脈輪體系：每顆石頭歸一個主脈輪，深度配對測驗用它組「七輪平衡」
+// 陣容。跟顏色分類同一套做法——規則從 id 自動歸類＋少數例外表，
+// 後台新增的石頭照礦物名關鍵字自動歸位。
+export const CHAKRA_META = [
+  { key: "root", zh: "海底輪", en: "Root", color: "#b0413e", body: "安全感與落地" },
+  { key: "sacral", zh: "臍輪", en: "Sacral", color: "#d8752e", body: "活力與感受力" },
+  { key: "solar", zh: "太陽神經叢", en: "Solar Plexus", color: "#d9a13f", body: "自信與行動力" },
+  { key: "heart", zh: "心輪", en: "Heart", color: "#4e9a6e", body: "愛與關係" },
+  { key: "throat", zh: "喉輪", en: "Throat", color: "#4f8fc0", body: "表達與溝通" },
+  { key: "third-eye", zh: "眉心輪", en: "Third Eye", color: "#5a5aa8", body: "直覺與清明" },
+  { key: "crown", zh: "頂輪", en: "Crown", color: "#8f6bb8", body: "連結與整合" },
+] as const;
+export type ChakraKey = (typeof CHAKRA_META)[number]["key"];
+export const byChakra = Object.fromEntries(CHAKRA_META.map((c) => [c.key, c])) as Record<ChakraKey, (typeof CHAKRA_META)[number]>;
+
+// 例外表優先於關鍵字規則：這些 id 用礦物學慣例指定。
+const CHAKRA_OVERRIDES: Record<string, ChakraKey> = {
+  "red-agate": "sacral", "sunstone": "sacral", "carved-amethyst-fox": "third-eye",
+  "garnet": "root", "rhodochrosite": "heart", "rhodonite": "heart",
+  "amazonite": "throat", "kyanite": "throat", "larimar": "throat",
+  "lapis": "third-eye", "labradorite": "third-eye", "blue-sheen": "third-eye",
+  "kunzite": "heart", "moss": "heart", "malachite": "heart",
+  "goldstone": "root", "tiger": "solar", "tiger-eye": "solar",
+  "black-gold-super-seven": "crown", "seraphinite": "heart",
+  "hetian-jade": "heart", "green-grape-xiuyan-jade": "heart",
+  "moon": "third-eye", "blue-tiger-eye": "third-eye", "black-rutilated-quartz": "root",
+  "red-hair-quartz": "sacral", "faceted-sakura-agate": "heart", "garden-quartz-dt": "heart",
+};
+
+export function chakraOf(stoneId: string): ChakraKey {
+  const o = CHAKRA_OVERRIDES[stoneId];
+  if (o) return o;
+  const id = stoneId.toLowerCase();
+  // 順序即優先序：先比對最專一的礦物名，最後才落到顏色語感。
+  if (/obsidian|hematite|lava|tourmaline|smoky|garnet/.test(id)) return "root";
+  if (/pearl|carnelian|red-agate|fire-quartz|hematoid|blood|strawberry/.test(id)) return "sacral";
+  if (/citrine|golden|tiger-eye|lemon|sunstone|yellow/.test(id)) return "solar";
+  if (/rose|rhodonite|rhodochrosite|prehnite|green|jade|malachite|moss|kunzite|cherry|lavender-rose/.test(id)) return "heart";
+  if (/aqua|larimar|amazonite|kyanite|blue-lace|blue-tiger/.test(id)) return "throat";
+  if (/amethyst|fluorite|lapis|labradorite|moonstone|blue|purple|grey/.test(id)) return "third-eye";
+  return "crown"; // clear/white/milky 水晶家族與其餘高頻白透系
+}
+
+// 某脈輪的可選石頭，依該石與 preferEnergy 的權重排序（深度配對用：
+// 同輪多顆時，優先挑跟客人命盤能量對頻的那顆）。
+export function stonesForChakra(key: ChakraKey, preferEnergy?: EnergyType): Stone[] {
+  return stones.filter((s) => chakraOf(s.id) === key)
+    .sort((a, b) => (preferEnergy ? (b.energy[preferEnergy] ?? 0) - (a.energy[preferEnergy] ?? 0) : 0));
+}
+
 // Smallest offered wrist size (at least minCm) whose circumference holds
 // these beads under the arc model — undefined when even the largest can't.
 // The studio's auto-grow, product/quiz loading and share-link decoding all

@@ -8,7 +8,7 @@ import { pricing } from "./catalog";
 export default function AnnounceBar({ onQuiz }: { onQuiz?: () => void }) {
   const items = [
     { text: `滿 NT$${pricing.freeShippingOver.toLocaleString()} 免運費`, onClick: undefined as (() => void) | undefined },
-    { text: "生日選石測驗上線 — 一分鐘算出你的五石陣容", onClick: onQuiz },
+    { text: "深度配對上線 — 生日×MBTI×七脈輪，配出你的七輪平衡手鍊", onClick: onQuiz },
     { text: "說個願望，顧問替你選五顆石頭", onClick: onQuiz },
   ];
   const [i, setI] = useState(0);

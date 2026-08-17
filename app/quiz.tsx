@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import {
-  ENERGY_META, nextUid, stonePhotos, stonesForEnergy,
-  type DesignItem, type EnergyType, type Stone,
+  CHAKRA_META, ENERGY_META, byChakra, inStock, nextUid, stonePhotos, stonesForChakra, stonesForEnergy, strandArcMM,
+  type ChakraKey, type DesignItem, type EnergyType, type Stone,
 } from "./catalog";
 import { BraceletThumb } from "./shop";
 
 // 選石測驗的三種入口：
-//   生日 — 生命靈數 → 五石陣容（主星/內在/行動/流年/意圖），可加 AI 解讀
-//   許願 — 用自己的話說願望 → AI 讀懂並從全目錄選五顆（純 AI 功能）
-//   合盤 — 兩人生日＋關係 → 各自主石＋共享連結石＋合盤解讀（AI 加分，
-//          沒有 AI 也有內建文案版本）
+//   深度配對 — 生日（生命靈數）× MBTI（4 題快測或直接選型）× 此刻的
+//              困擾（對應脈輪失衡）→ 七輪平衡陣容＋AI 深度解讀。沒有
+//              AI 也有完整的內建文案版本。
+//   許願     — 用自己的話說願望 → AI 從全目錄選五顆（純 AI 功能）
+//   合盤     — 兩人生日＋關係 → 各自主石＋共享連結石＋合盤解讀
 
 const digitsSum = (s: string) => s.replace(/\D/g, "").split("").reduce((a, d) => a + Number(d), 0);
 const reduce9 = (n: number) => { while (n > 9) n = digitsSum(String(n)); return n || 9; };
@@ -32,39 +33,84 @@ const LIFE: Record<number, LifeEntry> = {
 
 const zhOf = (k: EnergyType) => ENERGY_META.find((e) => e.key === k)!.zh;
 
-type Position = { role: string; en: string; why: string; stone: Stone; energy: EnergyType };
+// --- 深度配對的三個訊號 ----------------------------------------------------
 
-function buildLineup(birthday: string, theme: EnergyType | null) {
-  const [y, m, d] = birthday.split("-").map(Number);
+// MBTI 四軸→容易忽略的脈輪（性格的「用力方式」決定哪裡先透支）：
+// 外向透支安靜（眉心輪）、內向缺向外的火（太陽神經叢）、直覺型缺落地
+// （海底輪）、實感型缺連結（頂輪）、思考型缺心輪、情感型缺表達界線
+// （喉輪）、計畫型缺流動玩性（臍輪）、隨性型缺結構（海底輪）。
+const MBTI_DEFICIT: Record<string, ChakraKey> = { E: "third-eye", I: "solar", N: "root", S: "crown", T: "heart", F: "throat", J: "sacral", P: "root" };
+const mbtiDesc = (t: string) => [
+  t[0] === "E" ? "能量向外、越熱鬧越有電" : "能量向內、獨處才能充電",
+  t[1] === "N" ? "靠直覺和想像看世界" : "靠實感一步一步踩地",
+  t[2] === "T" ? "抉擇先講道理" : "抉擇先顧感受",
+  t[3] === "J" ? "凡事先排好才安心" : "邊走邊調整最自在",
+].join("、");
+
+// 生命靈數缺口能量 → 脈輪。
+const ENERGY_CHAKRA: Record<EnergyType, ChakraKey> = { wealth: "solar", love: "heart", healing: "sacral", protection: "root", focus: "third-eye", power: "root" };
+
+// 此刻的困擾 → 失衡的脈輪（客人語言，不講術語）。
+const CONCERNS: { key: ChakraKey; label: string }[] = [
+  { key: "root", label: "睡不安穩、容易焦慮" },
+  { key: "sacral", label: "提不起勁、疲憊麻木" },
+  { key: "solar", label: "沒自信、一直拖延" },
+  { key: "heart", label: "關係卡住、心很累" },
+  { key: "throat", label: "有話說不出口" },
+  { key: "third-eye", label: "思緒亂、難專注" },
+  { key: "crown", label: "迷惘、找不到方向" },
+];
+
+const MBTI_TYPES = ["INTJ", "INTP", "ENTJ", "ENTP", "INFJ", "INFP", "ENFJ", "ENFP", "ISTJ", "ISFJ", "ESTJ", "ESFJ", "ISTP", "ISFP", "ESTP", "ESFP"];
+const MBTI_QUESTIONS: { q: string; a: [string, string]; letters: [string, string] }[] = [
+  { q: "充完電的方式是？", a: ["跟人聚一場、聊開來", "自己安靜待著"], letters: ["E", "I"] },
+  { q: "你比較相信？", a: ["眼前的具體事實", "心裡冒出來的直覺"], letters: ["S", "N"] },
+  { q: "做重要決定時，先看？", a: ["道理與效率", "感受與關係"], letters: ["T", "F"] },
+  { q: "旅行前一晚，你是？", a: ["行程早就排好了", "到了再說比較好玩"], letters: ["J", "P"] },
+];
+
+type DeepPick = { chakra: (typeof CHAKRA_META)[number]; stone: Stone; deficit: boolean; core: boolean };
+type DeepResult = {
+  life: number; entry: LifeEntry; mbti: string; deficits: ChakraKey[];
+  picks: DeepPick[]; items: DesignItem[];
+};
+
+function buildDeep(birthday: string, mbti: string, concerns: ChakraKey[]): DeepResult {
   const life = reduce9(digitsSum(birthday));
   const entry = LIFE[life];
-  const themeKey = theme ?? entry.lack;
+  // 三訊號加權投票：困擾（客人親口說的）×2、MBTI 傾向 ×1、命盤缺口 ×1。
+  const score: Record<ChakraKey, number> = { root: 0, sacral: 0, solar: 0, heart: 0, "third-eye": 0, throat: 0, crown: 0 };
+  for (const c of concerns) score[c] += 2;
+  for (const letter of mbti) { const c = MBTI_DEFICIT[letter]; if (c) score[c] += 1; }
+  score[ENERGY_CHAKRA[entry.lack]] += 1;
+  const deficits = (Object.keys(score) as ChakraKey[]).filter((k) => score[k] > 0)
+    .sort((a, b) => score[b] - score[a]).slice(0, 3);
+  if (!deficits.length) deficits.push(ENERGY_CHAKRA[entry.lack]);
 
-  // 各位置對應的能量：主星＝生命靈數、內在＝出生月、行動＝出生日、
-  // 流年＝出生年、意圖＝你選的（或數字的缺口）。同一顆石頭不重複入陣。
+  // 七輪各一顆：同輪多顆時優先挑對頻命盤主能量的；重點輪 10mm、最重
+  // 的輪 12mm、其餘 8mm；缺貨往下一顆遞補。
   const used = new Set<string>();
-  const pick = (key: EnergyType): Stone => {
-    const found = stonesForEnergy(key, 10).find((s) => !used.has(s.id)) ?? stonesForEnergy(key, 1)[0];
-    used.add(found.id);
-    return found;
-  };
-  const monthKey = ENERGY_META[(m - 1) % 6].key;
-  const dayKey = LIFE[reduce9(d)].main;
-  const yearKey = ENERGY_META[(reduce9(y) - 1) % 6].key;
-
-  const core = pick(entry.main);
-  const positions: Position[] = [
-    { role: "主星石", en: "CORE", energy: entry.main, stone: core, why: `生命靈數 ${life}・${entry.persona}。${entry.line}` },
-    { role: "內在石", en: "INNER", energy: monthKey, stone: pick(monthKey), why: `${m} 月出生的人，內在自帶${zhOf(monthKey)}的底色——安靜的時候，它就在。` },
-    { role: "行動石", en: "ACTION", energy: dayKey, stone: pick(dayKey), why: `${d} 日的行動數落在${zhOf(dayKey)}——你出手的方式，一直是這個樣子。` },
-    { role: "流年石", en: "PATTERN", energy: yearKey, stone: pick(yearKey), why: `${y} 年生的長期課題繞著${zhOf(yearKey)}轉——不急，它是一輩子的節奏。` },
-    { role: "意圖石", en: "THEME", energy: themeKey, stone: pick(themeKey), why: theme ? `你說想補${zhOf(themeKey)}——那就讓它天天貼著你的脈搏。` : `數字顯示你最少照顧到的是${zhOf(themeKey)}——這顆替你補上。` },
-  ];
-  return { life, entry, themeKey, positions };
+  const picks: DeepPick[] = CHAKRA_META.map((c) => {
+    const deficit = deficits.includes(c.key);
+    const core = c.key === deficits[0];
+    const mm = core ? 12 : deficit ? 10 : 8;
+    const pool = stonesForChakra(c.key, entry.main).filter((s) => !used.has(s.id));
+    const stone = pool.find((s) => inStock({ kind: "stone", id: s.id, mm })) ?? pool[0] ?? stonesForEnergy(entry.main, 1)[0];
+    used.add(stone.id);
+    return { chakra: c, stone, deficit, core };
+  });
+  const s = (id: string, mm: number): DesignItem => ({ kind: "stone", id, mm, uid: nextUid() });
+  const items = picks.map((p) => s(p.stone.id, p.core ? 12 : p.deficit ? 10 : 8));
+  // 白水晶 8mm 補到 14cm 手圍的 84% 上下（弧長模型）。
+  const widths = () => items.map((it) => it.mm as number);
+  while (items.length < 20 && strandArcMM([...widths(), 8], 140) <= 140 && strandArcMM(widths(), 140) < 140 * 0.84) {
+    items.push(s("clear", 8));
+  }
+  return { life, entry, mbti, deficits, picks, items };
 }
 
-// 五顆石頭 → 一條可直接載入工作室的手鍊：第一顆（主位）12mm 置中，其餘
-// 四顆左右對稱各一，白水晶 8mm 補到 14cm 手圍的八成五上下。
+// --- 其餘模式共用 -----------------------------------------------------------
+
 function lineupFromIds(ids: [string, string, string, string, string]): DesignItem[] {
   const [core, inner, action, pattern, theme] = ids;
   const s = (id: string, mm: number): DesignItem => ({ kind: "stone", id, mm, uid: nextUid() });
@@ -75,10 +121,8 @@ function lineupFromIds(ids: [string, string, string, string, string]): DesignIte
     s("clear", 8),
   ];
 }
-const lineupItems = (positions: Position[]): DesignItem[] =>
-  lineupFromIds(positions.map((p) => p.stone.id) as [string, string, string, string, string]);
 
-type AiReading = { overall: string; stones: { role: string; line: string }[]; blessing: string };
+type DeepReadingText = { overall: string; stones: { role: string; line: string }[]; blessing: string };
 type WishReading = { overall: string; blessing: string; stones: { id: string; zh: string; role: string; line: string }[] };
 type PairText = { overall: string; a_line: string; b_line: string; bond_line: string; blessing: string };
 type PairResult = {
@@ -97,44 +141,55 @@ export default function Quiz({ onLoadDesign, onHome }: {
   onLoadDesign: (items: DesignItem[], wrist: number) => void;
   onHome: () => void;
 }) {
-  const [mode, setMode] = useState<"birth" | "wish" | "pair">("birth");
+  const [mode, setMode] = useState<"deep" | "wish" | "pair">("deep");
   const [name, setName] = useState("");
   const [birthday, setBirthday] = useState("");
-  const [theme, setTheme] = useState<EnergyType | null>(null);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [result, setResult] = useState<ReturnType<typeof buildLineup> | null>(null);
-  const [ai, setAi] = useState<AiReading | "loading" | null>(null);
-  // 許願模式
+  // 深度配對
+  const [knowMbti, setKnowMbti] = useState(false);
+  const [mbtiPick, setMbtiPick] = useState("");
+  const [answers, setAnswers] = useState<(0 | 1 | null)[]>([null, null, null, null]);
+  const [concerns, setConcerns] = useState<ChakraKey[]>([]);
+  const [deepBusy, setDeepBusy] = useState(false);
+  const [deepResult, setDeepResult] = useState<DeepResult | null>(null);
+  const [deepText, setDeepText] = useState<DeepReadingText | "loading" | null>(null);
+  // 許願
   const [wish, setWish] = useState("");
   const [wishBusy, setWishBusy] = useState(false);
   const [wishResult, setWishResult] = useState<WishReading | null>(null);
-  // 合盤模式
+  // 合盤
   const [relation, setRelation] = useState("閨蜜");
   const [nameB, setNameB] = useState("");
   const [birthdayB, setBirthdayB] = useState("");
   const [pairBusy, setPairBusy] = useState(false);
   const [pairResult, setPairResult] = useState<PairResult | null>(null);
 
-  const reset = () => { setResult(null); setWishResult(null); setPairResult(null); setAi(null); setError(""); };
+  const reset = () => { setDeepResult(null); setDeepText(null); setWishResult(null); setPairResult(null); setError(""); };
 
-  const submitBirth = () => {
+  const submitDeep = async () => {
     if (!name.trim()) { setError("留個稱呼，結果才知道要寫給誰"); return; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday)) { setError("請選擇你的生日"); return; }
+    const mbti = knowMbti
+      ? mbtiPick
+      : answers.every((a) => a !== null) ? answers.map((a, i) => MBTI_QUESTIONS[i].letters[a as 0 | 1]).join("") : "";
+    if (!/^[EI][SN][TF][JP]$/.test(mbti)) { setError(knowMbti ? "選一下你的 MBTI 型號" : "四題都選一下，一題一秒鐘"); return; }
     setError("");
-    const r = buildLineup(birthday, theme);
-    setResult(r);
-    postJson("/api/quiz-lead", { name: name.trim(), birthday, theme: r.themeKey, email: email.trim(), stones: r.positions.map((p) => p.stone.id).join(",") }).catch(() => {});
-    // AI 個人化解讀：拿得到就逐段換上；拿不到（沒設 key、超時、超量）
-    // 就維持內建文案，頁面不顯示任何錯誤——解讀是加分項，不是依賴。
-    setAi("loading");
-    postJson("/api/quiz-reading", {
-      name: name.trim(), birthday, life: r.life, persona: r.entry.persona, theme: zhOf(r.themeKey),
-      positions: r.positions.map((p) => ({ role: p.role, stone: p.stone.zh, energy: zhOf(p.energy) })),
+    setDeepBusy(true);
+    const r = buildDeep(birthday, mbti, concerns);
+    setDeepResult(r);
+    setDeepText("loading");
+    postJson("/api/quiz-lead", { name: name.trim(), birthday, theme: r.deficits[0], email: email.trim(), stones: r.picks.map((p) => p.stone.id).join(",") }).catch(() => {});
+    // AI 深度解讀：拿得到逐段換上；拿不到維持內建文案，不顯示錯誤。
+    postJson("/api/deep-reading", {
+      name: name.trim(), birthday, life: r.life, persona: r.entry.persona, mbti,
+      concerns: concerns.map((c) => byChakra[c].zh),
+      positions: r.picks.map((p) => ({ role: p.chakra.zh, stone: p.stone.zh, note: p.deficit ? "此輪偏弱，重點補強" : "維持平衡" })),
     })
-      .then(async (res) => (res.ok ? ((await res.json()) as { reading: AiReading }).reading : null))
-      .then((reading) => setAi(reading))
-      .catch(() => setAi(null));
+      .then(async (res) => (res.ok ? ((await res.json()) as { reading: DeepReadingText }).reading : null))
+      .then((reading) => setDeepText(reading))
+      .catch(() => setDeepText(null));
+    setDeepBusy(false);
     window.scrollTo({ top: 0 });
   };
 
@@ -145,7 +200,7 @@ export default function Quiz({ onLoadDesign, onHome }: {
     setWishBusy(true);
     try {
       const res = await postJson("/api/wish-reading", { name: name.trim(), wish: wish.trim() });
-      if (res.status === 503) { setError("AI 顧問暫時休息中——先用生日算一條，或晚點再來許願"); return; }
+      if (res.status === 503) { setError("AI 顧問暫時休息中——先用深度配對算一條，或晚點再來許願"); return; }
       if (!res.ok) { setError("這個願望顧問一時接不住，換個說法再試一次"); return; }
       setWishResult(((await res.json()) as { reading: WishReading }).reading);
       window.scrollTo({ top: 0 });
@@ -162,8 +217,6 @@ export default function Quiz({ onLoadDesign, onHome }: {
     setError("");
     const lifeA = reduce9(digitsSum(birthday)), lifeB = reduce9(digitsSum(birthdayB));
     const entryA = LIFE[lifeA], entryB = LIFE[lifeB];
-    // 連結石依關係取向：情侶補愛情、閨蜜補療癒、家人補守護；兩人主石
-    // 依各自生命靈數的主能量，三顆互不重複。
     const bondEnergy: EnergyType = relation === "情侶" ? "love" : relation === "家人" ? "protection" : "healing";
     const used = new Set<string>();
     const pick = (key: EnergyType): Stone => {
@@ -172,7 +225,6 @@ export default function Quiz({ onLoadDesign, onHome }: {
       return found;
     };
     const stoneA = pick(entryA.main), stoneB = pick(entryB.main), bond = pick(bondEnergy);
-    // 內建文案先上（沒有 AI 也是完整功能），AI 到了再整段換掉。
     const fallback: PairText = {
       overall: `${name.trim()} 是生命靈數 ${lifeA} 的${entryA.persona}，${entryA.line}${nameB.trim()} 是生命靈數 ${lifeB} 的${entryB.persona}，${entryB.line}兩種節奏放在一起，正好互相接住。`,
       a_line: `${zhOf(entryA.main)}是你天生的主場——「${stoneA.zh}」替你把它戴在手上。`,
@@ -208,42 +260,45 @@ export default function Quiz({ onLoadDesign, onHome }: {
   const header = (note: string) => <header className="shop-head">
     <button className="wordmark" onClick={onHome}>OMA <span>CRYSTAL</span></button>
     <div className="head-note">{note}</div>
-    <div className="head-actions">{(result || wishResult || pairResult) && <button className="quiet" onClick={reset}>再算一次</button>}</div>
+    <div className="head-actions">{(deepResult || wishResult || pairResult) && <button className="quiet" onClick={reset}>再算一次</button>}</div>
   </header>;
 
-  // --- 生日結果 -----------------------------------------------------------
-  if (result) {
-    const items = lineupItems(result.positions);
-    const zhTheme = ENERGY_META.find((e) => e.key === result.themeKey)!;
-    const zhLack = ENERGY_META.find((e) => e.key === result.entry.lack)!;
-    const pickedOwnTheme = result.themeKey !== result.entry.lack;
+  // --- 深度配對結果 --------------------------------------------------------
+  if (deepResult) {
+    const r = deepResult;
+    const ai = deepText;
+    const fallbackOverall = `${name}，生命靈數 ${r.life} 的${r.entry.persona}——${r.entry.line}${mbtiDesc(r.mbti)}的你，能量最需要照顧的是${r.deficits.map((d) => byChakra[d].zh).join("、")}。這條七輪平衡手鍊從海底輪排到頂輪，偏弱的輪用更大的主珠替你補上。`;
     return <div className="quiz">
-      {header("CRYSTAL BIRTH READING")}
+      {header("CHAKRA BALANCE READING")}
       <section className="quiz-result">
-        <p className="landing-eyebrow">生命靈數 {result.life} · {result.entry.persona}</p>
-        <h1>{name} 的五石陣容</h1>
-        <p className="quiz-lack">你的數字偏向<b>{ENERGY_META.find((e) => e.key === result.entry.main)!.zh}</b>，最少照顧到的是<b style={{ color: zhLack.color }}>{zhLack.zh}</b>{pickedOwnTheme
-          ? <>；你另外點名想補<b style={{ color: zhTheme.color }}>{zhTheme.zh}</b>，意圖石已經替你放進去。</>
-          : <>——意圖石已經替你補上。</>}</p>
-        {ai === "loading" && <p className="quiz-ai loading">顧問正在為你寫專屬解讀…</p>}
-        {ai && ai !== "loading" && <div className="quiz-ai"><p>{ai.overall}</p><span>— 寫給 {name} 的專屬解讀</span></div>}
-        <div className="quiz-preview"><BraceletThumb items={items} wrist={14} /></div>
+        <p className="landing-eyebrow">生命靈數 {r.life} · {r.entry.persona} · MBTI {r.mbti}</p>
+        <h1>{name} 的七輪平衡陣容</h1>
+        {/* 七脈輪能量軸：偏弱的輪標「補」並放大 */}
+        <div className="chakra-axis">
+          {r.picks.map((p) => <div key={p.chakra.key} className={`ca-dot ${p.deficit ? "weak" : ""} ${p.core ? "core" : ""}`}>
+            <i style={{ background: p.chakra.color }} />
+            <span>{p.chakra.zh}</span>
+            {p.deficit && <b>補</b>}
+          </div>)}
+        </div>
+        {ai === "loading" && <p className="quiz-ai loading">顧問正在為你寫深度解讀…</p>}
+        <div className="quiz-ai"><p>{ai && ai !== "loading" ? ai.overall : fallbackOverall}</p><span>— 寫給 {name} 的深度解讀</span></div>
+        <div className="quiz-preview"><BraceletThumb items={r.items} wrist={14} /></div>
         <div className="quiz-stones">
-          {result.positions.map((p) => {
-            const aiLine = ai && ai !== "loading" ? ai.stones.find((s) => s.role === p.role)?.line : null;
-            return <div className="quiz-stone" key={p.en}>
+          {r.picks.map((p, i) => {
+            const aiLine = ai && ai !== "loading" ? ai.stones[i]?.line : null;
+            return <div className="quiz-stone" key={p.chakra.key}>
               <img src={stonePhotos[p.stone.id]} alt={p.stone.zh} />
               <div>
-                <span className="qs-role">{p.en} · {p.role} <b style={{ color: ENERGY_META.find((e) => e.key === p.energy)!.color }}>{ENERGY_META.find((e) => e.key === p.energy)!.zh}</b></span>
+                <span className="qs-role" style={{ color: p.chakra.color }}>{p.chakra.zh} · {p.chakra.body}{p.deficit && <b className="qs-weak">重點補強</b>}</span>
                 <b className="qs-name">{p.stone.zh} <i>{p.stone.en}</i></b>
-                <p>{aiLine ?? p.why}</p>
-                <small>{p.stone.note}</small>
+                <p>{aiLine ?? p.stone.note ?? `${p.chakra.body}的守位石，替你把${p.chakra.zh}穩穩顧好。`}</p>
               </div>
             </div>;
           })}
         </div>
         {ai && ai !== "loading" && ai.blessing && <p className="quiz-blessing">{ai.blessing}</p>}
-        <button className="landing-cta" onClick={() => onLoadDesign(items, 14)}>把陣容載入工作室 <i>→</i></button>
+        <button className="landing-cta" onClick={() => onLoadDesign(r.items, 14)}>把陣容載入工作室 <i>→</i></button>
         <p className="quiz-note">陣容已排成 14cm 手圍的完整一條，進工作室可自由增減。本測驗屬趣味參考，不構成任何醫療或財務建議。</p>
       </section>
     </div>;
@@ -288,7 +343,7 @@ export default function Quiz({ onLoadDesign, onHome }: {
         <h1>{a.name} × {b.name}</h1>
         <div className="quiz-ai"><p>{text.overall}</p><span>— {pairResult.relation}合盤解讀</span></div>
         <div className="pair-grid">
-          {[{ person: a, line: text.a_line, items: itemsA, label: "A" }, { person: b, line: text.b_line, items: itemsB, label: "B" }].map(({ person, line, items }) => <div className="pair-card" key={person.name}>
+          {[{ person: a, line: text.a_line, items: itemsA }, { person: b, line: text.b_line, items: itemsB }].map(({ person, line, items }) => <div className="pair-card" key={person.name}>
             <p className="landing-eyebrow">生命靈數 {person.life} · {person.persona}</p>
             <b className="pair-name">{person.name}</b>
             <div className="quiz-preview"><BraceletThumb items={items} wrist={14} /></div>
@@ -319,23 +374,49 @@ export default function Quiz({ onLoadDesign, onHome }: {
 
   // --- 表單 ---------------------------------------------------------------
   return <div className="quiz">
-    {header(mode === "birth" ? "CRYSTAL BIRTH READING" : mode === "wish" ? "MAKE A WISH" : "TWO OF US")}
+    {header(mode === "deep" ? "CHAKRA BALANCE READING" : mode === "wish" ? "MAKE A WISH" : "TWO OF US")}
     <section className="quiz-form">
       <p className="landing-eyebrow">選石測驗</p>
-      {mode === "birth" && <h1>你的生日，<br />早就選好了石頭</h1>}
+      {mode === "deep" && <h1>三分鐘，配出<br />只屬於你的七輪平衡</h1>}
       {mode === "wish" && <h1>說個願望，<br />顧問替你選石</h1>}
       {mode === "pair" && <h1>兩個人，<br />一對互相呼應的手鍊</h1>}
       <div className="quiz-modes">
-        {([["birth", "用生日算"], ["wish", "說個願望"], ["pair", "兩個人合盤"]] as const).map(([key, label]) => <button
+        {([["deep", "深度配對"], ["wish", "說個願望"], ["pair", "兩個人合盤"]] as const).map(([key, label]) => <button
           key={key} type="button" className={mode === key ? "on" : ""} onClick={() => { setMode(key); setError(""); }}
         >{label}</button>)}
       </div>
-      {mode === "birth" && <span className="quiz-sub">一分鐘，從生命靈數算出屬於你的五石陣容——主星、內在、行動、流年，加上一顆補足缺口的意圖石。</span>}
+      {mode === "deep" && <span className="quiz-sub">生日給命盤底色、四題快測看性格怎麼用力、再勾一下此刻的狀態——三個訊號合起來，配出七個脈輪各就各位的一條手鍊。</span>}
       {mode === "wish" && <span className="quiz-sub">用自己的話說：想撐過什麼、想留住什麼、想成為什麼。顧問會讀懂它，從一百多種石頭裡選出剛好的五顆。</span>}
       {mode === "pair" && <span className="quiz-sub">閨蜜、情侶或家人——兩個人的生日各算一條，再共享一顆連結石，戴著就想起彼此。</span>}
       <div className="quiz-fields">
         <label>怎麼稱呼你<input value={name} onChange={(e) => setName(e.target.value)} placeholder="小名或暱稱" maxLength={40} /></label>
         {mode !== "wish" && <label>{mode === "pair" ? "你的生日" : "生日"}<input type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} min="1930-01-01" max="2026-12-31" /></label>}
+        {mode === "deep" && <>
+          <label className="quiz-theme"><span>你知道自己的 MBTI 嗎？</span>
+            <span className="quiz-chips">
+              <button type="button" className={!knowMbti ? "on" : ""} onClick={() => setKnowMbti(false)}>不知道，快測給我</button>
+              <button type="button" className={knowMbti ? "on" : ""} onClick={() => setKnowMbti(true)}>知道，直接選</button>
+            </span>
+          </label>
+          {knowMbti
+            ? <label className="quiz-theme"><span>你的型號</span>
+              <span className="quiz-chips mbti-grid">
+                {MBTI_TYPES.map((t) => <button key={t} type="button" className={mbtiPick === t ? "on" : ""} onClick={() => setMbtiPick(t)}>{t}</button>)}
+              </span>
+            </label>
+            : MBTI_QUESTIONS.map((q, i) => <label className="quiz-theme" key={q.q}><span>{i + 1}. {q.q}</span>
+              <span className="quiz-chips">
+                {q.a.map((opt, j) => <button key={opt} type="button" className={answers[i] === j ? "on" : ""} onClick={() => setAnswers((v) => v.map((x, k) => k === i ? (j as 0 | 1) : x))}>{opt}</button>)}
+              </span>
+            </label>)}
+          <label className="quiz-theme"><span>此刻的狀態（最多勾三個，可不勾）</span>
+            <span className="quiz-chips">
+              {CONCERNS.map((c) => <button key={c.key} type="button" className={concerns.includes(c.key) ? "on" : ""} style={{ "--chip": byChakra[c.key].color } as React.CSSProperties}
+                onClick={() => setConcerns((v) => v.includes(c.key) ? v.filter((x) => x !== c.key) : v.length < 3 ? [...v, c.key] : v)}>{c.label}</button>)}
+            </span>
+          </label>
+          <label>Email（選填，之後想收到自己的陣容再填）<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></label>
+        </>}
         {mode === "wish" && <label>此刻的願望<textarea className="quiz-wish" value={wish} onChange={(e) => setWish(e.target.value)} placeholder="例：想撐過換工作的這半年，不要再半夜胡思亂想" maxLength={200} rows={3} /></label>}
         {mode === "pair" && <>
           <label>對方的稱呼<input value={nameB} onChange={(e) => setNameB(e.target.value)} placeholder="她／他的小名" maxLength={40} /></label>
@@ -346,15 +427,9 @@ export default function Quiz({ onLoadDesign, onHome }: {
             </span>
           </label>
         </>}
-        {mode === "birth" && <label className="quiz-theme"><span>此刻最想補的能量（可不選，讓生日決定）</span>
-          <span className="quiz-chips">
-            {ENERGY_META.map((m) => <button key={m.key} type="button" className={theme === m.key ? "on" : ""} style={{ "--chip": m.color } as React.CSSProperties} onClick={() => setTheme(theme === m.key ? null : m.key)}>{m.zh}</button>)}
-          </span>
-        </label>}
-        {mode === "birth" && <label>Email（選填，之後想收到自己的陣容再填）<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></label>}
       </div>
       {error && <p className="co-error">{error}</p>}
-      {mode === "birth" && <button className="landing-cta" onClick={submitBirth}>看我的五石陣容 <i>→</i></button>}
+      {mode === "deep" && <button className="landing-cta" disabled={deepBusy} onClick={submitDeep}>{deepBusy ? "正在配對…" : "看我的七輪平衡陣容 →"}</button>}
       {mode === "wish" && <button className="landing-cta" disabled={wishBusy} onClick={submitWish}>{wishBusy ? "顧問正在讀你的願望…" : "替我選石 →"}</button>}
       {mode === "pair" && <button className="landing-cta" disabled={pairBusy} onClick={submitPair}>{pairBusy ? "正在合盤…" : "看我們的合盤 →"}</button>}
     </section>
