@@ -381,3 +381,19 @@ test("pair-reading validates both persons and returns the Kimi text", async () =
     assert.equal((await ok.json()).reading.overall, text.overall);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test("a key from the international platform falls through .cn's 401 to .ai", async () => {
+  const db = fakeDb();
+  const realFetch = globalThis.fetch;
+  const hits = [];
+  globalThis.fetch = async (url) => {
+    hits.push(new URL(url).host);
+    if (String(url).includes("moonshot.cn")) return new Response("{}", { status: 401 });
+    return kimiResponse({ title: "白日夢的邊界", verse: "把安穩戴在手上，往前走。" });
+  };
+  try {
+    const res = await call(ai.handleAi, aiReq("/api/design-poem", { dominant: "守護", stones: ["黑曜石"] }), aiEnv(db));
+    assert.equal(res.status, 200, "the .ai retry must succeed");
+    assert.deepEqual(hits, ["api.moonshot.cn", "api.moonshot.ai"]);
+  } finally { globalThis.fetch = realFetch; }
+});
