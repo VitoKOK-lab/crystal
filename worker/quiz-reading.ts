@@ -9,6 +9,7 @@
 // - 每日全站生成上限（快取行數統計）擋住惡意刷 credits。
 // - 模型輸出強制 JSON 並驗形，長度全部設限——它寫進頁面，但只以純文字
 //   呈現，不進 HTML。
+import { kimiJson } from "./kimi";
 import { Env, json } from "./lib";
 
 type Position = { role: string; stone: string; energy: string };
@@ -77,36 +78,10 @@ export async function handleQuizReading(request: Request, env: Env, url: URL): P
     "請依系統規則產生這位客人的專屬解讀 JSON。",
   ].join("\n");
 
-  const base = (env.KIMI_BASE_URL ?? "https://api.moonshot.cn/v1").replace(/\/$/, "");
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 25000);
-  try {
-    const res = await fetch(`${base}/chat/completions`, {
-      method: "POST",
-      signal: ctrl.signal,
-      headers: { "content-type": "application/json", authorization: `Bearer ${env.KIMI_API_KEY}` },
-      body: JSON.stringify({
-        model: env.KIMI_MODEL ?? "moonshot-v1-8k",
-        temperature: 0.7,
-        max_tokens: 1000,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-    if (!res.ok) return json({ error: `upstream ${res.status}` }, { status: 502 });
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = data.choices?.[0]?.message?.content ?? "";
-    let reading: unknown;
-    try { reading = JSON.parse(content); } catch { return json({ error: "unparseable reading" }, { status: 502 }); }
-    if (!validReading(reading)) return json({ error: "malformed reading" }, { status: 502 });
-    await env.DB.prepare("INSERT OR IGNORE INTO quiz_readings (key, reading) VALUES (?,?)").bind(key, JSON.stringify(reading)).run();
-    return json({ reading });
-  } catch {
-    return json({ error: "upstream timeout" }, { status: 504 });
-  } finally {
-    clearTimeout(timer);
-  }
+  // 走共用 Kimi 管線（含 .cn／.ai 雙平台 401 自動切換）。
+  const result = await kimiJson(env, SYSTEM_PROMPT, userPrompt, 1000);
+  if (!result.ok) return result.res;
+  if (!validReading(result.data)) return json({ error: "malformed reading" }, { status: 502 });
+  await env.DB.prepare("INSERT OR IGNORE INTO quiz_readings (key, reading) VALUES (?,?)").bind(key, JSON.stringify(result.data)).run();
+  return json({ reading: result.data });
 }
