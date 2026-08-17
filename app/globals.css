@@ -807,42 +807,42 @@ button,input { font:inherit; } button { cursor:pointer; }
    參考 neumorphism 的觸感：亮部左上、暖影右下的雙陰影浮雕，輸入框內
    凹、按鈕凸起、按下去真的「陷進去」。原版的灰藍冷光換成品牌的香檳
    暖色（亮 #fffdf6／影 #ddd3c0），立體感一樣、氣質是我們的。 */
-:root { --emb-bg:#f4f0e7; --emb-hi:#fffdf6; --emb-sh:#ddd3c0; }
+:root { --emb-bg:#fbfcfe; --emb-hi:#ffffff; --emb-sh:#dde4ee; --emb-blue:#8fb2dd; }
 
 /* 測驗頁＝質感展示間（對位參考影片的 OTP 卡片） */
-.quiz { background:linear-gradient(165deg,#f7f3ea, #efe9dc); min-height:100vh; }
+.quiz { background:linear-gradient(160deg,#ffffff 0%, #f3f6fb 55%, #eef3fa 100%); min-height:100vh; }
 .quiz-form { margin:26px auto 70px; padding:38px 30px 44px; background:var(--emb-bg); border-radius:26px;
-  box-shadow:14px 14px 34px var(--emb-sh), -14px -14px 34px var(--emb-hi); }
+  box-shadow:10px 10px 26px #dde4ee80, -10px -10px 26px var(--emb-hi); }
 .quiz-fields input, .quiz-wish { border:0; border-radius:13px; background:var(--emb-bg); color:#141414;
-  box-shadow:inset 5px 5px 10px #ddd3c0cc, inset -5px -5px 10px var(--emb-hi);
+  box-shadow:inset 4px 4px 9px #dde4ee99, inset -4px -4px 9px var(--emb-hi);
   transition:box-shadow .22s ease; }
 .quiz-fields input:focus, .quiz-wish:focus { outline:0;
-  box-shadow:inset 5px 5px 10px #ddd3c0cc, inset -5px -5px 10px var(--emb-hi), 0 0 0 3px #c9a35545; }
+  box-shadow:inset 4px 4px 9px #dde4ee99, inset -4px -4px 9px var(--emb-hi), 0 0 0 3px #8fb2dd4d; }
 .quiz-chips button, .quiz-modes button { border:0; background:var(--emb-bg); color:#6b6b6b;
-  box-shadow:4px 4px 9px var(--emb-sh), -4px -4px 9px var(--emb-hi);
+  box-shadow:3px 3px 7px #dde4ee8c, -3px -3px 7px var(--emb-hi);
   transition:box-shadow .18s ease, color .18s ease, transform .12s ease; }
-.quiz-chips button.on, .quiz-modes button.on { color:var(--chip,#8a6d1f); font-weight:bold;
-  box-shadow:inset 4px 4px 8px #d8cdb8, inset -4px -4px 8px var(--emb-hi); }
+.quiz-chips button.on, .quiz-modes button.on { background:var(--emb-bg); color:var(--chip,#5d87bd); font-weight:bold;
+  box-shadow:inset 3px 3px 7px #d3dceb, inset -3px -3px 7px var(--emb-hi), 0 0 0 1px #8fb2dd33; }
 .quiz-chips button:active, .quiz-modes button:active { transform:scale(.96); }
 .quiz-ai { background:var(--emb-bg); border:0;
-  box-shadow:8px 8px 20px var(--emb-sh), -8px -8px 20px var(--emb-hi); }
+  box-shadow:6px 6px 16px #dde4ee73, -6px -6px 16px var(--emb-hi); }
 .quiz-stone { border:0; background:var(--emb-bg);
-  box-shadow:7px 7px 18px var(--emb-sh), -7px -7px 18px var(--emb-hi); }
+  box-shadow:5px 5px 14px #dde4ee73, -5px -5px 14px var(--emb-hi); }
 .pair-card { border:0; background:var(--emb-bg);
-  box-shadow:10px 10px 24px var(--emb-sh), -10px -10px 24px var(--emb-hi); }
+  box-shadow:8px 8px 20px #dde4ee80, -8px -8px 20px var(--emb-hi); }
 
 /* 工作室控制列的觸感 */
-.canvas-actions button:not(.primary) { border:0; border-radius:12px; background:#f5f1e8;
-  box-shadow:5px 5px 12px #ded4c1, -5px -5px 12px #ffffff; }
-.canvas-actions button:not(.primary):hover { color:#8a6d1f; }
-.canvas-actions button:not(.primary):active { box-shadow:inset 4px 4px 9px #d8cdb8, inset -4px -4px 9px #fffdf6; }
-.preset-row button { border:0; border-radius:11px; background:#f5f1e8;
-  box-shadow:4px 4px 9px #e2d9c8, -4px -4px 9px #ffffff; }
-.preset-row button:hover { transform:translateY(-1px); box-shadow:5px 6px 12px #dcd2bf, -4px -4px 9px #ffffff; }
-.color-chips button { border:0; background:#f5f1e8;
-  box-shadow:3px 3px 7px #e2d9c8, -3px -3px 7px #ffffff; }
-.color-chips button.on { color:#8a6d1f; font-weight:bold;
-  box-shadow:inset 3px 3px 6px #d8cdb8, inset -3px -3px 6px #fffdf6; }
+.canvas-actions button:not(.primary) { border:0; border-radius:12px; background:#fdfdfe;
+  box-shadow:4px 4px 10px #dde4ee8c, -4px -4px 10px #ffffff; }
+.canvas-actions button:not(.primary):hover { color:#5d87bd; }
+.canvas-actions button:not(.primary):active { box-shadow:inset 3px 3px 8px #d3dceb, inset -3px -3px 8px #ffffff; }
+.preset-row button { border:0; border-radius:11px; background:#fdfdfe;
+  box-shadow:3px 3px 8px #dde4ee80, -3px -3px 8px #ffffff; }
+.preset-row button:hover { transform:translateY(-1px); box-shadow:4px 5px 10px #d5deea, -3px -3px 8px #ffffff; }
+.color-chips button { border:0; background:#fdfdfe;
+  box-shadow:2px 2px 6px #dde4ee80, -2px -2px 6px #ffffff; }
+.color-chips button.on { color:#5d87bd; font-weight:bold;
+  box-shadow:inset 2px 2px 6px #d3dceb, inset -2px -2px 6px #ffffff, 0 0 0 1px #8fb2dd33; }
 
 /* 微動效：按壓、錯誤搖晃、結果彈入、加珠彈跳、提示滑入 */
 .landing-cta:active, .sc-buy:active, .sc-custom:active, .canvas-actions .primary:active { transform:scale(.97); }
