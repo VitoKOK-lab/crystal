@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ItemVisual, accessories, closedLoopCapacityMM, dominantOf, energyScores, itemMM, itemPrice, layoutStrand, parseSpec, pricing, stones, type DesignItem } from "./catalog";
 import { SERIES, STYLE_LABEL, bySeries, type Product } from "./series";
 
@@ -41,6 +41,11 @@ export function BraceletThumb({ items, wrist }: { items: DesignItem[]; wrist: nu
 
 type Priced = { product: Product; items: DesignItem[]; price: number; dominant: ReturnType<typeof dominantOf>; beads: number };
 
+// 實景情境照：AI 依每款的實際珠列生成、跟著品牌一致的棚拍語言（女款
+// 奶油絲綢＋香檳暖光、男款深色石板＋硬朗側光）。檔名按 seriesId-productId
+// 約定，onError 隱藏——後台新增的成品沒照片時卡片自動退回純縮圖。
+const lookPhoto = (seriesId: string, productId: string) => `/materials/looks/${seriesId}-${productId}.jpg`;
+
 export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onHome, onBlankStudio }: {
   seriesId: string;
   onSelectSeries: (id: string) => void;
@@ -50,6 +55,7 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
   onBlankStudio: () => void;
 }) {
   const series = bySeries[seriesId] ?? SERIES[0];
+  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
   // Price and dominant energy are derived from the same spec the buttons
   // build from, so a card can never advertise a figure the studio disagrees
   // with. Recomputed only when the series changes.
@@ -104,7 +110,13 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
 
     <div className="shop-grid">
       {priced.map(({ product, items, price, dominant, beads }) => <article className="shop-card" key={product.id}>
-        <BraceletThumb items={items} wrist={product.wrist} />
+        <div className="sc-visual">
+          <button className="sc-look" onClick={() => setLightbox({ url: lookPhoto(series.id, product.id), name: product.name })} aria-label={`看「${product.name}」實景照`}>
+            <img src={lookPhoto(series.id, product.id)} alt="" loading="lazy"
+              onError={(e) => e.currentTarget.closest(".sc-visual")?.classList.add("no-look")} />
+          </button>
+          <BraceletThumb items={items} wrist={product.wrist} />
+        </div>
         <div className="sc-body">
           <span className="sc-style">{STYLE_LABEL[product.style]}</span>
           <b className="sc-name">{product.name}</b>
@@ -121,6 +133,14 @@ export default function Shop({ seriesId, onSelectSeries, onBuy, onCustomize, onH
         </div>
       </article>)}
     </div>
+
+    {lightbox && <div className="look-overlay" role="dialog" aria-label={`${lightbox.name} 實景照`} onClick={() => setLightbox(null)}>
+      <div className="look-box" onClick={(e) => e.stopPropagation()}>
+        <button className="look-close" onClick={() => setLightbox(null)} aria-label="關閉">✕</button>
+        <img src={lightbox.url} alt={`${lightbox.name} 實景照`} />
+        <p><b>{lightbox.name}</b>・情境示意照，實際珠列以卡片上的配置圖為準</p>
+      </div>
+    </div>}
 
     <section className="shop-foot">
       <h2>都還不夠像你？</h2>
