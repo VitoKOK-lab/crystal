@@ -1,6 +1,5 @@
 name: Deploy to Cloudflare (Worker + D1)
 
-# Runs alongside the GitHub Pages deploy (pages.yml) during the migration.
 # Self-bootstrapping: creates the D1 database and R2 bucket on first run,
 # resolves the database ID into wrangler.jsonc, applies pending SQL
 # migrations, then deploys the Worker with the static site.

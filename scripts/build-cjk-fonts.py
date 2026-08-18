@@ -15,7 +15,7 @@ written, so a bad subset can never pass check-cjk-coverage.py again.)
 Because the subset is pinned to the current copy, re-run whenever Chinese
 text changes (bundles, the HTML shell, or migration-seeded material names):
 
-    npm run build:pages && python3 scripts/build-cjk-fonts.py
+    npm run build:cf; python3 scripts/build-cjk-fonts.py
 
 Requires: fonttools + brotli (pip install fonttools brotli).
 """

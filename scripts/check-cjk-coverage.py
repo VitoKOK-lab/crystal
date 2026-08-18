@@ -12,7 +12,7 @@ binaries: build-cjk-fonts.py records exactly which characters it
 subsetted for in public/fonts/.cjk-glyphs, and this script diffs that
 against what the built bundle actually renders.
 
-Run after `npm run build:pages` (wired into scripts/fix-pages-base.sh).
+Run after the site build (wired into `npm run build:cf` as its last step).
 """
 import pathlib
 import re
@@ -46,7 +46,7 @@ def main() -> None:
         sys.exit(
             "Chinese characters render with no matching glyph in the subsetted "
             f"webfont (will show as tofu): {''.join(missing)!r}\n"
-            "Re-run: npm run build:pages && python3 scripts/build-cjk-fonts.py"
+            "Re-run: npm run build:cf; python3 scripts/build-cjk-fonts.py"
         )
     print(f"CJK glyph coverage OK ({len(rendered)} characters, all covered).")
 
