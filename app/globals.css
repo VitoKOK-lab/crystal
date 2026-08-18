@@ -913,3 +913,7 @@ button,input { font:inherit; } button { cursor:pointer; }
 /* ── LINE Pay 付款鍵：官方品牌綠 ─────────────────────────────── */
 .co-primary.co-linepay { background:#06c755; }
 .co-primary.co-linepay:hover { background:#05b34c; box-shadow:0 8px 20px #06c75540; }
+
+/* 首頁（landing）上的 toast：沒有 .studio 的定位容器可掛，改用
+   fixed 釘在視窗底部——付款導回的成功訊息靠它。 */
+.notice.notice-fixed { position:fixed; bottom:26px; }

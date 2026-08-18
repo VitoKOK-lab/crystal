@@ -204,11 +204,16 @@ export default function Home() {
   const activeSeries = seriesId ? bySeries[seriesId] : null;
   const tone: SeriesTone = activeSeries?.tone ?? NEUTRAL_TONE;
   const goShop = (id?: string) => navigate("shop", id ?? seriesId ?? SERIES[0].id);
-  if (view === "home") return <LandingHome
-    onStart={() => navigate("studio", seriesId)}
-    onShop={goShop}
-    onQuiz={() => navigate("quiz", seriesId)}
-  />;
+  if (view === "home") return <>
+    <LandingHome
+      onStart={() => navigate("studio", seriesId)}
+      onShop={goShop}
+      onQuiz={() => navigate("quiz", seriesId)}
+    />
+    {/* 金流導回落在首頁（redirect URL 不帶 ?v=）——「付款成功」的
+        toast 必須在這裡也看得到，不能只活在工作室視圖裡。 */}
+    {notice && <div className="notice notice-fixed">{notice}<button onClick={() => setNotice("")}>×</button></div>}
+  </>;
   if (view === "quiz") return <Quiz
     onHome={() => navigate("home", seriesId)}
     onLoadDesign={(quizItems, wrist) => {
