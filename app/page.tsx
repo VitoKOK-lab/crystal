@@ -16,13 +16,14 @@ import Quiz from "./quiz";
 import MaterialLibrary from "./material-library";
 import type { PreviewPiece } from "./preview-3d";
 import { PRESETS } from "./presets";
-import { generateShareCard } from "./share-card";
 import { playClaspClick } from "./ui-sound";
+import { useShareDesign } from "./use-share-design";
+import { useStudioRouter } from "./use-studio-router";
 
 import Shop from "./shop";
 import {
   ENERGY_META, ItemVisual, WRIST_CHOICES, accessories, accessoryPhotos,
-  buildSpec, byAccessory, byStone, canPadMore, colorGroupOf, decodeDesign, defaultStoneMM, dominantOf, encodeDesign, energyScores,
+  buildSpec, byAccessory, byStone, canPadMore, colorGroupOf, defaultStoneMM, dominantOf, encodeDesign, energyScores,
   fitWristCm, itemMM, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
   strandArcMM, PCT_PER_MM,
   type Accessory, type BeadSize, type ColorGroupKey, type DesignItem, type Stone,
@@ -55,11 +56,6 @@ export default function Home() {
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "obsidian", size: "large" });
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
-  const [view, setView] = useState<"home" | "shop" | "studio" | "checkout" | "quiz">("home");
-  // Which collection the customer came in through. Drives the accent colour
-  // and whether the studio speaks 能量 or 戰力. Null = walked straight into
-  // the studio without picking a series, which gets the neutral wording.
-  const [seriesId, setSeriesId] = useState<string | null>(null);
   const [wristCm, setWristCm] = useState(DEFAULT_WRIST);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -75,67 +71,21 @@ export default function Home() {
   // every keystroke in the search box.
   const showNotice = useCallback((text: string) => { setNotice(text); setNoticeSeq((n) => n + 1); }, []);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
-  // The view lives in the URL (?v=shop|studio|checkout, plus ?series=), so
-  // the browser's back button steps between views instead of leaving the
-  // site, and a refresh comes back to the same place. pushState on
-  // programmatic navigation, popstate to follow the history.
-  const navigate = (v: typeof view, sid: string | null, opts: { push?: boolean; scroll?: boolean } = {}) => {
-    setSeriesId(sid);
-    setView(v);
-    const params = new URLSearchParams(window.location.search);
-    params.delete("v"); params.delete("series"); params.delete("d");
-    if (v !== "home") params.set("v", v);
-    if (sid && (v === "shop" || v === "studio")) params.set("series", sid);
-    const qs = params.toString();
-    const url = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
-    if (opts.push === false) window.history.replaceState(null, "", url);
-    else window.history.pushState(null, "", url);
-    if (opts.scroll !== false) window.scrollTo({ top: 0 });
-  };
-  useEffect(() => {
-    const applyUrl = () => {
-      const params = new URLSearchParams(window.location.search);
-      const sid = params.get("series");
-      if (sid && bySeries[sid]) setSeriesId(sid);
-      const v = params.get("v");
-      if (v === "shop" || v === "studio" || v === "checkout" || v === "quiz") setView(v);
-      else if (params.get("d")) setView("studio"); // a history entry from before a share link's design was navigated away
-      else if (sid && bySeries[sid]) setView("shop"); // /men/ redirects here with ?series=forge
-      else setView("home");
-    };
-    window.addEventListener("popstate", applyUrl);
-
-    // Initial load: a shared design link (?d=) wins and opens the studio.
-    const params = new URLSearchParams(window.location.search);
-    // 綠界付款導回：顯示結果訊息後把參數從網址拿掉（重新整理不重播）。
-    const pay = params.get("pay");
-    if (pay) {
-      const order = params.get("order");
-      showNotice(pay === "ok"
-        ? `付款成功！${order ? `訂單 ${order} ` : ""}已確認，我們會盡快為你揀珠串製`
-        : pay === "back"
-          ? "已離開付款頁——訂單保留中，隨時可以回來完成付款"
-          : "付款未完成，訂單保留中；可以再試一次或改用其他方式");
-      params.delete("pay"); params.delete("order");
-      const qs = params.toString();
-      window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
-    }
-    const code = params.get("d");
-    const decoded = code ? decodeDesign(code) : null;
-    if (decoded) {
-      setItems(decoded.items);
-      setWristCm(decoded.wrist);
-      showNotice("已載入這條設計，可直接調整或結帳");
-      const sid = params.get("series");
-      if (sid && bySeries[sid]) setSeriesId(sid);
-      setView("studio");
-    } else {
-      applyUrl();
-    }
-    return () => window.removeEventListener("popstate", applyUrl);
-    // showNotice is a stable useCallback — including it keeps this a
-    // mount-only effect while satisfying exhaustive-deps.
+  // URL-backed view routing + the ?d= / ?pay= special entries live in the
+  // hook; Home only supplies what to do when they fire.
+  const onLoadShared = useCallback((shared: DesignItem[], wrist: number) => {
+    setItems(shared);
+    setWristCm(wrist);
+    showNotice("已載入這條設計，可直接調整或結帳");
   }, [showNotice]);
+  const onPayReturn = useCallback((pay: string, order: string | null) => {
+    showNotice(pay === "ok"
+      ? `付款成功！${order ? `訂單 ${order} ` : ""}已確認，我們會盡快為你揀珠串製`
+      : pay === "back"
+        ? "已離開付款頁——訂單保留中，隨時可以回來完成付款"
+        : "付款未完成，訂單保留中；可以再試一次或改用其他方式");
+  }, [showNotice]);
+  const { view, seriesId, navigate } = useStudioRouter({ onLoadShared, onPayReturn });
   // Ready-to-wear products are re-parsed from their spec on click rather than
   // reusing the shop's display copies, so the studio always gets fresh uids
   // and editing one never mutates what the shop card renders.
@@ -192,49 +142,6 @@ export default function Home() {
       ? `已加入 ${label(placed)}・手圍自動改為 ${cm} cm（已串 ${strungNext} cm）`
       : `已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${strungNext} / ${cm} cm`);
   }, [widths, wristCm, showNotice]);
-  const shareDesign = async () => {
-    if (!items.length) { showNotice("先加幾顆，再把它分享出去"); return; }
-    showNotice("正在產生分享卡…");
-    const url = `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(encodeDesign(items, wristCm))}`;
-    // AI 幫這條手鍊取名字＋一句籤詩，印在分享卡最上方。拿不到（沒設
-    // key、逾時）就照舊出卡——命名是加分項，分享不能被它卡住。
-    const poem = await Promise.race([
-      fetch("/api/design-poem", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          dominant: dominant.zh,
-          stones: items.filter((it) => it.kind === "stone").map((it) => (byStone[it.id] as Stone).zh),
-        }),
-      }).then(async (res) => (res.ok ? ((await res.json()) as { poem: { title: string; verse: string } }).poem : null)),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 9000)),
-    ]).catch(() => null);
-    if (poem) showNotice(`這條叫《${poem.title}》—— ${poem.verse}`);
-    try {
-      const blob = await generateShareCard({
-        pieces: previewPieces, capacityMM,
-        energies: ENERGY_META.map((m) => ({ zh: m.zh, en: m.en, color: m.color, score: scores[m.key] })),
-        dominant: { zh: dominant.zh, en: dominant.en, color: dominant.color, score: scores[dominant.key] },
-        totalEnergy, priceNTD: total, wristCm, beads, url, poem,
-      });
-      const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ${url}`, url });
-        showNotice("已開啟分享面板");
-      } else {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "oma-crystal-design.png";
-        a.click();
-        URL.revokeObjectURL(a.href);
-        await navigator.clipboard?.writeText(url);
-        showNotice("分享卡已下載，連結已複製 — 貼給朋友就能看到同款");
-      }
-    } catch (error) {
-      if ((error as Error).name === "AbortError") { setNotice(""); return; }
-      await navigator.clipboard?.writeText(url).catch(() => {});
-      showNotice("分享卡產生失敗，已改為複製設計連結");
-    }
-  };
   const applyPreset = useCallback((key: keyof typeof PRESETS) => {
     const preset = PRESETS[key];
     const built = buildSpec([...preset.spec]);
@@ -291,6 +198,9 @@ export default function Home() {
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
   const arcs = useMemo(() => layoutStrand(items, capacityMM), [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
+  // Declared after every derived value it consumes (previewPieces, scores,
+  // total…) — the hook's args are evaluated right here at render time.
+  const shareDesign = useShareDesign({ items, wristCm, previewPieces, capacityMM, scores, dominant, totalEnergy, total, beads, showNotice, setNotice });
   const activeSeries = seriesId ? bySeries[seriesId] : null;
   const tone: SeriesTone = activeSeries?.tone ?? NEUTRAL_TONE;
   const goShop = (id?: string) => navigate("shop", id ?? seriesId ?? SERIES[0].id);
