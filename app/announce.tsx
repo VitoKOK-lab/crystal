@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { pricing } from "./catalog";
 
 // 頂端公告列：轉換鉤子輪播（免運門檻讀自後台設定，永遠是現值）。
 // 單一資料源、不寫死數字——競品把 $39/$59 寫得全站互相矛盾，引以為戒。
 export default function AnnounceBar({ onQuiz }: { onQuiz?: () => void }) {
-  const items = [
+  // memo 而不是每次 render 重建：輪播 effect 依賴這個陣列的長度。
+  const items = useMemo(() => [
     { text: `滿 NT$${pricing.freeShippingOver.toLocaleString()} 免運費`, onClick: undefined as (() => void) | undefined },
-    { text: "生日選石測驗上線 — 一分鐘算出你的五石陣容", onClick: onQuiz },
+    { text: "深度配對上線 — 生日×MBTI×七脈輪，配出你的七輪平衡手鍊", onClick: onQuiz },
     { text: "說個願望，顧問替你選五顆石頭", onClick: onQuiz },
-  ];
+  ], [onQuiz]);
   const [i, setI] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setI((v) => (v + 1) % items.length), 4200);

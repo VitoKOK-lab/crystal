@@ -281,7 +281,7 @@ export function findProduct(seriesId: string, productId: string) {
 }
 '''
 
-open("/home/user/crystal/app/series.ts", "w").write(head + "\n".join(body) + "\n" + tail)
+open(pathlib.Path(__file__).resolve().parent.parent / "app" / "series.ts", "w").write(head + "\n".join(body) + "\n" + tail)
 print(f"wrote {len(S)} series, {sum(len(x['products']) for x in S)} products")
 for s in S:
     styles = {}

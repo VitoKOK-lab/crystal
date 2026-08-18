@@ -1,9 +1,8 @@
 // Admin API: everything behind the Google-session check. Writes are
 // whole-row updates from the admin UI; stone size ladders are replaced as
 // a set inside a batch so a half-applied edit can't exist.
-import { Env, json, sessionEmail } from "./lib";
-
-const bad = (msg: string, status = 400) => json({ error: msg }, { status });
+import { catalogTables } from "./catalog-data";
+import { bad, Env, json, sessionEmail } from "./lib";
 
 // Body parsing that can't throw, and field validators that turn a missing or
 // mistyped value into a 400 instead of letting a whole-row UPDATE overwrite
@@ -31,20 +30,9 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
   const seg = url.pathname.slice("/api/admin/".length).split("/").filter(Boolean);
 
   // Full catalog including inactive rows, for the management screens.
+  // （共用查詢已過濾 session_%——簽名金鑰絕不離開伺服器。）
   if (request.method === "GET" && seg[0] === "catalog") {
-    const [stones, sizes, accessories, series, products, settings] = await Promise.all([
-      env.DB.prepare("SELECT * FROM stones ORDER BY sort").all(),
-      env.DB.prepare("SELECT * FROM stone_sizes ORDER BY stone_id, mm").all(),
-      env.DB.prepare("SELECT * FROM accessories ORDER BY sort").all(),
-      env.DB.prepare("SELECT * FROM series ORDER BY sort").all(),
-      env.DB.prepare("SELECT * FROM products ORDER BY series_id, sort").all(),
-      env.DB.prepare("SELECT * FROM settings").all(),
-    ]);
-    return json({
-      stones: stones.results, stoneSizes: sizes.results, accessories: accessories.results,
-      series: series.results, products: products.results,
-      settings: Object.fromEntries(settings.results.map((r) => [r.key as string, r.value as string])),
-    });
+    return json(await catalogTables(env, { includeInactive: true }));
   }
 
   // Create a new stone. Photo starts empty — the row stays hidden from the
@@ -156,15 +144,30 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
     const kind = seg[1];
     if (kind !== "stone" && kind !== "accessory") return bad("kind must be stone|accessory");
     const id = decodeURIComponent(seg[2]);
+    // The id lands verbatim in the R2 key — same charset rule as creation,
+    // and the row must actually exist (an upload against a typo'd id used
+    // to report ok while pointing nothing at the photo).
+    if (!/^[a-z0-9-]{1,60}$/.test(id)) return bad("invalid id");
+    const table = kind === "stone" ? "stones" : "accessories";
+    const row = await env.DB.prepare(`SELECT id FROM ${table} WHERE id=?`).bind(id).first<{ id: string }>();
+    if (!row) return bad("unknown id", 404);
     const contentType = request.headers.get("content-type") ?? "";
     if (!/^image\/(png|jpeg|webp)$/.test(contentType)) return bad("content-type must be image/png|jpeg|webp");
     const body = await request.arrayBuffer();
     if (body.byteLength > 8 * 1024 * 1024) return bad("image too large (max 8MB)");
+    // Magic-byte sniff: the declared type must match what the bytes say.
+    const head = new Uint8Array(body.slice(0, 12));
+    const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
+    const isJpeg = head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff;
+    const isWebp = head[0] === 0x52 && head[1] === 0x49 && head[2] === 0x46 && head[3] === 0x46
+      && head[8] === 0x57 && head[9] === 0x45 && head[10] === 0x42 && head[11] === 0x50;
+    const sniffOk = contentType === "image/png" ? isPng : contentType === "image/jpeg" ? isJpeg : isWebp;
+    if (!sniffOk) return bad("image bytes do not match the declared type");
     const ext = contentType.split("/")[1] === "jpeg" ? "jpg" : contentType.split("/")[1];
     const key = `uploads/${kind}/${id}-${Date.now()}.${ext}`;
     await env.IMAGES.put(key, body, { httpMetadata: { contentType } });
     const photoPath = `/img/${key}`;
-    await env.DB.prepare(`UPDATE ${kind === "stone" ? "stones" : "accessories"} SET photo=? WHERE id=?`).bind(photoPath, id).run();
+    await env.DB.prepare(`UPDATE ${table} SET photo=? WHERE id=?`).bind(photoPath, id).run();
     return json({ ok: true, photo: photoPath });
   }
 

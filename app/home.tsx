@@ -132,7 +132,7 @@ export default function Home({ onStart, onShop, onQuiz }: { onStart: () => void;
     <header className="landing-nav">
       <a className="wordmark" href="#landing-top">OMA <span>CRYSTAL</span></a>
       <div className="landing-nav-links">
-        <button className="landing-nav-quiet" onClick={onQuiz}>生日選石</button>
+        <button className="landing-nav-quiet" onClick={onQuiz}>選石測驗</button>
         <button className="landing-nav-quiet" onClick={() => onShop()}>系列</button>
         <button className="landing-nav-cta" onClick={onStart}>工作室</button>
       </div>

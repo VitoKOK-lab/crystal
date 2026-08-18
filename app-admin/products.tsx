@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { specTokenMM, splitSpecToken } from "../app/catalog";
-import { putJson, type Catalog, type ProductRow, type TabProps } from "./shared";
+import { putJson, runSave, type Catalog, type ProductRow, type TabProps } from "./shared";
 
 // A finished piece has no stock of its own — it's buildable only while every
 // component is in stock, which is what the storefront shows as 補貨中.
@@ -144,13 +144,7 @@ function SpecEditor({ catalog, spec, onChange, wrist }: { catalog: Catalog; spec
 
 function ProductEditor({ product, shortages, catalog, reload, notify }: { product: ProductRow; shortages: string[]; catalog: Catalog; reload: () => void; notify: (m: string) => void }) {
   const [form, setForm] = useState({ name: product.name, tagline: product.tagline, style: product.style, wrist: product.wrist, spec: product.spec, active: product.active });
-  const save = async () => {
-    try {
-      await putJson(`/api/admin/products/${encodeURIComponent(product.series_id)}/${encodeURIComponent(product.id)}`, form);
-      notify("已儲存，前台一分鐘內生效");
-      reload();
-    } catch (e) { notify(`儲存失敗：${(e as Error).message}`); }
-  };
+  const save = () => runSave(notify, reload, () => putJson(`/api/admin/products/${encodeURIComponent(product.series_id)}/${encodeURIComponent(product.id)}`, form));
   return <div className="editor">
     <div className="grid">
       <label>名稱<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>

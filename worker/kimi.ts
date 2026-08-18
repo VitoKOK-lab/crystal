@@ -14,11 +14,22 @@ export async function sha256(text: string): Promise<string> {
 
 export const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() && v.length <= max ? v.trim() : null);
 
+// 每個 AI 端點共用的家規——單一出處，改一次全端點生效。各端點在這
+// 之上加自己的任務指示與輸出格式。
+export const GUARDRAILS = `你是 OMA CRYSTAL 水晶工作室的資深顧問，說話溫暖、具體、有畫面感，絕不浮誇或裝神弄鬼。
+規則：
+- 一律使用繁體中文（台灣用語）。
+- 內容屬趣味與陪伴性質：不得做任何醫療、財務、感情結果的保證或斷言，不使用「一定」「保證」等字眼。
+- 不提及你是 AI 或任何模型名稱。
+- 只回傳 JSON。`;
+
 // --- D1 cache + daily caps (table: ai_texts, migration 0008) -------------
 
 export async function cacheGet(env: Env, kind: string, key: string): Promise<unknown | null> {
   const row = await env.DB.prepare("SELECT payload FROM ai_texts WHERE key=?").bind(`${kind}:${key}`).first<{ payload: string }>();
-  return row ? (JSON.parse(row.payload) as unknown) : null;
+  if (!row) return null;
+  // 一列壞資料只該是一次 cache miss，不是整個端點 500。
+  try { return JSON.parse(row.payload) as unknown; } catch { return null; }
 }
 
 export async function cachePut(env: Env, kind: string, key: string, payload: unknown): Promise<void> {
@@ -42,6 +53,36 @@ export async function overDailyCap(env: Env, kind: string, cap: number): Promise
 // 401. The winning base is remembered for the isolate's lifetime.
 let knownGoodBase: string | null = null;
 const DEFAULT_BASES = ["https://api.moonshot.cn/v1", "https://api.moonshot.ai/v1"];
+
+// 五個 AI 端點共用的整條管線：快取查詢 → 每日上限 → 模型呼叫 → 驗形
+// →（可選）加工 → 寫快取 → 回應。各 handler 只剩輸入驗證、提示詞與
+// 輸出形狀——這條管線曾在 ai.ts 與 quiz-reading.ts 各抄一份，規則改
+// 一邊漏一邊。
+export async function aiPipeline(env: Env, opts: {
+  kind: string;          // 快取分類＋每日上限的計數單位
+  cacheKey: string;      // sha256 過的請求識別
+  cap: number;           // 每日全站生成上限
+  system: string;
+  user: string;
+  maxTokens?: number;
+  validate: (r: unknown) => boolean;
+  // 把驗過形的模型輸出轉成要快取／回傳的 payload；回 null 表示內容
+  // 不合格（例如許願選石點了菜單外的石頭）→ 502。
+  finalize?: (data: unknown) => unknown | null;
+  field?: string;        // 回應信封的欄位名，預設 "reading"
+}): Promise<Response> {
+  const field = opts.field ?? "reading";
+  const cached = await cacheGet(env, opts.kind, opts.cacheKey);
+  if (cached) return json({ [field]: cached, cached: true });
+  if (await overDailyCap(env, opts.kind, opts.cap)) return json({ error: "daily cap reached" }, { status: 429 });
+  const result = await kimiJson(env, opts.system, opts.user, opts.maxTokens ?? 1000);
+  if (!result.ok) return result.res;
+  if (!opts.validate(result.data)) return json({ error: "malformed reading" }, { status: 502 });
+  const payload = opts.finalize ? opts.finalize(result.data) : result.data;
+  if (payload === null) return json({ error: "reading picked unknown stones" }, { status: 502 });
+  await cachePut(env, opts.kind, opts.cacheKey, payload);
+  return json({ [field]: payload });
+}
 
 // JSON-mode chat completion. Returns the parsed object, or a Response the
 // handler should pass straight through (503/502/504 — never a fake result).

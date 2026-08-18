@@ -1,15 +1,11 @@
 import { useState } from "react";
-import { PhotoUpload, api, putJson, type AccessoryRow, type TabProps } from "./shared";
+import { PhotoUpload, postJson, putJson, runSave, type AccessoryRow, type TabProps } from "./shared";
 
 function NewAccessoryForm({ reload, notify, onDone }: { reload: () => void; notify: (m: string) => void; onDone: () => void }) {
   const [form, setForm] = useState({ id: "", zh: "", en: "", type: "spacer", metal: "gold", price: 120, stock: 20 });
   const create = async () => {
-    try {
-      await api("/api/admin/accessories", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) });
-      notify("已建立。上傳照片後才會出現在前台");
-      onDone();
-      reload();
-    } catch (e) { notify(`建立失敗：${(e as Error).message}`); }
+    if (await runSave(notify, reload, () => postJson("/api/admin/accessories", form),
+      { ok: "已建立。上傳照片後才會出現在前台", errPrefix: "建立失敗" })) onDone();
   };
   return <div className="card"><div className="editor">
     <div className="grid">
@@ -44,13 +40,7 @@ export function Accessories({ catalog, reload, notify }: TabProps) {
 
 function AccessoryEditor({ acc, reload, notify }: { acc: AccessoryRow; reload: () => void; notify: (m: string) => void }) {
   const [form, setForm] = useState({ zh: acc.zh, en: acc.en, type: acc.type, metal: acc.metal, price: acc.price, note: acc.note, stock: acc.stock, active: acc.active });
-  const save = async () => {
-    try {
-      await putJson(`/api/admin/accessories/${encodeURIComponent(acc.id)}`, form);
-      notify("已儲存，前台一分鐘內生效");
-      reload();
-    } catch (e) { notify(`儲存失敗：${(e as Error).message}`); }
-  };
+  const save = () => runSave(notify, reload, () => putJson(`/api/admin/accessories/${encodeURIComponent(acc.id)}`, form));
   return <div className="editor">
     <div className="grid">
       <label>名稱<input value={form.zh} onChange={(e) => setForm({ ...form, zh: e.target.value })} /></label>

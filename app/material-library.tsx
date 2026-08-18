@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { COLOR_GROUPS, ENERGY_META, ItemVisual, RARITY_LABEL, defaultStoneMM, inStock, itemPrice, rarityOf, sizesFor, topEnergiesOf, type Accessory, type ColorGroupKey, type DesignItem, type Stone } from "./catalog";
 import { PRESETS } from "./presets";
 
@@ -9,7 +11,7 @@ type Tab = "crystal" | "spacer" | "charm";
 // material grid and the selected-item detail card. Reads only what it needs
 // to render and add materials — the drag-to-reorder bracelet stage lives in
 // Home itself, since it owns the pointer-capture refs this panel never touches.
-export default function MaterialLibrary({
+function MaterialLibrary({
   drawerOpen, onToggleDrawer, tab, onSelectTab, query, onQuery, visible, selected, selectedInfo, add, applyPreset,
   colorFilter, onColorFilter, energyFilter, onEnergyFilter,
 }: {
@@ -77,3 +79,7 @@ export default function MaterialLibrary({
     </div>
   </aside>;
 }
+
+// Memoised: the studio re-renders on every notice tick and search keystroke;
+// this subtree only needs to follow its own props.
+export default memo(MaterialLibrary);

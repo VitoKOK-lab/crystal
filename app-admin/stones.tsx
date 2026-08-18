@@ -1,16 +1,12 @@
 import { useState } from "react";
 import { ENERGY_META } from "../app/catalog";
-import { PhotoUpload, api, putJson, type SizeRow, type StoneRow, type TabProps } from "./shared";
+import { PhotoUpload, postJson, putJson, runSave, type SizeRow, type StoneRow, type TabProps } from "./shared";
 
 function NewStoneForm({ reload, notify, onDone }: { reload: () => void; notify: (m: string) => void; onDone: () => void }) {
   const [form, setForm] = useState({ id: "", zh: "", en: "", energy_zh: "", price: 300 });
   const create = async () => {
-    try {
-      await api("/api/admin/stones", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) });
-      notify("已建立。上傳照片後才會出現在前台");
-      onDone();
-      reload();
-    } catch (e) { notify(`建立失敗：${(e as Error).message}`); }
+    if (await runSave(notify, reload, () => postJson("/api/admin/stones", form),
+      { ok: "已建立。上傳照片後才會出現在前台", errPrefix: "建立失敗" })) onDone();
   };
   return <div className="card"><div className="editor">
     <div className="grid">
@@ -53,14 +49,10 @@ function StoneEditor({ stone, sizes, reload, notify }: { stone: StoneRow; sizes:
   const [energies, setEnergies] = useState<Record<string, number>>(() => {
     try { return JSON.parse(stone.energies); } catch { return { wealth: 5, love: 5, healing: 5, protection: 5, focus: 5, power: 5 }; }
   });
-  const save = async () => {
-    try {
-      await putJson(`/api/admin/stones/${encodeURIComponent(stone.id)}`, { ...form, energies });
-      await putJson(`/api/admin/stones/${encodeURIComponent(stone.id)}/sizes`, rows);
-      notify("已儲存，前台一分鐘內生效");
-      reload();
-    } catch (e) { notify(`儲存失敗：${(e as Error).message}`); }
-  };
+  const save = () => runSave(notify, reload, async () => {
+    await putJson(`/api/admin/stones/${encodeURIComponent(stone.id)}`, { ...form, energies });
+    await putJson(`/api/admin/stones/${encodeURIComponent(stone.id)}/sizes`, rows);
+  });
   return <div className="editor">
     <div className="grid">
       <label>名稱<input value={form.zh} onChange={(e) => setForm({ ...form, zh: e.target.value })} /></label>

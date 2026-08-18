@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { WRIST_CHOICES, pricing } from "./catalog";
 import { playConfirmBoom } from "./ui-sound";
 
@@ -18,10 +18,13 @@ const PAYMENTS = [
   { id: "cod", name: "貨到付款", note: "宅配到府，取貨付款" },
 ] as const;
 
-export default function Checkout({ lines, spec, dominant, totalEnergy, initialWrist, onBack }: {
+export default function Checkout({ lines, specFor, dominant, totalEnergy, initialWrist, onBack }: {
   lines: OrderLine[];
-  /** Compact design notation (encodeDesign) — the order's authoritative composition. */
-  spec: string;
+  /** Compact design notation (encodeDesign) for a given wrist size. The
+   *  customer can still adjust the wrist on this form, so the spec is
+   *  encoded at submit time from their FINAL choice — a pre-encoded string
+   *  would silently disagree with the wrist field on the order. */
+  specFor: (wristCm: number) => string;
   dominant: EnergyInfo;
   totalEnergy: number;
   initialWrist?: number;
@@ -35,11 +38,17 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState("");
 
   const baseFee = pricing.baseFee;
-  const itemsTotal = lines.reduce((s, l) => s + l.unit * l.qty, 0);
-  const shipping = itemsTotal + baseFee >= pricing.freeShippingOver ? 0 : pricing.shippingFee;
-  const grand = itemsTotal + baseFee + shipping;
+  // 這裡的金額只是「預覽」——伺服器下單時會用資料庫價格重算並比對，
+  // 不一致會回 409（見下方 price changed 分支）。
+  const { itemsTotal, shipping, grand } = useMemo(() => {
+    const sum = lines.reduce((s, l) => s + l.unit * l.qty, 0);
+    const ship = sum + baseFee >= pricing.freeShippingOver ? 0 : pricing.shippingFee;
+    return { itemsTotal: sum, shipping: ship, grand: sum + baseFee + ship };
+  }, [lines, baseFee]);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { const v = e.target.value; setForm((f) => ({ ...f, [k]: v })); setErrors((er) => { if (!(k in er)) return er; const next = { ...er }; delete next[k]; return next; }); };
 
   const submit = async () => {
@@ -59,13 +68,17 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
         body: JSON.stringify({
           name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim(),
           address: form.address.trim(), note: form.note.trim(), wrist: form.wrist,
-          payment, spec,
+          payment, spec: specFor(Number(form.wrist) || initialWrist || 14),
           lines: lines.map((l) => ({ kind: l.kind, id: l.id, mm: l.mm, qty: l.qty, unit: l.unit, name: l.name, sub: l.sub })),
         }),
       });
       const data = (await res.json().catch(() => null)) as { id?: string; error?: string; shortages?: string[] } | null;
       if (res.status === 409 && data?.shortages?.length) {
         setSubmitError(`這些素材剛好賣完了：${data.shortages.join("、")}。回上一步把它們換掉，就能完成下單`);
+        return;
+      }
+      if (res.status === 409 && data?.error === "price changed") {
+        setSubmitError("價格剛剛更新過，畫面上的金額已經不是現價。請重新整理頁面再下單一次");
         return;
       }
       if (!res.ok || !data?.id) throw new Error(data?.error ?? `order failed (${res.status})`);
@@ -77,6 +90,54 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
       setSubmitError("訂單沒有送出去（網路或伺服器問題）。稍等一下再按一次，你填的資料都還在");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // LINE Pay：後端向 LINE 要一次性的付款頁網址，整頁跳轉過去；付完
+  // LINE 會把瀏覽器帶回站上（後端請款成功才算付款完成）。
+  const payWithLinepay = async () => {
+    setPaying(true);
+    setPayError("");
+    try {
+      const res = await fetch("/api/pay/linepay", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ order: orderId }),
+      });
+      const data = (await res.json().catch(() => null)) as { paymentUrl?: string; error?: string } | null;
+      if (res.status === 503) { setPayError("LINE Pay 尚未開通，先用其他方式付款，或稍後再試"); setPaying(false); return; }
+      if (!res.ok || !data?.paymentUrl) throw new Error(data?.error ?? `pay failed (${res.status})`);
+      window.location.href = data.paymentUrl;
+    } catch {
+      setPayError("前往 LINE Pay 失敗，稍等一下再按一次；訂單已成立，不會不見");
+      setPaying(false);
+    }
+  };
+
+  // 綠界付款：跟後端要簽好章的表單欄位，組一個隱藏 form POST 到綠界
+  // 收銀台（金流頁必須用表單導轉，不能用 fetch）。
+  const payWithEcpay = async () => {
+    setPaying(true);
+    setPayError("");
+    try {
+      const res = await fetch("/api/pay/ecpay", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ order: orderId }),
+      });
+      const data = (await res.json().catch(() => null)) as { action?: string; fields?: Record<string, string>; error?: string } | null;
+      if (!res.ok || !data?.action || !data.fields) throw new Error(data?.error ?? `pay failed (${res.status})`);
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = data.action;
+      for (const [k, v] of Object.entries(data.fields)) {
+        const input = document.createElement("input");
+        input.type = "hidden"; input.name = k; input.value = v;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+    } catch {
+      setPayError("前往付款頁失敗，稍等一下再按一次；訂單已成立，不會不見");
+      setPaying(false);
     }
   };
 
@@ -109,8 +170,11 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
       <div className="done-energy">此手鍊的主屬性 <b style={{ color: dominant.color }}>{dominant.zh} {dominant.en}</b>・總能量 <em>{totalEnergy.toLocaleString()}</em></div>
       <div className="done-actions">
         <button className="co-secondary" onClick={() => navigator.clipboard?.writeText(orderText()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })}>{copied ? "已複製 ✓" : "複製訂單明細"}</button>
-        <button className="co-primary" onClick={onBack}>回到工作室</button>
+        {payment === "card" && <button className="co-primary" disabled={paying} onClick={payWithEcpay}>{paying ? "正在前往綠界…" : "前往綠界線上付款 →"}</button>}
+        {payment === "linepay" && <button className="co-primary co-linepay" disabled={paying} onClick={payWithLinepay}>{paying ? "正在前往 LINE Pay…" : "使用 LINE Pay 付款 →"}</button>}
+        <button className={payment === "card" || payment === "linepay" ? "co-secondary" : "co-primary"} onClick={onBack}>回到工作室</button>
       </div>
+      {payError && <p className="co-error">{payError}</p>}
     </div>
   </section>;
 

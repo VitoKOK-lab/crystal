@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import BraceletStage from "./bracelet-stage";
 import Checkout, { type OrderLine } from "./checkout";
 import DesignGuide from "./design-guide";
@@ -16,13 +16,14 @@ import Quiz from "./quiz";
 import MaterialLibrary from "./material-library";
 import type { PreviewPiece } from "./preview-3d";
 import { PRESETS } from "./presets";
-import { generateShareCard } from "./share-card";
 import { playClaspClick } from "./ui-sound";
+import { useShareDesign } from "./use-share-design";
+import { useStudioRouter } from "./use-studio-router";
 
 import Shop from "./shop";
 import {
   ENERGY_META, ItemVisual, WRIST_CHOICES, accessories, accessoryPhotos,
-  buildSpec, byAccessory, byStone, colorGroupOf, decodeDesign, defaultStoneMM, dominantOf, encodeDesign, energyScores,
+  buildSpec, byAccessory, byStone, canPadMore, colorGroupOf, defaultStoneMM, dominantOf, encodeDesign, energyScores,
   fitWristCm, itemMM, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
   strandArcMM, PCT_PER_MM,
   type Accessory, type BeadSize, type ColorGroupKey, type DesignItem, type Stone,
@@ -55,11 +56,6 @@ export default function Home() {
   const [selected, setSelected] = useState<DesignItem>({ kind: "stone", id: "obsidian", size: "large" });
   const [showGuide, setShowGuide] = useState(false);
   const [energyOpen, setEnergyOpen] = useState(false);
-  const [view, setView] = useState<"home" | "shop" | "studio" | "checkout" | "quiz">("home");
-  // Which collection the customer came in through. Drives the accent colour
-  // and whether the studio speaks 能量 or 戰力. Null = walked straight into
-  // the studio without picking a series, which gets the neutral wording.
-  const [seriesId, setSeriesId] = useState<string | null>(null);
   const [wristCm, setWristCm] = useState(DEFAULT_WRIST);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -69,54 +65,27 @@ export default function Home() {
   // timer even when the same message fires twice (e.g. tapping a material that
   // still doesn't fit), which a plain string dependency would not.
   const [noticeSeq, setNoticeSeq] = useState(0);
-  const showNotice = (text: string) => { setNotice(text); setNoticeSeq((n) => n + 1); };
+  // Stable identities for everything handed to the memoised children
+  // (BraceletStage / EnergyPanel / MaterialLibrary): a fresh function per
+  // render would defeat their React.memo and re-render the whole studio on
+  // every keystroke in the search box.
+  const showNotice = useCallback((text: string) => { setNotice(text); setNoticeSeq((n) => n + 1); }, []);
   useEffect(() => { if (window.innerWidth > 1200) setEnergyOpen(true); }, []);
-  // The view lives in the URL (?v=shop|studio|checkout, plus ?series=), so
-  // the browser's back button steps between views instead of leaving the
-  // site, and a refresh comes back to the same place. pushState on
-  // programmatic navigation, popstate to follow the history.
-  const navigate = (v: typeof view, sid: string | null, opts: { push?: boolean; scroll?: boolean } = {}) => {
-    setSeriesId(sid);
-    setView(v);
-    const params = new URLSearchParams(window.location.search);
-    params.delete("v"); params.delete("series"); params.delete("d");
-    if (v !== "home") params.set("v", v);
-    if (sid && (v === "shop" || v === "studio")) params.set("series", sid);
-    const qs = params.toString();
-    const url = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
-    if (opts.push === false) window.history.replaceState(null, "", url);
-    else window.history.pushState(null, "", url);
-    if (opts.scroll !== false) window.scrollTo({ top: 0 });
-  };
-  useEffect(() => {
-    const applyUrl = () => {
-      const params = new URLSearchParams(window.location.search);
-      const sid = params.get("series");
-      if (sid && bySeries[sid]) setSeriesId(sid);
-      const v = params.get("v");
-      if (v === "shop" || v === "studio" || v === "checkout" || v === "quiz") setView(v);
-      else if (params.get("d")) setView("studio"); // a history entry from before a share link's design was navigated away
-      else if (sid && bySeries[sid]) setView("shop"); // /men/ redirects here with ?series=forge
-      else setView("home");
-    };
-    window.addEventListener("popstate", applyUrl);
-
-    // Initial load: a shared design link (?d=) wins and opens the studio.
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("d");
-    const decoded = code ? decodeDesign(code) : null;
-    if (decoded) {
-      setItems(decoded.items);
-      setWristCm(decoded.wrist);
-      showNotice("已載入這條設計，可直接調整或結帳");
-      const sid = params.get("series");
-      if (sid && bySeries[sid]) setSeriesId(sid);
-      setView("studio");
-    } else {
-      applyUrl();
-    }
-    return () => window.removeEventListener("popstate", applyUrl);
-  }, []);
+  // URL-backed view routing + the ?d= / ?pay= special entries live in the
+  // hook; Home only supplies what to do when they fire.
+  const onLoadShared = useCallback((shared: DesignItem[], wrist: number) => {
+    setItems(shared);
+    setWristCm(wrist);
+    showNotice("已載入這條設計，可直接調整或結帳");
+  }, [showNotice]);
+  const onPayReturn = useCallback((pay: string, order: string | null) => {
+    showNotice(pay === "ok"
+      ? `付款成功！${order ? `訂單 ${order} ` : ""}已確認，我們會盡快為你揀珠串製`
+      : pay === "back"
+        ? "已離開付款頁——訂單保留中，隨時可以回來完成付款"
+        : "付款未完成，訂單保留中；可以再試一次或改用其他方式");
+  }, [showNotice]);
+  const { view, seriesId, navigate } = useStudioRouter({ onLoadShared, onPayReturn });
   // Ready-to-wear products are re-parsed from their spec on click rather than
   // reusing the shop's display copies, so the studio always gets fresh uids
   // and editing one never mutates what the shop card renders.
@@ -131,10 +100,17 @@ export default function Home() {
     navigate(mode === "buy" ? "checkout" : "studio", sid);
     showNotice(mode === "buy" ? "" : `已載入「${product.name}」，接下來由你決定`);
   };
-  const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
-  const visible = library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(query.toLowerCase()))
-    .filter((x) => tab !== "crystal" || !colorFilter || colorGroupOf(x.id) === colorFilter)
-    .filter((x) => tab !== "crystal" || !energyFilter || ((x as Stone).energy[energyFilter as keyof Stone["energy"]] ?? 0) >= 7);
+  // Catalog data is hydrated before React mounts (see pages-static/main.tsx),
+  // so the module arrays are stable for the app's lifetime and these deps are
+  // the whole truth. Memoised because this otherwise re-filters 100+ stones on
+  // every unrelated render — each notice tick, drag, and bead change.
+  const visible = useMemo(() => {
+    const library = tab === "crystal" ? stones : accessories.filter((x) => x.type === tab);
+    const q = query.toLowerCase();
+    return library.filter((x) => `${x.zh} ${x.en}`.toLowerCase().includes(q))
+      .filter((x) => tab !== "crystal" || !colorFilter || colorGroupOf(x.id) === colorFilter)
+      .filter((x) => tab !== "crystal" || !energyFilter || ((x as Stone).energy[energyFilter as keyof Stone["energy"]] ?? 0) >= 7);
+  }, [tab, query, colorFilter, energyFilter]);
   const widths = useMemo(() => items.map(itemMM), [items]);
   const capacityMM = wristCm * 10;
   // Strung length is measured in ARC the beads actually occupy on the ring
@@ -146,7 +122,7 @@ export default function Home() {
   // offered size automatically (per the owner: multi-selecting should just
   // get bigger, not nag) — the notice says so, and the select stays there
   // for shrinking back down.
-  const add = (item: DesignItem) => {
+  const add = useCallback((item: DesignItem) => {
     const nextWidths = [...widths, itemMM(item)];
     let cm = wristCm;
     if (strandArcMM(nextWidths, cm * 10) > cm * 10) {
@@ -165,63 +141,20 @@ export default function Home() {
     showNotice(cm !== wristCm
       ? `已加入 ${label(placed)}・手圍自動改為 ${cm} cm（已串 ${strungNext} cm）`
       : `已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${strungNext} / ${cm} cm`);
-  };
-  const shareDesign = async () => {
-    if (!items.length) { showNotice("先加幾顆，再把它分享出去"); return; }
-    showNotice("正在產生分享卡…");
-    const url = `${window.location.origin}${window.location.pathname}?d=${encodeURIComponent(encodeDesign(items, wristCm))}`;
-    // AI 幫這條手鍊取名字＋一句籤詩，印在分享卡最上方。拿不到（沒設
-    // key、逾時）就照舊出卡——命名是加分項，分享不能被它卡住。
-    const poem = await Promise.race([
-      fetch("/api/design-poem", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          dominant: dominant.zh,
-          stones: items.filter((it) => it.kind === "stone").map((it) => (byStone[it.id] as Stone).zh),
-        }),
-      }).then(async (res) => (res.ok ? ((await res.json()) as { poem: { title: string; verse: string } }).poem : null)),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 9000)),
-    ]).catch(() => null);
-    if (poem) showNotice(`這條叫《${poem.title}》—— ${poem.verse}`);
-    try {
-      const blob = await generateShareCard({
-        pieces: previewPieces, capacityMM,
-        energies: ENERGY_META.map((m) => ({ zh: m.zh, en: m.en, color: m.color, score: scores[m.key] })),
-        dominant: { zh: dominant.zh, en: dominant.en, color: dominant.color, score: scores[dominant.key] },
-        totalEnergy, priceNTD: total, wristCm, beads, url, poem,
-      });
-      const file = new File([blob], "oma-crystal-design.png", { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "OMA CRYSTAL", text: `我的專屬能量手鍊 ${url}`, url });
-        showNotice("已開啟分享面板");
-      } else {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "oma-crystal-design.png";
-        a.click();
-        URL.revokeObjectURL(a.href);
-        await navigator.clipboard?.writeText(url);
-        showNotice("分享卡已下載，連結已複製 — 貼給朋友就能看到同款");
-      }
-    } catch (error) {
-      if ((error as Error).name === "AbortError") { setNotice(""); return; }
-      await navigator.clipboard?.writeText(url).catch(() => {});
-      showNotice("分享卡產生失敗，已改為複製設計連結");
-    }
-  };
-  const applyPreset = (key: keyof typeof PRESETS) => {
+  }, [widths, wristCm, showNotice]);
+  const applyPreset = useCallback((key: keyof typeof PRESETS) => {
     const preset = PRESETS[key];
     const built = buildSpec([...preset.spec]);
     const w = built.map(itemMM);
     const cm = fitWristCm(w, wristCm) ?? WRIST_CHOICES[WRIST_CHOICES.length - 1];
-    while (strandArcMM([...w, 8], cm * 10) <= cm * 10 && strandArcMM(w, cm * 10) < cm * 10 * 0.85) {
+    while (canPadMore(w, cm * 10, 0.85)) {
       built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() });
       w.push(8);
     }
     if (cm !== wristCm) setWristCm(cm);
     setItems(built);
     showNotice(`已為你配好「${preset.name}」，再調成你的樣子`);
-  };
+  }, [wristCm, showNotice]);
   useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(""), 3000); return () => clearTimeout(t); }, [notice, noticeSeq]);
   useEffect(() => { if (!wristAlert) return; const t = setTimeout(() => setWristAlert(false), 2000); return () => clearTimeout(t); }, [wristAlert]);
   const changeWrist = (cm: number) => {
@@ -229,14 +162,23 @@ export default function Home() {
     if (need > cm * 10) { showNotice(`目前已串 ${(need / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材`); return; }
     setWristCm(cm); setWristAlert(false); showNotice(`手圍已設定為 ${cm} cm`);
   };
-  const removeByUid = (uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`已移除 ${label(item)}`); } };
+  const removeByUid = useCallback((uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`已移除 ${label(item)}`); } }, [items, showNotice]);
+  const toggleEnergyOpen = useCallback(() => setEnergyOpen((v) => !v), []);
+  const closePreview = useCallback(() => setPreviewOpen(false), []);
+  const addStoneById = useCallback((id: string) => add({ kind: "stone", id, mm: defaultStoneMM(id) }), [add]);
+  const filterEnergy = useCallback((key: string | null) => {
+    setEnergyFilter(key);
+    if (key) { setTab("crystal"); setDrawerOpen(true); showNotice(`素材櫃只顯示「${ENERGY_META.find((m) => m.key === key)?.zh}」能量強的石頭`); }
+  }, [showNotice]);
+  const toggleDrawer = useCallback(() => setDrawerOpen((v) => !v), []);
+  const selectTab = useCallback((id: "crystal" | "spacer" | "charm") => { setTab(id); setQuery(""); }, []);
   const total = useMemo(() => items.reduce((sum, item) => sum + itemPrice(item), pricing.baseFee), [items]);
   const scores = useMemo(() => energyScores(items), [items]);
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
   const dominant = dominantOf(scores);
   const previewPieces = useMemo<PreviewPiece[]>(() => items.map((it) => it.kind === "stone"
-    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const }
-    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const }), [items]);
+    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const, uid: it.uid }
+    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const, uid: it.uid }), [items]);
   const orderLines = useMemo<OrderLine[]>(() => {
     const grouped = new Map<string, { item: DesignItem; qty: number }>();
     items.forEach((item) => { const key = `${item.kind}-${item.id}-${item.size ?? ""}`; const entry = grouped.get(key); if (entry) entry.qty += 1; else grouped.set(key, { item, qty: 1 }); });
@@ -256,14 +198,22 @@ export default function Home() {
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
   const arcs = useMemo(() => layoutStrand(items, capacityMM), [items, capacityMM]);
   const selectedInfo = selected.kind === "stone" ? byStone[selected.id] as Stone : byAccessory[selected.id] as Accessory;
+  // Declared after every derived value it consumes (previewPieces, scores,
+  // total…) — the hook's args are evaluated right here at render time.
+  const shareDesign = useShareDesign({ items, wristCm, previewPieces, capacityMM, scores, dominant, totalEnergy, total, beads, showNotice, setNotice });
   const activeSeries = seriesId ? bySeries[seriesId] : null;
   const tone: SeriesTone = activeSeries?.tone ?? NEUTRAL_TONE;
   const goShop = (id?: string) => navigate("shop", id ?? seriesId ?? SERIES[0].id);
-  if (view === "home") return <LandingHome
-    onStart={() => navigate("studio", seriesId)}
-    onShop={goShop}
-    onQuiz={() => navigate("quiz", seriesId)}
-  />;
+  if (view === "home") return <>
+    <LandingHome
+      onStart={() => navigate("studio", seriesId)}
+      onShop={goShop}
+      onQuiz={() => navigate("quiz", seriesId)}
+    />
+    {/* 金流導回落在首頁（redirect URL 不帶 ?v=）——「付款成功」的
+        toast 必須在這裡也看得到，不能只活在工作室視圖裡。 */}
+    {notice && <div className="notice notice-fixed">{notice}<button onClick={() => setNotice("")}>×</button></div>}
+  </>;
   if (view === "quiz") return <Quiz
     onHome={() => navigate("home", seriesId)}
     onLoadDesign={(quizItems, wrist) => {
@@ -294,10 +244,10 @@ export default function Home() {
         </div>
       </div>
     }>
-      <Preview3D pieces={previewPieces} capacityMM={capacityMM} energy={dominant.key} onClose={() => setPreviewOpen(false)} />
+      <Preview3D pieces={previewPieces} capacityMM={capacityMM} energy={dominant.key} onClose={closePreview} />
     </Suspense>}
-    <header className="studio-head"><button className="wordmark" onClick={() => navigate("home", seriesId)}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => navigate("quiz", seriesId)}>生日選石</button><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
-    {view === "checkout" ? <Checkout lines={orderLines} spec={encodeDesign(items, wristCm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => navigate("studio", seriesId)} /> : <>
+    <header className="studio-head"><button className="wordmark" onClick={() => navigate("home", seriesId)}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => navigate("quiz", seriesId)}>選石測驗</button><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
+    {view === "checkout" ? <Checkout lines={orderLines} specFor={(cm) => encodeDesign(items, cm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => navigate("studio", seriesId)} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
@@ -315,15 +265,15 @@ export default function Home() {
           showNotice={showNotice}
           removeByUid={removeByUid}
         />
-        <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={() => setEnergyOpen((v) => !v)} tone={tone} onAddStone={(id) => add({ kind: "stone", id, mm: defaultStoneMM(id) })} energyFilter={energyFilter} onFilterEnergy={(key) => { setEnergyFilter(key); if (key) { setTab("crystal"); setDrawerOpen(true); showNotice(`素材櫃只顯示「${ENERGY_META.find((m) => m.key === key)?.zh}」能量強的石頭`); } }} />
+        <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={toggleEnergyOpen} tone={tone} onAddStone={addStoneById} energyFilter={energyFilter} onFilterEnergy={filterEnergy} />
         <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } navigate("checkout", seriesId, { scroll: false }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <MaterialLibrary
         drawerOpen={drawerOpen}
-        onToggleDrawer={() => setDrawerOpen((v) => !v)}
+        onToggleDrawer={toggleDrawer}
         tab={tab}
-        onSelectTab={(id) => { setTab(id); setQuery(""); }}
+        onSelectTab={selectTab}
         query={query}
         onQuery={setQuery}
         visible={visible}
