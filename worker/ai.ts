@@ -5,7 +5,7 @@
 // 共同原則：key 不在就 503（前端各自靜靜降級）、輸出強制 JSON 驗形、
 // 所有欄位長度設限、同一請求快取進 D1、每種功能有獨立的每日上限。
 import { cacheGet, cachePut, kimiConfigured, kimiJson, overDailyCap, sha256, str } from "./kimi";
-import { Env, json } from "./lib";
+import { Env, json, rateLimited } from "./lib";
 
 const GUARDRAILS = `你是 OMA CRYSTAL 水晶工作室的資深顧問，說話溫暖、具體、有畫面感，絕不浮誇或裝神弄鬼。
 規則：
@@ -223,5 +223,7 @@ export async function handleAi(request: Request, env: Env, url: URL): Promise<Re
   if (!handler) return null;
   // key 不在就直接 503（不驗 body）：這是前端「AI 有沒有開」的探測訊號。
   if (!kimiConfigured(env)) return json({ error: "not configured" }, { status: 503 });
+  // 每日全站上限之外再加單一 IP 限流：一個惡意來源不該吃光大家的額度。
+  if (rateLimited(request, "ai", 15)) return json({ error: "too many requests" }, { status: 429 });
   return handler(request, env);
 }

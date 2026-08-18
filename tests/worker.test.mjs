@@ -4,18 +4,23 @@
 // these modules issue — if a query changes shape, the fake throws, which is
 // the test telling you it no longer matches production SQL.
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
 import { importCompiled } from "./esbuild-import.mjs";
 
 const { lib, admin, orders, quizReading, ai, ecpay, linepay } = await importCompiled("tests/fixtures/worker-entry.ts");
 
+// The per-IP rate limiter would trip across a test file's worth of calls
+// from one fake client; each test starts with a clean window.
+beforeEach(() => lib.__resetRateLimits());
+
 // --- Fake D1 -------------------------------------------------------------
 
-function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
+function fakeDb({ stones = {}, stoneSizes = {}, accessories = {}, settings = {} } = {}) {
   const state = {
     settings: new Map(Object.entries(settings)),
-    stoneSizes: new Map(Object.entries(stoneSizes)),   // "id|mm" -> stock
-    accessories: new Map(Object.entries(accessories)), // id -> stock
+    stones: new Map(Object.entries(stones)),           // id -> price
+    stoneSizes: new Map(Object.entries(stoneSizes)),   // "id|mm" -> {stock, delta}
+    accessories: new Map(Object.entries(accessories)), // id -> {stock, price}
     orders: [],
     writes: [],
     quizReadings: new Map(),
@@ -28,8 +33,8 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
       const v = state.settings.get("session_signing_key");
       return v === undefined ? [] : [{ value: v }];
     }
-    if (sql.startsWith("INSERT OR IGNORE INTO settings")) {
-      if (!state.settings.has("session_signing_key")) state.settings.set("session_signing_key", args[0]);
+    if (sql.startsWith("INSERT OR REPLACE INTO settings")) {
+      state.settings.set("session_signing_key", args[0]);
       return [];
     }
     if (sql.startsWith("SELECT key, value FROM settings")) {
@@ -37,25 +42,29 @@ function fakeDb({ stoneSizes = {}, accessories = {}, settings = {} } = {}) {
         .filter(([k]) => ["base_fee", "shipping_fee", "free_shipping_over"].includes(k))
         .map(([key, value]) => ({ key, value }));
     }
-    if (sql.startsWith("SELECT stock FROM stone_sizes")) {
-      const stock = state.stoneSizes.get(`${args[0]}|${args[1]}`);
-      return stock === undefined ? [] : [{ stock }];
+    if (sql.startsWith("SELECT id, price FROM stones WHERE id IN")) {
+      return args.filter((id) => state.stones.has(id)).map((id) => ({ id, price: state.stones.get(id) }));
     }
-    if (sql.startsWith("SELECT stock FROM accessories")) {
-      const stock = state.accessories.get(args[0]);
-      return stock === undefined ? [] : [{ stock }];
+    if (sql.startsWith("SELECT stone_id, mm, price_delta, stock FROM stone_sizes WHERE stone_id IN")) {
+      return [...state.stoneSizes.entries()]
+        .filter(([key]) => args.includes(key.split("|")[0]))
+        .map(([key, row]) => ({ stone_id: key.split("|")[0], mm: Number(key.split("|")[1]), price_delta: row.delta, stock: row.stock }));
+    }
+    if (sql.startsWith("SELECT id, price, stock FROM accessories WHERE id IN")) {
+      return args.filter((id) => state.accessories.has(id))
+        .map((id) => ({ id, price: state.accessories.get(id).price, stock: state.accessories.get(id).stock }));
     }
     if (sql.startsWith("UPDATE stone_sizes SET stock = stock - ?")) {
       const [qty, id, mm, guard] = args;
       const key = `${id}|${mm}`;
       const cur = state.stoneSizes.get(key);
-      if (cur !== undefined && cur >= guard) state.stoneSizes.set(key, cur - qty);
+      if (cur !== undefined && cur.stock >= guard) state.stoneSizes.set(key, { ...cur, stock: cur.stock - qty });
       return [];
     }
     if (sql.startsWith("UPDATE accessories SET stock = stock - ?")) {
       const [qty, id, guard] = args;
       const cur = state.accessories.get(id);
-      if (cur !== undefined && cur >= guard) state.accessories.set(id, cur - qty);
+      if (cur !== undefined && cur.stock >= guard) state.accessories.set(id, { ...cur, stock: cur.stock - qty });
       return [];
     }
     if (sql.startsWith("INSERT INTO orders")) {
@@ -192,10 +201,13 @@ const orderBody = (over = {}) => ({
   ],
   ...over,
 });
-const orderDb = () => fakeDb({
-  stoneSizes: { "rose|10": 5 },
-  accessories: { "gold-hex": 3 },
+// rose 10mm 的正牌價：base 260 + 尺寸差 80 = 340；gold-hex 150。
+const orderDb = (over = {}) => fakeDb({
+  stones: { rose: 260 },
+  stoneSizes: { "rose|10": { stock: 5, delta: 80 } },
+  accessories: { "gold-hex": { stock: 3, price: 150 } },
   settings: { base_fee: "680", shipping_fee: "120", free_shipping_over: "3000" },
+  ...over,
 });
 
 test("a valid order deducts stock and stores server-computed fees", async () => {
@@ -207,24 +219,48 @@ test("a valid order deducts stock and stores server-computed fees", async () => 
   assert.equal(data.baseFee, 680);
   assert.equal(data.shipping, 120, "490 of items + 680 fee is under the 3000 free-shipping bar");
   assert.equal(data.total, 340 + 150 + 680 + 120);
-  assert.equal(db.state.stoneSizes.get("rose|10"), 4);
-  assert.equal(db.state.accessories.get("gold-hex"), 2);
+  assert.equal(db.state.stoneSizes.get("rose|10").stock, 4);
+  assert.equal(db.state.accessories.get("gold-hex").stock, 2);
   assert.equal(db.state.orders.length, 1);
 });
 
+test("a forged unit price is refused — the catalog rows are the price authority", async () => {
+  for (const cheat of [
+    { kind: "stone", id: "rose", mm: 10, qty: 1, unit: 1, name: "粉水晶", sub: "10mm 大珠" },
+    { kind: "accessory", id: "gold-hex", qty: 1, unit: 0, name: "金色六角框隔珠", sub: "" },
+  ]) {
+    const db = orderDb();
+    const res = await call(orders.handleOrders, jsonReq("http://x/api/orders", orderBody({ lines: [cheat] })), envWith(db));
+    assert.equal(res.status, 409, JSON.stringify(cheat));
+    const data = await res.json();
+    assert.equal(data.error, "price changed");
+    assert.equal(db.state.orders.length, 0, "no order stored at a forged price");
+    assert.equal(db.state.stoneSizes.get("rose|10").stock, 5, "no stock deducted");
+  }
+});
+
+test("an unknown item id is refused outright", async () => {
+  const db = orderDb();
+  const body = orderBody({ lines: [{ kind: "stone", id: "no-such-stone", mm: 10, qty: 1, unit: 100, name: "幽靈石", sub: "" }] });
+  const res = await call(orders.handleOrders, jsonReq("http://x/api/orders", body), envWith(db));
+  assert.equal(res.status, 400);
+  assert.equal(db.state.orders.length, 0);
+});
+
 test("a sold-out piece returns 409 with its name and deducts nothing", async () => {
-  const db = fakeDb({ stoneSizes: { "rose|10": 0 }, accessories: { "gold-hex": 3 }, settings: { base_fee: "680" } });
+  const db = orderDb({ stoneSizes: { "rose|10": { stock: 0, delta: 80 } } });
   const res = await call(orders.handleOrders, jsonReq("http://x/api/orders", orderBody()), envWith(db));
   assert.equal(res.status, 409);
   const data = await res.json();
   assert.deepEqual(data.shortages, ["粉水晶 10mm"]);
-  assert.equal(db.state.accessories.get("gold-hex"), 3, "no partial deduction");
+  assert.equal(db.state.accessories.get("gold-hex").stock, 3, "no partial deduction");
   assert.equal(db.state.orders.length, 0);
 });
 
 test("an untracked stone size (legacy share link) is not treated as sold out", async () => {
   const db = orderDb();
-  const body = orderBody({ spec: "16|rose.7", lines: [{ kind: "stone", id: "rose", mm: 7, qty: 1, unit: 300, name: "粉水晶", sub: "7mm" }] });
+  // 7mm 不在階梯上：fallback 曲線 260 + round((7-8)*32) = 228。
+  const body = orderBody({ spec: "16|rose.7", lines: [{ kind: "stone", id: "rose", mm: 7, qty: 1, unit: 228, name: "粉水晶", sub: "7mm" }] });
   const res = await call(orders.handleOrders, jsonReq("http://x/api/orders", body), envWith(db));
   assert.equal(res.status, 201);
 });
@@ -246,9 +282,11 @@ test("bad order input is rejected before touching stock", async () => {
 });
 
 test("free shipping kicks in past the configured threshold", async () => {
-  const db = orderDb();
-  const body = orderBody({ lines: [{ kind: "accessory", id: "gold-hex", qty: 1, unit: 2500, name: "貴的", sub: "" }] });
+  // 16 × 150 = 2400；加上 680 串製費過 3000 門檻 → 免運。
+  const db = orderDb({ accessories: { "gold-hex": { stock: 20, price: 150 } } });
+  const body = orderBody({ lines: [{ kind: "accessory", id: "gold-hex", qty: 16, unit: 150, name: "金色六角框隔珠", sub: "" }] });
   const res = await call(orders.handleOrders, jsonReq("http://x/api/orders", body), envWith(db));
+  assert.equal(res.status, 201);
   const data = await res.json();
   assert.equal(data.shipping, 0);
 });

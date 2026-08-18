@@ -18,7 +18,9 @@ export const str = (v: unknown, max: number) => (typeof v === "string" && v.trim
 
 export async function cacheGet(env: Env, kind: string, key: string): Promise<unknown | null> {
   const row = await env.DB.prepare("SELECT payload FROM ai_texts WHERE key=?").bind(`${kind}:${key}`).first<{ payload: string }>();
-  return row ? (JSON.parse(row.payload) as unknown) : null;
+  if (!row) return null;
+  // 一列壞資料只該是一次 cache miss，不是整個端點 500。
+  try { return JSON.parse(row.payload) as unknown; } catch { return null; }
 }
 
 export async function cachePut(env: Env, kind: string, key: string, payload: unknown): Promise<void> {

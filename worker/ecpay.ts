@@ -10,20 +10,36 @@
 //
 // 預設憑證是綠界官方公開的測試商店（developers.ecpay.com.tw 文件頁
 // 直接刊出，所有開發者共用，非機密）；正式上線時以 wrangler secret
-// 覆蓋 ECPAY_* 與 ECPAY_BASE 即可，程式不用改。
-import { Env, json } from "./lib";
+// 覆蓋 ECPAY_* 即可，程式不用改。
+//
+// 安全規則：公開測試金鑰「只在完全沒設定任何 ECPAY_* secret 時」生效，
+// 而且永遠指向 stage——絕不會出現正式站配測試金鑰的組合（那等於任何
+// 人都能用公開金鑰偽造付款回呼）。只設定了一部分 secrets 視為設定
+// 錯誤，回 503 而不是悄悄用測試值補齊。
+import { Env, json, ORDER_ID_RE, rateLimited } from "./lib";
 
 const TEST_MERCHANT_ID = "3362787";
 const TEST_HASH_KEY = "5tzn8qyhl9EwzwuT";
 const TEST_HASH_IV = "iz8YXaAUx60tijdL";
 const TEST_BASE = "https://payment-stage.ecpay.com.tw";
+const PROD_BASE = "https://payment.ecpay.com.tw";
 
-const cfg = (env: Env) => ({
-  merchantId: env.ECPAY_MERCHANT_ID ?? TEST_MERCHANT_ID,
-  hashKey: env.ECPAY_HASH_KEY ?? TEST_HASH_KEY,
-  hashIv: env.ECPAY_HASH_IV ?? TEST_HASH_IV,
-  base: (env.ECPAY_BASE ?? TEST_BASE).replace(/\/$/, ""),
-});
+type EcpayCfg = { merchantId: string; hashKey: string; hashIv: string; base: string };
+
+function cfg(env: Env): EcpayCfg | null {
+  const anySet = env.ECPAY_MERCHANT_ID || env.ECPAY_HASH_KEY || env.ECPAY_HASH_IV;
+  if (anySet) {
+    if (!env.ECPAY_MERCHANT_ID || !env.ECPAY_HASH_KEY || !env.ECPAY_HASH_IV) return null; // 部分設定＝設定錯誤
+    return {
+      merchantId: env.ECPAY_MERCHANT_ID,
+      hashKey: env.ECPAY_HASH_KEY,
+      hashIv: env.ECPAY_HASH_IV,
+      base: (env.ECPAY_BASE ?? PROD_BASE).replace(/\/$/, ""),
+    };
+  }
+  // 未設定 → 測試商店，強制 stage（忽略 ECPAY_BASE，杜絕測試金鑰打正式站）。
+  return { merchantId: TEST_MERCHANT_ID, hashKey: TEST_HASH_KEY, hashIv: TEST_HASH_IV, base: TEST_BASE };
+}
 
 // .NET HttpUtility.UrlEncode 相容編碼：綠界簽章規定用它的保留字集合。
 // encodeURIComponent 之後只差三處：空白是 +、~ 要編、' 要編。
@@ -58,15 +74,18 @@ const tradeNoFor = (orderId: string) =>
   (orderId.replace(/[^A-Za-z0-9]/g, "") + "T" + Date.now().toString(36).toUpperCase()).slice(0, 20);
 
 async function createPayment(request: Request, env: Env, url: URL): Promise<Response> {
+  const c = cfg(env);
+  if (!c) return json({ error: "payment not configured" }, { status: 503 });
+  if (rateLimited(request, "pay", 10)) return json({ error: "too many requests" }, { status: 429 });
   let orderId = "";
   try { orderId = String(((await request.json()) as { order?: unknown }).order ?? ""); } catch { /* validated below */ }
-  if (!/^OMA-[A-Z0-9]{4,20}$/.test(orderId)) return json({ error: "invalid order id" }, { status: 400 });
+  if (!ORDER_ID_RE.test(orderId)) return json({ error: "invalid order id" }, { status: 400 });
   const order = await env.DB.prepare("SELECT id, total, status FROM orders WHERE id=?").bind(orderId)
     .first<{ id: string; total: number; status: string }>();
   if (!order) return json({ error: "order not found" }, { status: 404 });
   if (order.status !== "pending") return json({ error: `order is ${order.status}` }, { status: 409 });
 
-  const { merchantId, hashKey, hashIv, base } = cfg(env);
+  const { merchantId, hashKey, hashIv, base } = c;
   const tradeNo = tradeNoFor(orderId);
   const fields: Record<string, string> = {
     MerchantID: merchantId,
@@ -91,31 +110,39 @@ async function createPayment(request: Request, env: Env, url: URL): Promise<Resp
   return json({ action: `${base}/Cashier/AioCheckOut/V5`, fields });
 }
 
-async function verifiedCallback(request: Request, env: Env): Promise<{ params: URLSearchParams; ok: boolean }> {
-  const { hashKey, hashIv } = cfg(env);
+async function verifiedCallback(request: Request, env: Env): Promise<{ params: URLSearchParams; ok: boolean; merchantId: string }> {
+  const c = cfg(env);
   const params = new URLSearchParams(await request.text());
+  if (!c) return { params, ok: false, merchantId: "" };
   const obj: Record<string, string> = {};
   for (const [k, v] of params.entries()) obj[k] = v;
   const theirs = (obj.CheckMacValue ?? "").toUpperCase();
-  const ours = await checkMacValue(obj, hashKey, hashIv);
-  return { params, ok: !!theirs && theirs === ours };
+  const ours = await checkMacValue(obj, c.hashKey, c.hashIv);
+  return { params, ok: !!theirs && theirs === ours, merchantId: c.merchantId };
 }
 
-// 伺服器回呼：付款狀態唯一的真相來源。簽章不對就拒收；金額對不上
-// 訂單也拒收（有人偽造成功通知時，這兩道就擋掉了）。
+// 伺服器回呼：付款狀態唯一的真相來源。四道防線：簽章、商店代號、
+// 金額對訂單、交易號前綴對訂單（tradeNoFor 的產生規則）。
 async function paymentReturn(request: Request, env: Env): Promise<Response> {
-  const { params, ok } = await verifiedCallback(request, env);
+  const { params, ok, merchantId } = await verifiedCallback(request, env);
   if (!ok) return new Response("0|CheckMacValue Error");
+  if ((params.get("MerchantID") ?? "") !== merchantId) return new Response("0|Unknown Merchant");
   const orderId = params.get("CustomField1") ?? "";
   const rtnCode = params.get("RtnCode") ?? "";
   const amount = Number(params.get("TradeAmt") ?? "");
-  if (!/^OMA-[A-Z0-9]{4,20}$/.test(orderId)) return new Response("0|Unknown Order");
+  if (!ORDER_ID_RE.test(orderId)) return new Response("0|Unknown Order");
+  const tradePrefix = orderId.replace(/[^A-Za-z0-9]/g, "") + "T";
+  if (!(params.get("MerchantTradeNo") ?? "").startsWith(tradePrefix)) return new Response("0|Unknown Trade");
   if (rtnCode === "1") {
     const order = await env.DB.prepare("SELECT total, status FROM orders WHERE id=?").bind(orderId)
       .first<{ total: number; status: string }>();
     if (!order || order.total !== amount) return new Response("0|Amount Mismatch");
     await env.DB.prepare("UPDATE orders SET status='paid', ecpay_trade_no=? WHERE id=? AND status='pending'")
       .bind(params.get("TradeNo") ?? "", orderId).run();
+  } else {
+    // 失敗通知：留一筆伺服器日誌供對帳（不動訂單），並回 1|OK 讓綠界
+    // 停止重送。
+    console.warn("ecpay payment failed", { orderId, rtnCode, msg: params.get("RtnMsg") ?? "" });
   }
   return new Response("1|OK");
 }
@@ -127,7 +154,7 @@ async function paymentResult(request: Request, env: Env, url: URL): Promise<Resp
   const orderId = ok ? (params.get("CustomField1") ?? "") : "";
   const dest = new URL(url.origin);
   dest.searchParams.set("pay", paid ? "ok" : "fail");
-  if (/^OMA-[A-Z0-9]{4,20}$/.test(orderId)) dest.searchParams.set("order", orderId);
+  if (ORDER_ID_RE.test(orderId)) dest.searchParams.set("order", orderId);
   return new Response(null, { status: 302, headers: { location: dest.toString() } });
 }
 

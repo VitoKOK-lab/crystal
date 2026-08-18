@@ -10,7 +10,7 @@
 // - 模型輸出強制 JSON 並驗形，長度全部設限——它寫進頁面，但只以純文字
 //   呈現，不進 HTML。
 import { kimiJson } from "./kimi";
-import { Env, json } from "./lib";
+import { BIRTHDAY_RE, Env, json, rateLimited } from "./lib";
 
 type Position = { role: string; stone: string; energy: string };
 type Reading = { overall: string; stones: { role: string; line: string }[]; blessing: string };
@@ -42,6 +42,7 @@ function validReading(r: unknown): r is Reading {
 export async function handleQuizReading(request: Request, env: Env, url: URL): Promise<Response | null> {
   if (url.pathname !== "/api/quiz-reading" || request.method !== "POST") return null;
   if (!env.KIMI_API_KEY) return json({ error: "not configured" }, { status: 503 });
+  if (rateLimited(request, "ai", 15)) return json({ error: "too many requests" }, { status: 429 });
 
   let b: Record<string, unknown> = {};
   try { b = (await request.json()) as Record<string, unknown>; } catch { /* validated below */ }
@@ -57,14 +58,17 @@ export async function handleQuizReading(request: Request, env: Env, url: URL): P
     const role = str(row.role, 20), stone = str(row.stone, 40), energy = str(row.energy, 10);
     if (role && stone && energy) positions.push({ role, stone, energy });
   }
-  if (!name || !birthday || !/^\d{4}-\d{2}-\d{2}$/.test(birthday) || !themeZh || !persona
+  if (!name || !birthday || !BIRTHDAY_RE.test(birthday) || !themeZh || !persona
     || !Number.isInteger(life) || life < 1 || life > 9 || positions.length < 5) {
     return json({ error: "invalid reading request" }, { status: 400 });
   }
 
   const key = await sha256(`${name}|${birthday}|${themeZh}`);
   const cached = await env.DB.prepare("SELECT reading FROM quiz_readings WHERE key=?").bind(key).first<{ reading: string }>();
-  if (cached) return json({ reading: JSON.parse(cached.reading) as Reading, cached: true });
+  if (cached) {
+    // 壞掉的快取列當 miss 處理（重新生成），不讓一列爛資料 500 整個端點。
+    try { return json({ reading: JSON.parse(cached.reading) as Reading, cached: true }); } catch { /* regenerate below */ }
+  }
 
   const today = await env.DB.prepare("SELECT COUNT(*) AS n FROM quiz_readings WHERE created_at > datetime('now','-1 day')").first<{ n: number }>();
   if ((today?.n ?? 0) >= DAILY_CAP) return json({ error: "daily cap reached" }, { status: 429 });

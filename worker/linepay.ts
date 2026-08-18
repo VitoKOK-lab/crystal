@@ -14,7 +14,7 @@
 // 申請 Sandbox 商店（免費、馬上寄到信箱），把 Channel ID／Secret 設成
 // secrets 後這個模組才會啟用；未設定時回 503，前端顯示尚未開通。
 // 正式上線換成正式商店的憑證並把 LINE_PAY_BASE 指向 api-pay.line.me。
-import { Env, json } from "./lib";
+import { Env, json, ORDER_ID_RE, rateLimited } from "./lib";
 
 const cfg = (env: Env) => ({
   channelId: env.LINE_PAY_CHANNEL_ID ?? "",
@@ -54,11 +54,12 @@ async function callApi(env: Env, apiPath: string, bodyObj: unknown): Promise<{ r
   }
 }
 
-const ORDER_RE = /^OMA-[A-Z0-9]{4,20}$/;
+const ORDER_RE = ORDER_ID_RE;
 
 async function createPayment(request: Request, env: Env, url: URL): Promise<Response> {
   const { channelId, secret } = cfg(env);
   if (!channelId || !secret) return json({ error: "LINE Pay 尚未開通" }, { status: 503 });
+  if (rateLimited(request, "pay", 10)) return json({ error: "too many requests" }, { status: 429 });
   let orderId = "";
   try { orderId = String(((await request.json()) as { order?: unknown }).order ?? ""); } catch { /* validated below */ }
   if (!ORDER_RE.test(orderId)) return json({ error: "invalid order id" }, { status: 400 });
@@ -84,11 +85,20 @@ async function createPayment(request: Request, env: Env, url: URL): Promise<Resp
       cancelUrl: `${url.origin}/?pay=back&order=${orderId}`,
     },
   });
-  const paymentUrl = /"web"\s*:\s*"([^"]+)"/.exec(text)?.[1];
-  if (returnCode !== "0000" || !paymentUrl) return json({ error: `LINE Pay request failed (${returnCode || "no response"})` }, { status: 502 });
+  const rawUrl = /"web"\s*:\s*"([^"]+)"/.exec(text)?.[1];
+  if (returnCode !== "0000" || !rawUrl) return json({ error: `LINE Pay request failed (${returnCode || "no response"})` }, { status: 502 });
+  const paymentUrl = rawUrl.replace(/\\\//g, "/");
+  // 只把瀏覽器送去 LINE 自己的網域（或本地開發時 LINE_PAY_BASE 指向的
+  // 同一主機）——萬一回應被動過手腳，客人也不會被導去別處。
+  const payHost = (() => { try { return new URL(paymentUrl).hostname; } catch { return ""; } })();
+  const baseHost = new URL(cfg(env).base).hostname;
+  if (!payHost || (!payHost.endsWith(".line.me") && payHost !== baseHost)) {
+    console.warn("linepay unexpected payment url host", { payHost });
+    return json({ error: "LINE Pay request failed (unexpected redirect)" }, { status: 502 });
+  }
   // 記下本次嘗試號供對帳；請款成功後會蓋成 LINE 的 transactionId。
   await env.DB.prepare("UPDATE orders SET linepay_txn=? WHERE id=?").bind(attempt, orderId).run();
-  return json({ paymentUrl: paymentUrl.replace(/\\\//g, "/") });
+  return json({ paymentUrl });
 }
 
 // LINE 導回：呼叫 Confirm 請款。成功→paid；失敗→單留著可重試。
@@ -109,8 +119,13 @@ async function confirmPayment(env: Env, url: URL): Promise<Response> {
   if (!order) return redirect("fail");
   if (order.status === "paid") return redirect("ok");
   if (order.status !== "pending") return redirect("fail");
-  const { returnCode } = await callApi(env, `/v3/payments/${txn}/confirm`, { amount: order.total, currency: "TWD" });
-  if (returnCode !== "0000") return redirect("fail");
+  const { returnCode, text } = await callApi(env, `/v3/payments/${txn}/confirm`, { amount: order.total, currency: "TWD" });
+  if (returnCode !== "0000") {
+    // 請款失敗要留下伺服器日誌：一筆「已授權但請款失敗」的交易若無
+    // 紀錄，事後對帳無從查起。
+    console.warn("linepay confirm failed", { orderId, txn, returnCode: returnCode || "no response", detail: text.slice(0, 200) });
+    return redirect("fail");
+  }
   await env.DB.prepare("UPDATE orders SET status='paid', linepay_txn=? WHERE id=? AND status='pending'")
     .bind(txn, orderId).run();
   return redirect("ok");

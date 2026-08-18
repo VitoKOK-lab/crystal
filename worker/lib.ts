@@ -55,6 +55,41 @@ export const json = (data: unknown, init: ResponseInit & { headers?: Record<stri
     headers: { "content-type": "application/json; charset=utf-8", ...(init.headers ?? {}) },
   });
 
+// --- Shared error + validation vocabulary --------------------------------
+// One place for the shapes every module repeats: the {error} envelope and
+// the field regexes that must agree between intake points.
+export const bad = (msg: string, status = 400) => json({ error: msg }, { status });
+export const EMAIL_RE = /^\S+@\S+\.\S+$/;
+export const BIRTHDAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const ORDER_ID_RE = /^OMA-[A-Z0-9]{4,20}$/;
+
+// --- Per-IP rate limiting -------------------------------------------------
+// Best-effort, in-memory per isolate: enough to stop one abuser from
+// draining stock rows, PII inserts, or the shared AI daily caps, without a
+// KV/DO dependency. A determined distributed attacker needs Cloudflare's
+// own rate-limiting product; this guards the honest-mistake and single-IP
+// case, which is the realistic threat at this shop's scale.
+const rlHits = new Map<string, number[]>();
+
+export function rateLimited(request: Request, bucket: string, limit: number, windowMs = 60_000): boolean {
+  const ip = request.headers.get("cf-connecting-ip") ?? "local";
+  const key = `${bucket}:${ip}`;
+  const now = Date.now();
+  const hits = (rlHits.get(key) ?? []).filter((t) => now - t < windowMs);
+  if (hits.length >= limit) { rlHits.set(key, hits); return true; }
+  hits.push(now);
+  // Opportunistic sweep so the map can't grow without bound in a
+  // long-lived isolate.
+  if (rlHits.size > 5000) {
+    for (const [k, v] of rlHits) if (v.every((t) => now - t >= windowMs)) rlHits.delete(k);
+  }
+  rlHits.set(key, hits);
+  return false;
+}
+
+// Tests hammer one handler far past any human rate; they reset between cases.
+export const __resetRateLimits = () => rlHits.clear();
+
 // --- Session cookie: HMAC-SHA256(email|exp) with a signing key that
 // self-bootstraps into the settings table on first use — no manual secret
 // management for the owner.
@@ -63,14 +98,19 @@ let cachedKey: CryptoKey | null = null;
 async function sessionKey(env: Env): Promise<CryptoKey> {
   if (cachedKey) return cachedKey;
   const { results } = await env.DB.prepare("SELECT value FROM settings WHERE key='session_signing_key'").all<{ value: string }>();
+  const validKey = (v: string | undefined): v is string => !!v && /^[0-9a-f]{64}$/.test(v);
   let hex = results[0]?.value;
-  if (!hex) {
+  if (!validKey(hex)) {
+    // Missing or corrupted row: a bad key would otherwise crash every
+    // admin request on the hex decode below, so self-heal by minting a
+    // fresh one (existing sessions die, which is the safe direction).
     const bytes = crypto.getRandomValues(new Uint8Array(32));
-    hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
-    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('session_signing_key', ?)").bind(hex).run();
+    const fresh = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+    await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('session_signing_key', ?)").bind(fresh).run();
     // Another isolate may have won the race — read back the canonical key.
     const again = await env.DB.prepare("SELECT value FROM settings WHERE key='session_signing_key'").all<{ value: string }>();
-    hex = again.results[0]?.value ?? hex;
+    const readBack = again.results[0]?.value;
+    hex = validKey(readBack) ? readBack : fresh;
   }
   const raw = new Uint8Array(hex.match(/../g)!.map((h) => parseInt(h, 16)));
   cachedKey = await crypto.subtle.importKey("raw", raw, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
