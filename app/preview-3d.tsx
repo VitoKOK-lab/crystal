@@ -2,13 +2,24 @@
 
 import { ContactShadows, Environment, OrbitControls, useProgress } from "@react-three/drei";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentRef, type CSSProperties } from "react";
+import { Suspense, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentRef, type CSSProperties } from "react";
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { SF_STONE_TEXTURES } from "./bead-textures";
 import { anglesForWidths } from "./catalog";
 
-export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean; id: string; kind: "stone" | "accessory" };
+export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean; id: string; kind: "stone" | "accessory"; uid?: number };
+
+// Three.js GPU resources are not garbage-collected — every material or
+// cloned texture a bead builds must be disposed when it goes away, or each
+// open/close of the overlay strands another full set on the GPU.
+function useDisposable<T extends { dispose: () => void } | null>(resource: T): T {
+  useEffect(() => {
+    if (!resource) return;
+    return () => resource.dispose();
+  }, [resource]);
+  return resource;
+}
 
 // Real WebGL 3D preview: physically-shaded spheres, not the flat top-down
 // product photos. A whole photo mapped onto a sphere would bake its
@@ -131,6 +142,8 @@ function TexturedStoneBead({ piece, angle, radiusUnits, textureUrl }: { piece: P
     mat.customProgramCacheKey = () => "triplanar-bead";
     return mat;
   }, [texture, sizeUnits, piece.id]);
+  useDisposable(material);
+  useDisposable(material.map);
   // Faceted stones use a deliberately coarse sphere: with flat shading,
   // its quad rows read exactly like the 64-facet diamond cut of the
   // product photos. Smooth stones keep the fine mesh.
@@ -161,6 +174,7 @@ function Bead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle: numbe
     }
     return new THREE.MeshPhysicalMaterial({ color, roughness: 0.28, metalness: 0.05, clearcoat: 0.65, clearcoatRoughness: 0.18, envMapIntensity: 1.15 });
   }, [piece.id, piece.kind, piece.metal, sizeUnits]);
+  useDisposable(material);
 
   return <mesh position={position} material={material} castShadow receiveShadow>
     <sphereGeometry args={[sizeUnits / 2, 48, 48]} />
@@ -189,6 +203,7 @@ function SpacerBead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle:
     const color = piece.metal === "gold" ? "#c9922e" : "#b9bfc4";
     return new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: 0.14, clearcoat: 0.5, clearcoatRoughness: 0.2, envMapIntensity: 1.5 });
   }, [piece.metal]);
+  useDisposable(material);
   return <group position={position} quaternion={quaternion} scale={[0.42, 1, 1]}>
     <mesh material={material} castShadow receiveShadow>
       <sphereGeometry args={[sizeUnits / 2, 32, 32]} />
@@ -208,6 +223,7 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
     t.anisotropy = 4;
     return t;
   }, [texture]);
+  useDisposable(map);
   const side = CHARM_DISPLAY_MM * UNITS_PER_MM;
   const x = Math.cos(angle) * radiusUnits;
   const z = Math.sin(angle) * radiusUnits;
@@ -293,7 +309,7 @@ function useGradientEnvTexture() {
 }
 
 function StudioEnvironment() {
-  const map = useGradientEnvTexture();
+  const map = useDisposable(useGradientEnvTexture());
   return <Environment map={map} resolution={128} />;
 }
 
@@ -446,23 +462,27 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
     }
     return -(drop + 0.025);
   }, [pieces]);
+  const R = useMemo(() => frameRadius(pieces, capacityMM), [pieces, capacityMM]);
   return <>
     <StudioEnvironment />
     <ambientLight intensity={0.35} />
     <directionalLight position={[4, 6, 3]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
     <directionalLight position={[-3, 2, -4]} intensity={0.35} />
-    <ContactShadows position={[0, floorY, 0]} opacity={0.3} scale={frameRadius(pieces, capacityMM) * 3.4} blur={2.7} far={Math.abs(floorY) + 0.45} resolution={512} color="#5c4a33" />
+    <ContactShadows position={[0, floorY, 0]} opacity={0.3} scale={R * 3.4} blur={2.7} far={Math.abs(floorY) + 0.45} resolution={512} color="#5c4a33" />
     <mesh rotation={[Math.PI / 2, 0, 0]}>
       <torusGeometry args={[radiusUnits, cordRadius, 12, 128]} />
       <meshStandardMaterial color="#b8ab93" roughness={0.7} metalness={0.05} />
     </mesh>
     {/* Suspense inside the Canvas so a texture still fetching leaves the
         rest of the strand visible instead of blanking the whole overlay. */}
+    {/* Keyed on the bead's stable uid: an index key would tear down and
+        rebuild every mesh (texture clone + shader patch included) after
+        any reorder. */}
     <Suspense fallback={null}>
-      {pieces.map((p, i) => <AnyBead key={i} piece={p} angle={displayAngles[i]} radiusUnits={radiusUnits} cordRadius={cordRadius} />)}
+      {pieces.map((p, i) => <AnyBead key={p.uid ?? `i${i}`} piece={p} angle={displayAngles[i]} radiusUnits={radiusUnits} cordRadius={cordRadius} />)}
     </Suspense>
-    <CameraRig R={frameRadius(pieces, capacityMM)} />
-    <ShowcaseControls R={frameRadius(pieces, capacityMM)} />
+    <CameraRig R={R} />
+    <ShowcaseControls R={R} />
   </>;
 }
 
@@ -471,7 +491,7 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
 // frame, where a 20mm focal bead is a large fraction of the ring radius.
 function frameRadius(pieces: PreviewPiece[], capacityMM: number) {
   const ring = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
-  const maxBead = Math.max(...pieces.map((p) => Math.max(p.mm * UNITS_PER_MM, 0.03)), 0.03) / 2;
+  const maxBead = pieces.reduce((max, p) => Math.max(max, p.mm * UNITS_PER_MM, 0.03), 0.03) / 2;
   return ring + maxBead;
 }
 
@@ -508,7 +528,7 @@ function LoadingVeil() {
   </div>;
 }
 
-export default function Preview3D({ pieces, capacityMM, onClose, energy }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void; energy?: string }) {
+function Preview3D({ pieces, capacityMM, onClose, energy }: { pieces: PreviewPiece[]; capacityMM: number; onClose: () => void; energy?: string }) {
   const R = frameRadius(pieces, capacityMM);
   return <div className="preview-overlay" style={PV_PALETTES[energy ?? ""] as CSSProperties} role="dialog" aria-label="360 度立體預覽">
     <div className="pv-head"><b>360° PREVIEW</b><span>拖曳旋轉 · 滾輪縮放</span><button className="pv-close" onClick={onClose} aria-label="關閉預覽">✕</button></div>
@@ -527,3 +547,7 @@ export default function Preview3D({ pieces, capacityMM, onClose, energy }: { pie
     <div className="pv-hint">拖曳旋轉 · 滾輪或雙指縮放</div>
   </div>;
 }
+
+// Memoised: the studio page re-renders on every notice tick; while the
+// overlay is open only pieces/capacity changes matter to the 3D scene.
+export default memo(Preview3D);

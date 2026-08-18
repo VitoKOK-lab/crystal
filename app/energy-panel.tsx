@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { ENERGY_META, inStock, stonePhotos, stonesForEnergy, weakestEnergies, type EnergyType } from "./catalog";
 import type { SeriesTone } from "./series";
 
@@ -26,7 +26,7 @@ export function useCountUp(value: number) {
   return display;
 }
 
-export default function EnergyPanel({ scores, total, dominant, open, onToggle, tone, onAddStone, energyFilter, onFilterEnergy }: { scores: Record<EnergyType, number>; total: number; dominant: (typeof ENERGY_META)[number]; open: boolean; onToggle: () => void; tone: SeriesTone; onAddStone: (stoneId: string) => void; energyFilter: string | null; onFilterEnergy: (key: string | null) => void }) {
+function EnergyPanel({ scores, total, dominant, open, onToggle, tone, onAddStone, energyFilter, onFilterEnergy }: { scores: Record<EnergyType, number>; total: number; dominant: (typeof ENERGY_META)[number]; open: boolean; onToggle: () => void; tone: SeriesTone; onAddStone: (stoneId: string) => void; energyFilter: string | null; onFilterEnergy: (key: string | null) => void }) {
   const displayTotal = useCountUp(total);
   const max = Math.max(...ENERGY_META.map((m) => scores[m.key]), 1);
   const cx = 110, cy = 92, R = 62;
@@ -94,3 +94,7 @@ export default function EnergyPanel({ scores, total, dominant, open, onToggle, t
     </div>
   </div>;
 }
+
+// Memoised: the studio re-renders on every notice tick and search keystroke;
+// this subtree only needs to follow its own props.
+export default memo(EnergyPanel);

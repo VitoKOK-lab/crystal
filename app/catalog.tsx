@@ -377,7 +377,19 @@ function hexToHsl(hex: string): [number, number, number] {
   return [h, s, l];
 }
 
+// id → 色群是純函數（STONE_COLORS 是產生的靜態表，hydration 不碰它），
+// 快取住讓素材櫃逐字搜尋時不必對每顆石頭重跑 HSL 轉換。
+const colorGroupCache = new Map<string, ColorGroupKey>();
+
 export function colorGroupOf(stoneId: string): ColorGroupKey {
+  const cached = colorGroupCache.get(stoneId);
+  if (cached) return cached;
+  const group = colorGroupUncached(stoneId);
+  colorGroupCache.set(stoneId, group);
+  return group;
+}
+
+function colorGroupUncached(stoneId: string): ColorGroupKey {
   const hex = STONE_COLORS[stoneId];
   if (!hex) return "white";
   const [h, s, l] = hexToHsl(hex);

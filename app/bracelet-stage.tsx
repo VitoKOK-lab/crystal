@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { ItemVisual, PCT_PER_MM, arcWidthMM, itemMM, type DesignItem, type StrandPlacement } from "./catalog";
 import type { ENERGY_META } from "./catalog";
 import type { SeriesTone } from "./series";
@@ -13,7 +13,7 @@ type EnergyMetaEntry = (typeof ENERGY_META)[number];
 // subtree, not the whole studio page (energy panel SVG, up to ~20 material
 // cards, the stats bar). Before this split, every drag frame re-rendered
 // all of it, which is what made dragging feel laggy rather than live.
-export default function BraceletStage({
+function BraceletStage({
   items, setItems, arcs, r, capacityMM, beads, dominant, strung, wristCm, tone, showNotice, removeByUid,
 }: {
   items: DesignItem[];
@@ -138,3 +138,7 @@ export default function BraceletStage({
     <div className="stage-tip">輕點移除 · 按住拖曳調整位置</div>
   </div>;
 }
+
+// Memoised: the studio re-renders on every notice tick and search keystroke;
+// this subtree only needs to follow its own props.
+export default memo(BraceletStage);

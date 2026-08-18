@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { WRIST_CHOICES, pricing } from "./catalog";
 import { playConfirmBoom } from "./ui-sound";
 
@@ -39,9 +39,13 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
   const [payError, setPayError] = useState("");
 
   const baseFee = pricing.baseFee;
-  const itemsTotal = lines.reduce((s, l) => s + l.unit * l.qty, 0);
-  const shipping = itemsTotal + baseFee >= pricing.freeShippingOver ? 0 : pricing.shippingFee;
-  const grand = itemsTotal + baseFee + shipping;
+  // 這裡的金額只是「預覽」——伺服器下單時會用資料庫價格重算並比對，
+  // 不一致會回 409（見下方 price changed 分支）。
+  const { itemsTotal, shipping, grand } = useMemo(() => {
+    const sum = lines.reduce((s, l) => s + l.unit * l.qty, 0);
+    const ship = sum + baseFee >= pricing.freeShippingOver ? 0 : pricing.shippingFee;
+    return { itemsTotal: sum, shipping: ship, grand: sum + baseFee + ship };
+  }, [lines, baseFee]);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { const v = e.target.value; setForm((f) => ({ ...f, [k]: v })); setErrors((er) => { if (!(k in er)) return er; const next = { ...er }; delete next[k]; return next; }); };
 
   const submit = async () => {
@@ -68,6 +72,10 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
       const data = (await res.json().catch(() => null)) as { id?: string; error?: string; shortages?: string[] } | null;
       if (res.status === 409 && data?.shortages?.length) {
         setSubmitError(`這些素材剛好賣完了：${data.shortages.join("、")}。回上一步把它們換掉，就能完成下單`);
+        return;
+      }
+      if (res.status === 409 && data?.error === "price changed") {
+        setSubmitError("價格剛剛更新過，畫面上的金額已經不是現價。請重新整理頁面再下單一次");
         return;
       }
       if (!res.ok || !data?.id) throw new Error(data?.error ?? `order failed (${res.status})`);
