@@ -54,6 +54,36 @@ export async function overDailyCap(env: Env, kind: string, cap: number): Promise
 let knownGoodBase: string | null = null;
 const DEFAULT_BASES = ["https://api.moonshot.cn/v1", "https://api.moonshot.ai/v1"];
 
+// 五個 AI 端點共用的整條管線：快取查詢 → 每日上限 → 模型呼叫 → 驗形
+// →（可選）加工 → 寫快取 → 回應。各 handler 只剩輸入驗證、提示詞與
+// 輸出形狀——這條管線曾在 ai.ts 與 quiz-reading.ts 各抄一份，規則改
+// 一邊漏一邊。
+export async function aiPipeline(env: Env, opts: {
+  kind: string;          // 快取分類＋每日上限的計數單位
+  cacheKey: string;      // sha256 過的請求識別
+  cap: number;           // 每日全站生成上限
+  system: string;
+  user: string;
+  maxTokens?: number;
+  validate: (r: unknown) => boolean;
+  // 把驗過形的模型輸出轉成要快取／回傳的 payload；回 null 表示內容
+  // 不合格（例如許願選石點了菜單外的石頭）→ 502。
+  finalize?: (data: unknown) => unknown | null;
+  field?: string;        // 回應信封的欄位名，預設 "reading"
+}): Promise<Response> {
+  const field = opts.field ?? "reading";
+  const cached = await cacheGet(env, opts.kind, opts.cacheKey);
+  if (cached) return json({ [field]: cached, cached: true });
+  if (await overDailyCap(env, opts.kind, opts.cap)) return json({ error: "daily cap reached" }, { status: 429 });
+  const result = await kimiJson(env, opts.system, opts.user, opts.maxTokens ?? 1000);
+  if (!result.ok) return result.res;
+  if (!opts.validate(result.data)) return json({ error: "malformed reading" }, { status: 502 });
+  const payload = opts.finalize ? opts.finalize(result.data) : result.data;
+  if (payload === null) return json({ error: "reading picked unknown stones" }, { status: 502 });
+  await cachePut(env, opts.kind, opts.cacheKey, payload);
+  return json({ [field]: payload });
+}
+
 // JSON-mode chat completion. Returns the parsed object, or a Response the
 // handler should pass straight through (503/502/504 — never a fake result).
 export async function kimiJson(env: Env, system: string, user: string, maxTokens = 1000): Promise<{ ok: true; data: unknown } | { ok: false; res: Response }> {

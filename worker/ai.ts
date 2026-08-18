@@ -4,7 +4,7 @@
 //   POST /api/pair-reading  — 閨蜜／情侶合盤：兩人生日 → 合盤解讀
 // 共同原則：key 不在就 503（前端各自靜靜降級）、輸出強制 JSON 驗形、
 // 所有欄位長度設限、同一請求快取進 D1、每種功能有獨立的每日上限。
-import { GUARDRAILS, cacheGet, cachePut, kimiConfigured, kimiJson, overDailyCap, sha256, str } from "./kimi";
+import { GUARDRAILS, aiPipeline, kimiConfigured, sha256, str } from "./kimi";
 import { Env, json, rateLimited } from "./lib";
 
 // --- 手鍊命名＋籤詩 -------------------------------------------------------
@@ -27,19 +27,16 @@ async function designPoem(request: Request, env: Env): Promise<Response> {
 
   // 相同石頭組合（不計順序）＋主能量 → 同一個名字：命名是作品的，不是
   // 訪客的，快取命中率因此高很多。
-  const key = await sha256(`${dominant}|${[...stones].sort().join(",")}`);
-  const cached = await cacheGet(env, "poem", key);
-  if (cached) return json({ poem: cached, cached: true });
-  if (await overDailyCap(env, "poem", 400)) return json({ error: "daily cap reached" }, { status: 429 });
-
-  const result = await kimiJson(env, `${GUARDRAILS}
+  return aiPipeline(env, {
+    kind: "poem", cap: 400, field: "poem",
+    cacheKey: await sha256(`${dominant}|${[...stones].sort().join(",")}`),
+    system: `${GUARDRAILS}
 你要為一條手工水晶手鍊命名。名字要像香水或詩集的名字：具體、有畫面、不俗氣（避免「能量」「魔法」「神秘」這類字）。
 格式：{"title":"4-10字的中文名字","verse":"14-24字的一句籤詩，呼應石頭組合的氣質"}`,
-  `這條手鍊的組成：${stones.join("、")}。主能量：${dominant}。請命名。`, 300);
-  if (!result.ok) return result.res;
-  if (!validPoem(result.data)) return json({ error: "malformed poem" }, { status: 502 });
-  await cachePut(env, "poem", key, result.data);
-  return json({ poem: result.data });
+    user: `這條手鍊的組成：${stones.join("、")}。主能量：${dominant}。請命名。`,
+    maxTokens: 300,
+    validate: validPoem,
+  });
 }
 
 // --- 許願式選石 -----------------------------------------------------------
@@ -64,11 +61,6 @@ async function wishReading(request: Request, env: Env): Promise<Response> {
   const wish = str(b.wish, 200);
   if (!name || !wish || wish.length < 5) return json({ error: "invalid wish request" }, { status: 400 });
 
-  const key = await sha256(`${name}|${wish}`);
-  const cached = await cacheGet(env, "wish", key);
-  if (cached) return json({ reading: cached, cached: true });
-  if (await overDailyCap(env, "wish", 300)) return json({ error: "daily cap reached" }, { status: 429 });
-
   // 石頭菜單由資料庫現況組成（上架且有照片的才進菜單），Kimi 只能從
   // 菜單點菜——它回的名字必須映射回真實 id，否則整包打掉重來。
   const { results } = await env.DB.prepare("SELECT id, zh, energies FROM stones WHERE active=1 AND photo != ''").all<{ id: string; zh: string; energies: string }>();
@@ -82,22 +74,25 @@ async function wishReading(request: Request, env: Env): Promise<Response> {
     return `${zh}：${top.map((s) => s.zh).join("、")}`;
   }).join("\n");
 
-  const result = await kimiJson(env, `${GUARDRAILS}
+  return aiPipeline(env, {
+    kind: "wish", cap: 300,
+    cacheKey: await sha256(`${name}|${wish}`),
+    system: `${GUARDRAILS}
 客人會說一個願望。你要讀懂願望背後真正需要的支持，從提供的石頭菜單中挑「剛好五顆」不重複的石頭排成陣容，並寫給「你」的解讀。
 - 石頭名字必須一字不差地取自菜單。
 - 五顆各給一個 2-4 字的位置名（例如：主願石、定心石、開路石…由你依願望命名）。
 - 如果願望涉及自傷、傷害他人或違法，不要配合內容，改以溫柔語氣關心對方，並以守護與療癒方向選石。
 格式：{"overall":"100-140字，回應願望本身的整體解讀","stones":[{"name":"石頭名","role":"位置名","line":"30-45字，這顆石頭如何呼應願望"}×5],"blessing":"20-30字的祝福"}`,
-  `客人稱呼：${name}\n願望：「${wish}」\n\n石頭菜單（依能量分組）：\n${menu}`, 1100);
-  if (!result.ok) return result.res;
-  if (!validWish(result.data)) return json({ error: "malformed reading" }, { status: 502 });
-  const picked = result.data.stones.map((s) => ({ id: byZh.get(s.name), zh: s.name, role: s.role, line: s.line }));
-  if (picked.some((p) => !p.id) || new Set(picked.map((p) => p.id)).size !== 5) {
-    return json({ error: "reading picked unknown stones" }, { status: 502 });
-  }
-  const reading = { overall: result.data.overall, blessing: result.data.blessing, stones: picked };
-  await cachePut(env, "wish", key, reading);
-  return json({ reading });
+    user: `客人稱呼：${name}\n願望：「${wish}」\n\n石頭菜單（依能量分組）：\n${menu}`,
+    maxTokens: 1100,
+    validate: validWish,
+    finalize: (data) => {
+      const r = data as WishReading;
+      const picked = r.stones.map((s) => ({ id: byZh.get(s.name), zh: s.name, role: s.role, line: s.line }));
+      if (picked.some((p) => !p.id) || new Set(picked.map((p) => p.id)).size !== 5) return null;
+      return { overall: r.overall, blessing: r.blessing, stones: picked };
+    },
+  });
 }
 
 // --- 閨蜜／情侶合盤 -------------------------------------------------------
@@ -128,22 +123,19 @@ async function pairReading(request: Request, env: Env): Promise<Response> {
   const bondStone = str(b.bondStone, 40);
   if (!relation || !RELATIONS.has(relation) || !a || !bb || !bondStone) return json({ error: "invalid pair request" }, { status: 400 });
 
-  const key = await sha256(`${relation}|${a.name}|${a.birthday}|${bb.name}|${bb.birthday}`);
-  const cached = await cacheGet(env, "pair", key);
-  if (cached) return json({ reading: cached, cached: true });
-  if (await overDailyCap(env, "pair", 200)) return json({ error: "daily cap reached" }, { status: 429 });
-
-  const result = await kimiJson(env, `${GUARDRAILS}
+  return aiPipeline(env, {
+    kind: "pair", cap: 200,
+    cacheKey: await sha256(`${relation}|${a.name}|${a.birthday}|${bb.name}|${bb.birthday}`),
+    system: `${GUARDRAILS}
 你要為兩位客人寫「合盤」：兩人的生命靈數性格如何互補、彼此在對方生命裡扮演什麼角色，語氣像懂他們的朋友，寫得具體、溫柔、不肉麻。
 格式：{"overall":"130-170字的兩人合盤解讀","a_line":"30-45字，寫給第一位：她的主石為何襯她","b_line":"30-45字，寫給第二位","bond_line":"30-45字，兩人共享的連結石的意義","blessing":"20-30字，給兩個人的祝福"}`,
-  `關係：${relation}
+    user: `關係：${relation}
 第一位：${a.name}，生日 ${a.birthday}，生命靈數 ${a.life}（${a.persona}），主石「${a.stone}」
 第二位：${bb.name}，生日 ${bb.birthday}，生命靈數 ${bb.life}（${bb.persona}），主石「${bb.stone}」
-兩人共享的連結石：「${bondStone}」（兩條手鍊各放一顆）`, 900);
-  if (!result.ok) return result.res;
-  if (!validPair(result.data)) return json({ error: "malformed reading" }, { status: 502 });
-  await cachePut(env, "pair", key, result.data);
-  return json({ reading: result.data });
+兩人共享的連結石：「${bondStone}」（兩條手鍊各放一顆）`,
+    maxTokens: 900,
+    validate: validPair,
+  });
 }
 
 // --- 深度配對：七脈輪 × MBTI × 生日 ---------------------------------------
@@ -179,29 +171,26 @@ async function deepReading(request: Request, env: Env): Promise<Response> {
     return json({ error: "invalid deep request" }, { status: 400 });
   }
 
-  const key = await sha256(`${name}|${birthday}|${mbti}|${[...concerns].sort().join(",")}|${positions.map((p) => p.stone).join(",")}`);
-  const cached = await cacheGet(env, "deep", key);
-  if (cached) return json({ reading: cached, cached: true });
-  if (await overDailyCap(env, "deep", 300)) return json({ error: "daily cap reached" }, { status: 429 });
-
-  const result = await kimiJson(env, `${GUARDRAILS}
+  return aiPipeline(env, {
+    kind: "deep", cap: 300,
+    cacheKey: await sha256(`${name}|${birthday}|${mbti}|${[...concerns].sort().join(",")}|${positions.map((p) => p.stone).join(",")}`),
+    system: `${GUARDRAILS}
 你要為一位客人寫「七輪平衡手鍊」的深度解讀。三個訊號要織成一個連貫的人物故事，不是分段報告：生命靈數給命盤底色、MBTI 給性格的用力方式、此刻的困擾指出偏弱的脈輪。
 - 七顆石頭依海底輪→頂輪排列，各寫一句：這顆石頭在這個輪位、對「這個人」的意義（重點補強的輪要寫得更貼身）。
 - MBTI 以性格描述的方式融入（例如「習慣把計畫排到明年的你」），不要直接堆術語。
 格式：{"overall":"150-200字的整體解讀，稱呼名字，把三個訊號串成故事","stones":[{"role":"海底輪","line":"25-40字"}×7，依提供順序],"blessing":"20-30字的祝福"}`,
-  [
-    `客人稱呼：${name}`,
-    `生日：${birthday}，生命靈數 ${life}（${persona}）`,
-    `MBTI：${mbti}`,
-    concerns.length ? `此刻的困擾：${concerns.join("、")}` : "此刻的困擾：未特別勾選",
-    "七輪陣容（海底輪→頂輪）：",
-    ...positions.map((p) => `- ${p.role}：${p.stone}（${p.note}）`),
-    "請依系統規則產生深度解讀 JSON。",
-  ].join("\n"), 1300);
-  if (!result.ok) return result.res;
-  if (!validDeep(result.data)) return json({ error: "malformed reading" }, { status: 502 });
-  await cachePut(env, "deep", key, result.data);
-  return json({ reading: result.data });
+    user: [
+      `客人稱呼：${name}`,
+      `生日：${birthday}，生命靈數 ${life}（${persona}）`,
+      `MBTI：${mbti}`,
+      concerns.length ? `此刻的困擾：${concerns.join("、")}` : "此刻的困擾：未特別勾選",
+      "七輪陣容（海底輪→頂輪）：",
+      ...positions.map((p) => `- ${p.role}：${p.stone}（${p.note}）`),
+      "請依系統規則產生深度解讀 JSON。",
+    ].join("\n"),
+    maxTokens: 1300,
+    validate: validDeep,
+  });
 }
 
 export async function handleAi(request: Request, env: Env, url: URL): Promise<Response | null> {

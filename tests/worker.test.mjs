@@ -23,8 +23,7 @@ function fakeDb({ stones = {}, stoneSizes = {}, accessories = {}, settings = {} 
     accessories: new Map(Object.entries(accessories)), // id -> {stock, price}
     orders: [],
     writes: [],
-    quizReadings: new Map(),
-    aiTexts: new Map(),   // key -> {kind, payload}
+    aiTexts: new Map(),   // key -> {kind, payload} — all five AI features cache here (0012)
     wishStones: [],       // rows for the wish menu query
     orderRow: null,       // ecpay's order lookups
   };
@@ -69,17 +68,6 @@ function fakeDb({ stones = {}, stoneSizes = {}, accessories = {}, settings = {} 
     }
     if (sql.startsWith("INSERT INTO orders")) {
       state.orders.push(args);
-      return [];
-    }
-    if (sql.startsWith("SELECT reading FROM quiz_readings")) {
-      const v = state.quizReadings.get(args[0]);
-      return v === undefined ? [] : [{ reading: v }];
-    }
-    if (sql.startsWith("SELECT COUNT(*) AS n FROM quiz_readings")) {
-      return [{ n: state.quizReadings.size }];
-    }
-    if (sql.startsWith("INSERT OR IGNORE INTO quiz_readings")) {
-      state.quizReadings.set(args[0], args[1]);
       return [];
     }
     if (sql.startsWith("SELECT payload FROM ai_texts")) {

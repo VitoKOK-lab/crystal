@@ -9,7 +9,7 @@
 // - 每日全站生成上限（快取行數統計）擋住惡意刷 credits。
 // - 模型輸出強制 JSON 並驗形，長度全部設限——它寫進頁面，但只以純文字
 //   呈現，不進 HTML。
-import { GUARDRAILS, kimiJson, sha256, str } from "./kimi";
+import { GUARDRAILS, aiPipeline, sha256, str } from "./kimi";
 import { BIRTHDAY_RE, Env, json, rateLimited } from "./lib";
 
 type Position = { role: string; stone: string; energy: string };
@@ -53,29 +53,21 @@ export async function handleQuizReading(request: Request, env: Env, url: URL): P
     return json({ error: "invalid reading request" }, { status: 400 });
   }
 
-  const key = await sha256(`${name}|${birthday}|${themeZh}`);
-  const cached = await env.DB.prepare("SELECT reading FROM quiz_readings WHERE key=?").bind(key).first<{ reading: string }>();
-  if (cached) {
-    // 壞掉的快取列當 miss 處理（重新生成），不讓一列爛資料 500 整個端點。
-    try { return json({ reading: JSON.parse(cached.reading) as Reading, cached: true }); } catch { /* regenerate below */ }
-  }
-
-  const today = await env.DB.prepare("SELECT COUNT(*) AS n FROM quiz_readings WHERE created_at > datetime('now','-1 day')").first<{ n: number }>();
-  if ((today?.n ?? 0) >= DAILY_CAP) return json({ error: "daily cap reached" }, { status: 429 });
-
-  const userPrompt = [
-    `客人稱呼：${name}`,
-    `生日：${birthday}，生命靈數 ${life}（${persona}）`,
-    `此刻最想補的能量：${themeZh}`,
-    "五石陣容（依序）：",
-    ...positions.map((p) => `- ${p.role}：${p.stone}（${p.energy}）`),
-    "請依系統規則產生這位客人的專屬解讀 JSON。",
-  ].join("\n");
-
-  // 走共用 Kimi 管線（含 .cn／.ai 雙平台 401 自動切換）。
-  const result = await kimiJson(env, SYSTEM_PROMPT, userPrompt, 1000);
-  if (!result.ok) return result.res;
-  if (!validReading(result.data)) return json({ error: "malformed reading" }, { status: 502 });
-  await env.DB.prepare("INSERT OR IGNORE INTO quiz_readings (key, reading) VALUES (?,?)").bind(key, JSON.stringify(result.data)).run();
-  return json({ reading: result.data });
+  // 走共用 AI 管線（快取＋每日上限進 ai_texts、.cn/.ai 雙平台切換）。
+  // 0012 migration 已把 0007 舊表的快取列搬進 ai_texts（kind='quiz'）。
+  return aiPipeline(env, {
+    kind: "quiz", cap: DAILY_CAP,
+    cacheKey: await sha256(`${name}|${birthday}|${themeZh}`),
+    system: SYSTEM_PROMPT,
+    user: [
+      `客人稱呼：${name}`,
+      `生日：${birthday}，生命靈數 ${life}（${persona}）`,
+      `此刻最想補的能量：${themeZh}`,
+      "五石陣容（依序）：",
+      ...positions.map((p) => `- ${p.role}：${p.stone}（${p.energy}）`),
+      "請依系統規則產生這位客人的專屬解讀 JSON。",
+    ].join("\n"),
+    maxTokens: 1000,
+    validate: validReading,
+  });
 }
