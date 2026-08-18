@@ -6,7 +6,7 @@ import { Suspense, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, 
 import * as THREE from "three";
 import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { SF_STONE_TEXTURES } from "./bead-textures";
-import { anglesForWidths } from "./catalog";
+import { anglesForWidths, fanCharmAngles } from "./catalog";
 
 export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean; id: string; kind: "stone" | "accessory"; uid?: number };
 
@@ -415,27 +415,12 @@ function Scene({ pieces, capacityMM }: { pieces: PreviewPiece[]; capacityMM: num
   // an earlier version compressed the strand into a closed loop instead,
   // which read as a different bracelet size every time a bead was added.
   const angles = useMemo(() => anglesForWidths(pieces.map((p) => p.mm), capacityMM), [pieces, capacityMM]);
-  // Same display-only charm fan as the 2D stage: consecutive charms occupy
-  // 3mm of cord each but draw ~13mm wide, so an unfanned run is a single
-  // indistinguishable pile. True mm positions are untouched.
-  const displayAngles = useMemo(() => {
-    const out = [...angles];
-    const FAN_STEP = 0.15;
-    let runStart = -1;
-    for (let i = 0; i <= pieces.length; i++) {
-      const inRun = i < pieces.length && pieces[i].isCharm;
-      if (inRun && runStart < 0) runStart = i;
-      if (!inRun && runStart >= 0) {
-        const len = i - runStart;
-        if (len > 1) {
-          const centre = (out[runStart] + out[i - 1]) / 2;
-          for (let j = 0; j < len; j++) out[runStart + j] = centre + (j - (len - 1) / 2) * FAN_STEP;
-        }
-        runStart = -1;
-      }
-    }
-    return out;
-  }, [angles, pieces]);
+  // Same display-only charm fan as the 2D stage — one shared helper, so the
+  // two renderers can't drift apart. True mm positions are untouched.
+  const displayAngles = useMemo(
+    () => fanCharmAngles(angles, pieces.map((p) => p.isCharm)),
+    [angles, pieces],
+  );
   const radiusUnits = (capacityMM / (Math.PI * 2)) * UNITS_PER_MM;
   // The cord threads bead CENTRES — through the drill holes, exactly like
   // the real elastic — so inside a bead it's hidden (or a faint shadow

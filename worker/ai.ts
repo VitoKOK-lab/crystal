@@ -4,15 +4,8 @@
 //   POST /api/pair-reading  — 閨蜜／情侶合盤：兩人生日 → 合盤解讀
 // 共同原則：key 不在就 503（前端各自靜靜降級）、輸出強制 JSON 驗形、
 // 所有欄位長度設限、同一請求快取進 D1、每種功能有獨立的每日上限。
-import { cacheGet, cachePut, kimiConfigured, kimiJson, overDailyCap, sha256, str } from "./kimi";
+import { GUARDRAILS, cacheGet, cachePut, kimiConfigured, kimiJson, overDailyCap, sha256, str } from "./kimi";
 import { Env, json, rateLimited } from "./lib";
-
-const GUARDRAILS = `你是 OMA CRYSTAL 水晶工作室的資深顧問，說話溫暖、具體、有畫面感，絕不浮誇或裝神弄鬼。
-規則：
-- 一律使用繁體中文（台灣用語）。
-- 內容屬趣味與陪伴性質：不得做任何醫療、財務、感情結果的保證或斷言，不使用「一定」「保證」等字眼。
-- 不提及你是 AI 或任何模型名稱。
-- 只回傳 JSON。`;
 
 // --- 手鍊命名＋籤詩 -------------------------------------------------------
 

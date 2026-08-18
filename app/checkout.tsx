@@ -18,10 +18,13 @@ const PAYMENTS = [
   { id: "cod", name: "貨到付款", note: "宅配到府，取貨付款" },
 ] as const;
 
-export default function Checkout({ lines, spec, dominant, totalEnergy, initialWrist, onBack }: {
+export default function Checkout({ lines, specFor, dominant, totalEnergy, initialWrist, onBack }: {
   lines: OrderLine[];
-  /** Compact design notation (encodeDesign) — the order's authoritative composition. */
-  spec: string;
+  /** Compact design notation (encodeDesign) for a given wrist size. The
+   *  customer can still adjust the wrist on this form, so the spec is
+   *  encoded at submit time from their FINAL choice — a pre-encoded string
+   *  would silently disagree with the wrist field on the order. */
+  specFor: (wristCm: number) => string;
   dominant: EnergyInfo;
   totalEnergy: number;
   initialWrist?: number;
@@ -65,7 +68,7 @@ export default function Checkout({ lines, spec, dominant, totalEnergy, initialWr
         body: JSON.stringify({
           name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim(),
           address: form.address.trim(), note: form.note.trim(), wrist: form.wrist,
-          payment, spec,
+          payment, spec: specFor(Number(form.wrist) || initialWrist || 14),
           lines: lines.map((l) => ({ kind: l.kind, id: l.id, mm: l.mm, qty: l.qty, unit: l.unit, name: l.name, sub: l.sub })),
         }),
       });

@@ -17,6 +17,7 @@
 // 人都能用公開金鑰偽造付款回呼）。只設定了一部分 secrets 視為設定
 // 錯誤，回 503 而不是悄悄用測試值補齊。
 import { Env, json, ORDER_ID_RE, rateLimited } from "./lib";
+import { getOrder, markPaid } from "./orders-store";
 
 const TEST_MERCHANT_ID = "3362787";
 const TEST_HASH_KEY = "5tzn8qyhl9EwzwuT";
@@ -80,8 +81,7 @@ async function createPayment(request: Request, env: Env, url: URL): Promise<Resp
   let orderId = "";
   try { orderId = String(((await request.json()) as { order?: unknown }).order ?? ""); } catch { /* validated below */ }
   if (!ORDER_ID_RE.test(orderId)) return json({ error: "invalid order id" }, { status: 400 });
-  const order = await env.DB.prepare("SELECT id, total, status FROM orders WHERE id=?").bind(orderId)
-    .first<{ id: string; total: number; status: string }>();
+  const order = await getOrder(env, orderId);
   if (!order) return json({ error: "order not found" }, { status: 404 });
   if (order.status !== "pending") return json({ error: `order is ${order.status}` }, { status: 409 });
 
@@ -134,11 +134,9 @@ async function paymentReturn(request: Request, env: Env): Promise<Response> {
   const tradePrefix = orderId.replace(/[^A-Za-z0-9]/g, "") + "T";
   if (!(params.get("MerchantTradeNo") ?? "").startsWith(tradePrefix)) return new Response("0|Unknown Trade");
   if (rtnCode === "1") {
-    const order = await env.DB.prepare("SELECT total, status FROM orders WHERE id=?").bind(orderId)
-      .first<{ total: number; status: string }>();
+    const order = await getOrder(env, orderId);
     if (!order || order.total !== amount) return new Response("0|Amount Mismatch");
-    await env.DB.prepare("UPDATE orders SET status='paid', ecpay_trade_no=? WHERE id=? AND status='pending'")
-      .bind(params.get("TradeNo") ?? "", orderId).run();
+    await markPaid(env, orderId, "ecpay_trade_no", params.get("TradeNo") ?? "");
   } else {
     // 失敗通知：留一筆伺服器日誌供對帳（不動訂單），並回 1|OK 讓綠界
     // 停止重送。

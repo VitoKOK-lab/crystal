@@ -327,6 +327,34 @@ export function anglesForWidths(widths: number[], capacityMM: number): number[] 
   const arcs = widths.map((w) => arcWidthMM(w, capacityMM));
   return centersForWidths(arcs).map((center) => -Math.PI / 2 + (center / capacityMM) * Math.PI * 2);
 }
+// Charms occupy only ~3mm of cord but draw far wider, so a run of adjacent
+// charms piles up and hides itself. Fan each run out around its own centre —
+// display only, true mm positions untouched. Shared by the 2D stage and the
+// 3D preview so the two renderers can never drift apart on this.
+export function fanCharmAngles(angles: number[], isCharm: boolean[]): number[] {
+  const out = [...angles];
+  const FAN_STEP = 0.15; // radians between neighbouring charms in a run
+  let runStart = -1;
+  for (let i = 0; i <= angles.length; i++) {
+    const inRun = i < angles.length && isCharm[i];
+    if (inRun && runStart < 0) runStart = i;
+    if (!inRun && runStart >= 0) {
+      const len = i - runStart;
+      if (len > 1) {
+        const centre = (out[runStart] + out[i - 1]) / 2;
+        for (let j = 0; j < len; j++) out[runStart + j] = centre + (j - (len - 1) / 2) * FAN_STEP;
+      }
+      runStart = -1;
+    }
+  }
+  return out;
+}
+// 「還能再塞一顆 8mm 小珠、且還沒到目標填充率」——scenario preset 與
+// 測驗陣容的自動補珠共用這一個判斷，補珠門檻才不會兩邊漂移。
+export function canPadMore(widths: number[], capacityMM: number, targetFill: number): boolean {
+  return strandArcMM([...widths, BEAD_MM.small], capacityMM) <= capacityMM
+    && strandArcMM(widths, capacityMM) < capacityMM * targetFill;
+}
 // The ring circumference at which these beads exactly close the loop
 // (Σ 2·asin(wᵢ/2R) = 2π), for thumbnails that draw a finished bracelet
 // rather than a wrist-sized one. Monotone in R, so bisection converges
@@ -495,10 +523,12 @@ export const buildSpec = (spec: [string, BeadSize?][]): DesignItem[] => spec.map
 // specTokenMM is the one place that mapping lives as plain arithmetic — the
 // admin's composition editor prices and stock-checks specs through it, so
 // any change to the notation lands on both sides at once.
+const numericSize = (sz?: string): number | undefined =>
+  sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : undefined;
 export const specTokenMM = (sz?: string): number =>
-  sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : sz === "x" ? BEAD_MM.xlarge : sz === "s" ? BEAD_MM.small : BEAD_MM.large;
+  numericSize(sz) ?? (sz === "x" ? BEAD_MM.xlarge : sz === "s" ? BEAD_MM.small : BEAD_MM.large);
 function stoneToken(id: string, sz: string | undefined): DesignItem {
-  const mm = sz && /^\d+(\.\d+)?$/.test(sz) ? Number(sz) : undefined;
+  const mm = numericSize(sz);
   if (mm && mm > 0 && mm <= 40) return { kind: "stone", id, mm, uid: nextUid() };
   return { kind: "stone", id, size: sz === "x" ? "xlarge" : sz === "s" ? "small" : "large", uid: nextUid() };
 }
@@ -541,8 +571,7 @@ export function decodeDesign(code: string): { wrist: number; items: DesignItem[]
     // Links encoded under the old plain-mm capacity model can carry designs
     // that don't quite fit their stated wrist under the honest arc math —
     // grow to the smallest size that holds them instead of killing the link.
-    const widths = items.map(itemMM);
-    const fits = WRIST_CHOICES.find((cm) => cm >= wrist && strandArcMM(widths, cm * 10) <= cm * 10);
+    const fits = fitWristCm(items.map(itemMM), wrist);
     if (fits === undefined) return null;
     return { wrist: fits, items };
   } catch { return null; }

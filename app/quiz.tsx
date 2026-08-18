@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  CHAKRA_META, ENERGY_META, byChakra, inStock, nextUid, stonePhotos, stonesForChakra, stonesForEnergy, strandArcMM,
+  CHAKRA_META, ENERGY_META, byChakra, canPadMore, inStock, nextUid, stonePhotos, stonesForChakra, stonesForEnergy,
   type ChakraKey, type DesignItem, type EnergyType, type Stone,
 } from "./catalog";
 import { BraceletThumb } from "./shop";
@@ -16,6 +16,10 @@ import { BraceletThumb } from "./shop";
 
 const digitsSum = (s: string) => s.replace(/\D/g, "").split("").reduce((a, d) => a + Number(d), 0);
 const reduce9 = (n: number) => { while (n > 9) n = digitsSum(String(n)); return n || 9; };
+
+// 陣容組珠的工廠——buildDeep 與 lineupFromIds 共用（曾各自定義一份，
+// 逐字相同）。
+const stoneItem = (id: string, mm: number): DesignItem => ({ kind: "stone", id, mm, uid: nextUid() });
 
 type LifeEntry = { persona: string; main: EnergyType; lack: EnergyType; line: string };
 // 每個生命靈數的原型：主能量（天生帶著的）與缺口能量（最少照顧到的）。
@@ -99,12 +103,11 @@ function buildDeep(birthday: string, mbti: string, concerns: ChakraKey[]): DeepR
     used.add(stone.id);
     return { chakra: c, stone, deficit, core };
   });
-  const s = (id: string, mm: number): DesignItem => ({ kind: "stone", id, mm, uid: nextUid() });
-  const items = picks.map((p) => s(p.stone.id, p.core ? 12 : p.deficit ? 10 : 8));
-  // 白水晶 8mm 補到 14cm 手圍的 84% 上下（弧長模型）。
+  const items = picks.map((p) => stoneItem(p.stone.id, p.core ? 12 : p.deficit ? 10 : 8));
+  // 白水晶 8mm 補到 14cm 手圍的 84% 上下（弧長模型，共用 canPadMore）。
   const widths = () => items.map((it) => it.mm as number);
-  while (items.length < 20 && strandArcMM([...widths(), 8], 140) <= 140 && strandArcMM(widths(), 140) < 140 * 0.84) {
-    items.push(s("clear", 8));
+  while (items.length < 20 && canPadMore(widths(), 140, 0.84)) {
+    items.push(stoneItem("clear", 8));
   }
   return { life, entry, mbti, deficits, picks, items };
 }
@@ -113,7 +116,7 @@ function buildDeep(birthday: string, mbti: string, concerns: ChakraKey[]): DeepR
 
 function lineupFromIds(ids: [string, string, string, string, string]): DesignItem[] {
   const [core, inner, action, pattern, theme] = ids;
-  const s = (id: string, mm: number): DesignItem => ({ kind: "stone", id, mm, uid: nextUid() });
+  const s = stoneItem;
   return [
     s(inner, 10), s(pattern, 10), s("clear", 8), s(action, 10), s(theme, 10),
     s(core, 12),

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { putJson, type SeriesRow, type TabProps } from "./shared";
+import { putJson, runSave, type SeriesRow, type TabProps } from "./shared";
 
 export function SeriesTab({ catalog, reload, notify }: TabProps) {
   const [open, setOpen] = useState<string | null>(null);
@@ -23,16 +23,10 @@ function SeriesEditor({ row, reload, notify }: { row: SeriesRow; reload: () => v
     tagline: String(tone.tagline ?? ""), craft: String(tone.craft ?? ""),
     theme: String(tone.theme ?? ""), banner: String(tone.banner ?? ""),
   });
-  const save = async () => {
-    try {
-      await putJson(`/api/admin/series/${encodeURIComponent(row.id)}`, {
-        name: form.name, en: form.en, active: form.active,
-        tone: { ...tone, zh: form.name, en: form.en, tagline: form.tagline, craft: form.craft, theme: form.theme, banner: form.banner },
-      });
-      notify("已儲存，前台一分鐘內生效");
-      reload();
-    } catch (e) { notify(`儲存失敗：${(e as Error).message}`); }
-  };
+  const save = () => runSave(notify, reload, () => putJson(`/api/admin/series/${encodeURIComponent(row.id)}`, {
+    name: form.name, en: form.en, active: form.active,
+    tone: { ...tone, zh: form.name, en: form.en, tagline: form.tagline, craft: form.craft, theme: form.theme, banner: form.banner },
+  }));
   return <div className="editor">
     <div className="grid">
       <label>系列名<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>

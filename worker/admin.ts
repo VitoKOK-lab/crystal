@@ -1,9 +1,8 @@
 // Admin API: everything behind the Google-session check. Writes are
 // whole-row updates from the admin UI; stone size ladders are replaced as
 // a set inside a batch so a half-applied edit can't exist.
-import { Env, json, sessionEmail } from "./lib";
-
-const bad = (msg: string, status = 400) => json({ error: msg }, { status });
+import { catalogTables } from "./catalog-data";
+import { bad, Env, json, sessionEmail } from "./lib";
 
 // Body parsing that can't throw, and field validators that turn a missing or
 // mistyped value into a 400 instead of letting a whole-row UPDATE overwrite
@@ -31,22 +30,9 @@ export async function handleAdmin(request: Request, env: Env, url: URL): Promise
   const seg = url.pathname.slice("/api/admin/".length).split("/").filter(Boolean);
 
   // Full catalog including inactive rows, for the management screens.
+  // （共用查詢已過濾 session_%——簽名金鑰絕不離開伺服器。）
   if (request.method === "GET" && seg[0] === "catalog") {
-    const [stones, sizes, accessories, series, products, settings] = await Promise.all([
-      env.DB.prepare("SELECT * FROM stones ORDER BY sort").all(),
-      env.DB.prepare("SELECT * FROM stone_sizes ORDER BY stone_id, mm").all(),
-      env.DB.prepare("SELECT * FROM accessories ORDER BY sort").all(),
-      env.DB.prepare("SELECT * FROM series ORDER BY sort").all(),
-      env.DB.prepare("SELECT * FROM products ORDER BY series_id, sort").all(),
-      // 過濾 session_%：session 簽名金鑰絕不能離開伺服器（公開版
-      // catalog 同樣過濾）。
-      env.DB.prepare("SELECT key, value FROM settings WHERE key NOT LIKE 'session_%'").all(),
-    ]);
-    return json({
-      stones: stones.results, stoneSizes: sizes.results, accessories: accessories.results,
-      series: series.results, products: products.results,
-      settings: Object.fromEntries(settings.results.map((r) => [r.key as string, r.value as string])),
-    });
+    return json(await catalogTables(env, { includeInactive: true }));
   }
 
   // Create a new stone. Photo starts empty — the row stays hidden from the

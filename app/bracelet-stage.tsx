@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo, useRef, useState } from "react";
-import { ItemVisual, PCT_PER_MM, arcWidthMM, itemMM, type DesignItem, type StrandPlacement } from "./catalog";
+import { ItemVisual, PCT_PER_MM, arcWidthMM, fanCharmAngles, itemMM, type DesignItem, type StrandPlacement } from "./catalog";
 import type { ENERGY_META } from "./catalog";
 import type { SeriesTone } from "./series";
 
@@ -62,29 +62,13 @@ function BraceletStage({
     return next.every((x, i) => x === current[i]) ? current : next;
   });
 
-  // Charms occupy only 3mm of cord but draw far wider, so consecutive charms
-  // land almost on top of each other and hide one another completely. Fan
-  // each run of adjacent charms out around its own centre — display only:
-  // the true mm position (what dragging and pricing use) is untouched, and a
-  // slight remaining overlap is fine, that's how a real charm cluster hangs.
-  const displayAngles = useMemo(() => {
-    const out = arcs.map((arc) => arc.angle);
-    const FAN_STEP = 0.15; // radians between neighbouring charms in a run
-    let runStart = -1;
-    for (let i = 0; i <= arcs.length; i++) {
-      const inRun = i < arcs.length && arcs[i].isCharm;
-      if (inRun && runStart < 0) runStart = i;
-      if (!inRun && runStart >= 0) {
-        const len = i - runStart;
-        if (len > 1) {
-          const centre = (out[runStart] + out[i - 1]) / 2;
-          for (let j = 0; j < len; j++) out[runStart + j] = centre + (j - (len - 1) / 2) * FAN_STEP;
-        }
-        runStart = -1;
-      }
-    }
-    return out;
-  }, [arcs]);
+  // Display-only charm fan (shared geometry helper): the true mm position —
+  // what dragging and pricing use — is untouched, and a slight remaining
+  // overlap is fine, that's how a real charm cluster hangs.
+  const displayAngles = useMemo(
+    () => fanCharmAngles(arcs.map((arc) => arc.angle), arcs.map((arc) => arc.isCharm)),
+    [arcs],
+  );
 
   return <div className="bracelet-stage" ref={stageRef}>
     <div className="table-shadow" />

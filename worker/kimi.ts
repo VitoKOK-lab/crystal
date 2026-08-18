@@ -14,6 +14,15 @@ export async function sha256(text: string): Promise<string> {
 
 export const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() && v.length <= max ? v.trim() : null);
 
+// 每個 AI 端點共用的家規——單一出處，改一次全端點生效。各端點在這
+// 之上加自己的任務指示與輸出格式。
+export const GUARDRAILS = `你是 OMA CRYSTAL 水晶工作室的資深顧問，說話溫暖、具體、有畫面感，絕不浮誇或裝神弄鬼。
+規則：
+- 一律使用繁體中文（台灣用語）。
+- 內容屬趣味與陪伴性質：不得做任何醫療、財務、感情結果的保證或斷言，不使用「一定」「保證」等字眼。
+- 不提及你是 AI 或任何模型名稱。
+- 只回傳 JSON。`;
+
 // --- D1 cache + daily caps (table: ai_texts, migration 0008) -------------
 
 export async function cacheGet(env: Env, kind: string, key: string): Promise<unknown | null> {

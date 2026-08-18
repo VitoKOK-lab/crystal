@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { putJson, type TabProps } from "./shared";
+import { putJson, runSave, type TabProps } from "./shared";
 
 export function Settings({ catalog, reload, notify }: TabProps) {
   const [form, setForm] = useState({
@@ -7,13 +7,7 @@ export function Settings({ catalog, reload, notify }: TabProps) {
     shipping_fee: catalog.settings.shipping_fee ?? "120",
     free_shipping_over: catalog.settings.free_shipping_over ?? "3000",
   });
-  const save = async () => {
-    try {
-      await putJson("/api/admin/settings", form);
-      notify("已儲存，前台一分鐘內生效");
-      reload();
-    } catch (e) { notify(`儲存失敗：${(e as Error).message}`); }
-  };
+  const save = () => runSave(notify, reload, () => putJson("/api/admin/settings", form));
   return <div className="editor pad">
     <div className="grid">
       <label>基本工費 NT$<input type="number" min={0} value={form.base_fee} onChange={(e) => setForm({ ...form, base_fee: e.target.value })} /></label>

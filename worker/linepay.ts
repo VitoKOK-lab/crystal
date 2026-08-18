@@ -15,6 +15,7 @@
 // secrets 後這個模組才會啟用；未設定時回 503，前端顯示尚未開通。
 // 正式上線換成正式商店的憑證並把 LINE_PAY_BASE 指向 api-pay.line.me。
 import { Env, json, ORDER_ID_RE, rateLimited } from "./lib";
+import { getOrder, markPaid } from "./orders-store";
 
 const cfg = (env: Env) => ({
   channelId: env.LINE_PAY_CHANNEL_ID ?? "",
@@ -63,8 +64,7 @@ async function createPayment(request: Request, env: Env, url: URL): Promise<Resp
   let orderId = "";
   try { orderId = String(((await request.json()) as { order?: unknown }).order ?? ""); } catch { /* validated below */ }
   if (!ORDER_RE.test(orderId)) return json({ error: "invalid order id" }, { status: 400 });
-  const order = await env.DB.prepare("SELECT id, total, status FROM orders WHERE id=?").bind(orderId)
-    .first<{ id: string; total: number; status: string }>();
+  const order = await getOrder(env, orderId);
   if (!order) return json({ error: "order not found" }, { status: 404 });
   if (order.status !== "pending") return json({ error: `order is ${order.status}` }, { status: 409 });
 
@@ -114,8 +114,7 @@ async function confirmPayment(env: Env, url: URL): Promise<Response> {
     return new Response(null, { status: 302, headers: { location: dest.toString() } });
   };
   if (!channelId || !secret || !ORDER_RE.test(orderId) || !/^\d{6,25}$/.test(txn)) return redirect("fail");
-  const order = await env.DB.prepare("SELECT total, status FROM orders WHERE id=?").bind(orderId)
-    .first<{ total: number; status: string }>();
+  const order = await getOrder(env, orderId);
   if (!order) return redirect("fail");
   if (order.status === "paid") return redirect("ok");
   if (order.status !== "pending") return redirect("fail");
@@ -126,8 +125,7 @@ async function confirmPayment(env: Env, url: URL): Promise<Response> {
     console.warn("linepay confirm failed", { orderId, txn, returnCode: returnCode || "no response", detail: text.slice(0, 200) });
     return redirect("fail");
   }
-  await env.DB.prepare("UPDATE orders SET status='paid', linepay_txn=? WHERE id=? AND status='pending'")
-    .bind(txn, orderId).run();
+  await markPaid(env, orderId, "linepay_txn", txn);
   return redirect("ok");
 }
 

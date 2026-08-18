@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, putJson, type OrderRow } from "./shared";
+import { api, putJson, runSave, type OrderRow } from "./shared";
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "待付款", paid: "已付款", making: "製作中", shipped: "已出貨", done: "完成", cancelled: "已取消",
@@ -44,13 +44,9 @@ export function Orders({ notify }: { notify: (m: string) => void }) {
         <OrderItems items={o.items} />
         <div className="actions">
           <label>狀態
-            <select value={o.status} onChange={async (e) => {
-              try {
-                await putJson(`/api/admin/orders/${encodeURIComponent(o.id)}/status`, { status: e.target.value });
-                notify("狀態已更新");
-                load();
-              } catch (err) { notify(`更新失敗：${(err as Error).message}`); }
-            }}>
+            <select value={o.status} onChange={(e) => runSave(notify, load,
+              () => putJson(`/api/admin/orders/${encodeURIComponent(o.id)}/status`, { status: e.target.value }),
+              { ok: "狀態已更新", errPrefix: "更新失敗" })}>
               {Object.entries(STATUS_LABEL).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>
           </label>

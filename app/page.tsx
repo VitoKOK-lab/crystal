@@ -22,7 +22,7 @@ import { playClaspClick } from "./ui-sound";
 import Shop from "./shop";
 import {
   ENERGY_META, ItemVisual, WRIST_CHOICES, accessories, accessoryPhotos,
-  buildSpec, byAccessory, byStone, colorGroupOf, decodeDesign, defaultStoneMM, dominantOf, encodeDesign, energyScores,
+  buildSpec, byAccessory, byStone, canPadMore, colorGroupOf, decodeDesign, defaultStoneMM, dominantOf, encodeDesign, energyScores,
   fitWristCm, itemMM, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
   strandArcMM, PCT_PER_MM,
   type Accessory, type BeadSize, type ColorGroupKey, type DesignItem, type Stone,
@@ -240,7 +240,7 @@ export default function Home() {
     const built = buildSpec([...preset.spec]);
     const w = built.map(itemMM);
     const cm = fitWristCm(w, wristCm) ?? WRIST_CHOICES[WRIST_CHOICES.length - 1];
-    while (strandArcMM([...w, 8], cm * 10) <= cm * 10 && strandArcMM(w, cm * 10) < cm * 10 * 0.85) {
+    while (canPadMore(w, cm * 10, 0.85)) {
       built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() });
       w.push(8);
     }
@@ -332,7 +332,7 @@ export default function Home() {
       <Preview3D pieces={previewPieces} capacityMM={capacityMM} energy={dominant.key} onClose={closePreview} />
     </Suspense>}
     <header className="studio-head"><button className="wordmark" onClick={() => navigate("home", seriesId)}>OMA <span>CRYSTAL</span></button><div className="head-note">{tone.dominantEn}</div><div className="head-actions"><button className="quiet" onClick={() => navigate("quiz", seriesId)}>選石測驗</button><button className="quiet" onClick={() => goShop()}>系列商品</button><button className="quiet" onClick={() => setShowGuide(true)}>? 設計指南</button><button className="quiet" onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空設計</button></div></header>
-    {view === "checkout" ? <Checkout lines={orderLines} spec={encodeDesign(items, wristCm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => navigate("studio", seriesId)} /> : <>
+    {view === "checkout" ? <Checkout lines={orderLines} specFor={(cm) => encodeDesign(items, cm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => navigate("studio", seriesId)} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
         <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>

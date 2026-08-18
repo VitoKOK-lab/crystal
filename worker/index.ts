@@ -4,6 +4,7 @@
 // admin auth, and the admin management API.
 import { handleAdmin } from "./admin";
 import { handleAuth } from "./auth";
+import { catalogTables } from "./catalog-data";
 import { handleEcpay } from "./ecpay";
 import { handleLinepay } from "./linepay";
 import { BIRTHDAY_RE, EMAIL_RE, Env, json, rateLimited } from "./lib";
@@ -12,23 +13,7 @@ import { handleAi } from "./ai";
 import { handleQuizReading } from "./quiz-reading";
 
 async function catalogPayload(env: Env) {
-  const [stones, sizes, accessories, series, products, settings] = await Promise.all([
-    env.DB.prepare("SELECT * FROM stones WHERE active=1 ORDER BY sort").all(),
-    env.DB.prepare("SELECT * FROM stone_sizes WHERE active=1 ORDER BY stone_id, mm").all(),
-    env.DB.prepare("SELECT * FROM accessories WHERE active=1 ORDER BY sort").all(),
-    env.DB.prepare("SELECT * FROM series WHERE active=1 ORDER BY sort").all(),
-    env.DB.prepare("SELECT * FROM products WHERE active=1 ORDER BY series_id, sort").all(),
-    env.DB.prepare("SELECT * FROM settings WHERE key NOT LIKE 'session_%'").all(),
-  ]);
-  return {
-    stones: stones.results,
-    stoneSizes: sizes.results,
-    accessories: accessories.results,
-    series: series.results,
-    products: products.results,
-    settings: Object.fromEntries(settings.results.map((r) => [r.key as string, r.value as string])),
-    generatedAt: new Date().toISOString(),
-  };
+  return { ...(await catalogTables(env)), generatedAt: new Date().toISOString() };
 }
 
 // The structural slice of ExecutionContext we use (workers-types is
