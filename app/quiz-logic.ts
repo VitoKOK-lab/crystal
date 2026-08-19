@@ -98,7 +98,7 @@ export function buildDeep(birthday: string, mbti: string, concerns: ChakraKey[])
   const items = picks.map((p) => stoneItem(p.stone.id, p.core ? 12 : p.deficit ? 10 : 8));
   // 白水晶 8mm 補到 14cm 手圍的 84% 上下（弧長模型，共用 canPadMore）。
   const widths = () => items.map((it) => it.mm as number);
-  while (items.length < 20 && canPadMore(widths(), 140, 0.84)) {
+  while (items.length < 20 && canPadMore(widths(), 14, 0.84)) {
     items.push(stoneItem("clear", 8));
   }
   return { life, entry, mbti, deficits, picks, items };

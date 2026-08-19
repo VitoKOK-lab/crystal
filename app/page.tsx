@@ -24,7 +24,7 @@ import Shop from "./shop";
 import {
   ENERGY_META, ItemVisual, WRIST_CHOICES, accessories, accessoryPhotos,
   buildSpec, byAccessory, byStone, canPadMore, colorGroupOf, defaultStoneMM, dominantOf, encodeDesign, energyScores,
-  fitWristCm, itemMM, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
+  capacityForWrist, fitWristCm, itemMM, placementOf, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
   strandArcMM, PCT_PER_MM,
   type Accessory, type BeadSize, type ColorGroupKey, type DesignItem, type Stone,
 } from "./catalog";
@@ -43,6 +43,12 @@ export const DEFAULT_WRIST = 14;
 // 360° preview button so that weight only loads for visitors who actually
 // open it, instead of on every studio page view.
 const Preview3D = lazy(() => import("./preview-3d"));
+
+// 3D 只需要數值：比例、穿繩孔、裁切範圍。
+const shapeOf = (it: DesignItem) => {
+  const p = placementOf(it);
+  return { aspect: p.aspect, anchor: p.anchor, box: p.box };
+};
 
 export default function Home() {
   const [items, setItems] = useState<DesignItem[]>(initial);
@@ -112,7 +118,9 @@ export default function Home() {
       .filter((x) => tab !== "crystal" || !energyFilter || ((x as Stone).energy[energyFilter as keyof Stone["energy"]] ?? 0) >= 7);
   }, [tab, query, colorFilter, energyFilter]);
   const widths = useMemo(() => items.map(itemMM), [items]);
-  const capacityMM = wristCm * 10;
+  // 珠心圈周長：手圍→目標內圈（含鬆度）→再外推半顆珠。串越粗的珠子，
+  // 同一個手圍需要的珠心圈就越大，這是實體手鍊的真實行為。
+  const capacityMM = useMemo(() => capacityForWrist(wristCm, widths), [wristCm, widths]);
   // Strung length is measured in ARC the beads actually occupy on the ring
   // (a bead takes more arc than its diameter — see arcWidthMM), so the
   // readout, the fill gates and the drawn ring can never disagree with the
@@ -125,7 +133,7 @@ export default function Home() {
   const add = useCallback((item: DesignItem) => {
     const nextWidths = [...widths, itemMM(item)];
     let cm = wristCm;
-    if (strandArcMM(nextWidths, cm * 10) > cm * 10) {
+    if (strandArcMM(nextWidths, capacityForWrist(cm, nextWidths)) > capacityForWrist(cm, nextWidths)) {
       const grown = fitWristCm(nextWidths, cm);
       if (grown === undefined) {
         setWristAlert(true);
@@ -137,7 +145,7 @@ export default function Home() {
     }
     const placed = { ...item, uid: nextUid() }; setItems((v) => [...v, placed]); setSelected(placed);
     playClaspClick(true);
-    const strungNext = (strandArcMM(nextWidths, cm * 10) / 10).toFixed(1);
+    const strungNext = (strandArcMM(nextWidths, capacityForWrist(cm, nextWidths)) / 10).toFixed(1);
     showNotice(cm !== wristCm
       ? `已加入 ${label(placed)}・手圍自動改為 ${cm} cm（已串 ${strungNext} cm）`
       : `已加入 ${label(placed)}${placed.kind === "stone" ? `・${sizeLabel(placed.size)}` : ""}・已串 ${strungNext} / ${cm} cm`);
@@ -147,7 +155,7 @@ export default function Home() {
     const built = buildSpec([...preset.spec]);
     const w = built.map(itemMM);
     const cm = fitWristCm(w, wristCm) ?? WRIST_CHOICES[WRIST_CHOICES.length - 1];
-    while (canPadMore(w, cm * 10, 0.85)) {
+    while (canPadMore(w, cm, 0.85)) {
       built.splice(built.length - 1, 0, { kind: "stone", id: preset.pad, size: "small", uid: nextUid() });
       w.push(8);
     }
@@ -158,8 +166,9 @@ export default function Home() {
   useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(""), 3000); return () => clearTimeout(t); }, [notice, noticeSeq]);
   useEffect(() => { if (!wristAlert) return; const t = setTimeout(() => setWristAlert(false), 2000); return () => clearTimeout(t); }, [wristAlert]);
   const changeWrist = (cm: number) => {
-    const need = strandArcMM(widths, cm * 10);
-    if (need > cm * 10) { showNotice(`目前已串 ${(need / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材`); return; }
+    const capNext = capacityForWrist(cm, widths);
+    const need = strandArcMM(widths, capNext);
+    if (need > capNext) { showNotice(`目前已串 ${(need / 10).toFixed(1)} cm，超過手圍 ${cm} cm 的容量，請先移除部分素材`); return; }
     setWristCm(cm); setWristAlert(false); showNotice(`手圍已設定為 ${cm} cm`);
   };
   const removeByUid = useCallback((uid: number) => { const item = items.find((x) => x.uid === uid); setItems((v) => v.filter((x) => x.uid !== uid)); if (item) { setSelected(item); playClaspClick(false); showNotice(`已移除 ${label(item)}`); } }, [items, showNotice]);
@@ -177,8 +186,8 @@ export default function Home() {
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
   const dominant = dominantOf(scores);
   const previewPieces = useMemo<PreviewPiece[]>(() => items.map((it) => it.kind === "stone"
-    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const, uid: it.uid }
-    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const, uid: it.uid }), [items]);
+    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const, uid: it.uid, shape: shapeOf(it) }
+    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const, uid: it.uid, shape: shapeOf(it) }), [items]);
   const orderLines = useMemo<OrderLine[]>(() => {
     const grouped = new Map<string, { item: DesignItem; qty: number }>();
     items.forEach((item) => { const key = `${item.kind}-${item.id}-${item.size ?? ""}`; const entry = grouped.get(key); if (entry) entry.qty += 1; else grouped.set(key, { item, qty: 1 }); });
@@ -194,6 +203,7 @@ export default function Home() {
   const beads = items.filter((x) => x.kind === "stone").length;
   const charms = items.filter((x) => x.kind === "accessory" && (byAccessory[x.id] as Accessory).type === "charm").length;
   const strung = (strungMM / 10).toFixed(1);
+  const capacityCm = (capacityMM / 10).toFixed(1);
   const fillRatio = strungMM / capacityMM;
   const r = (capacityMM / (Math.PI * 2)) * PCT_PER_MM;
   const arcs = useMemo(() => layoutStrand(items, capacityMM), [items, capacityMM]);
@@ -250,7 +260,7 @@ export default function Home() {
     {view === "checkout" ? <Checkout lines={orderLines} specFor={(cm) => encodeDesign(items, cm)} dominant={dominant} totalEnergy={totalEnergy} initialWrist={wristCm} onBack={() => navigate("studio", seriesId)} /> : <>
     <section className="studio-shell" id="top">
       <section className="canvas-panel">
-        <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {wristCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={wristCm} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
+        <div className="canvas-top"><div className="stats"><span className={wristAlert ? "wrist-alert" : ""}><small>WRIST SIZE 手圍</small><b><select className="wrist-select" value={wristCm} onChange={(e) => changeWrist(Number(e.target.value))} aria-label="選擇手圍尺寸">{WRIST_CHOICES.map((cm) => <option key={cm} value={cm}>{cm} cm</option>)}</select></b></span><span><small>STRUNG 已串</small><b>{strung}<i> / {capacityCm} cm</i></b><span className={`wrist-bar ${fillRatio >= 1 ? "full" : fillRatio > 0.9 ? "warn" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={Number(capacityCm)} aria-valuenow={Number(strung)} aria-label="已串長度"><i style={{ width: `${Math.min(100, fillRatio * 100)}%` }} /></span></span><span><small>CHARMS</small><b>{charms}</b></span></div><div className="price"><small>ESTIMATED TOTAL</small><b>NT$ {total.toLocaleString()}</b></div></div>
         <BraceletStage
           items={items}
           setItems={setItems}
@@ -266,7 +276,7 @@ export default function Home() {
           removeByUid={removeByUid}
         />
         <EnergyPanel scores={scores} total={totalEnergy} dominant={dominant} open={energyOpen} onToggle={toggleEnergyOpen} tone={tone} onAddStone={addStoneById} energyFilter={energyFilter} onFilterEnergy={filterEnergy} />
-        <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 目前只串了 ${strung} cm。至少要串滿八成（${(wristCm * 0.8).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } navigate("checkout", seriesId, { scroll: false }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
+        <div className="canvas-actions"><button onClick={() => { setItems([]); showNotice("已清空，隨時可以重新開始"); }}>清空全部</button><button onClick={shareDesign}>分享設計</button><button className="pv-open" onClick={() => { if (!items.length) { showNotice("先加幾顆，才有東西可以轉"); return; } setPreviewOpen(true); }}>360° 預覽</button><button className="primary" onClick={() => { if (!items.length) { showNotice("手鍊還是空的，先選幾顆礦石"); return; } if (fillRatio < 0.8) { showNotice(`手圍 ${wristCm} cm 這條要串滿 ${capacityCm} cm，目前 ${strung} cm。至少要串滿八成（${(capacityMM * 0.08).toFixed(1)} cm）配戴才服貼，再加幾顆吧`); return; } navigate("checkout", seriesId, { scroll: false }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>前往結帳 <span>→</span></button></div>
         {notice && <div className="notice">{notice}<button onClick={() => setNotice("")}>×</button></div>}
       </section>
       <MaterialLibrary

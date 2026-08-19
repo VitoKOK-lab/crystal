@@ -69,7 +69,7 @@ test("encodeDesign/decodeDesign round-trips a design", () => {
 // straight from a URL a visitor could hand-edit or share.
 test("decodeDesign rejects malformed/oversized/unknown untrusted input", () => {
   assert.equal(decodeDesign("13.3|rose.l"), null, "wrist not in WRIST_CHOICES");
-  assert.equal(decodeDesign(`13|${Array(12).fill("rose.x").join(",")}`), null, "overflows even the largest wrist");
+  assert.equal(decodeDesign(`13|${Array(20).fill("rose.x").join(",")}`), null, "overflows even the largest wrist");
   assert.equal(decodeDesign("14|not-a-real-id"), null, "unknown id");
   assert.equal(decodeDesign("14|"), null, "empty item list");
   assert.equal(decodeDesign("garbage"), null, "no separator at all");
@@ -93,36 +93,67 @@ test("arcWidthMM exceeds the raw diameter, and more so for big beads", () => {
   assert.ok(bigExcess > smallExcess);
 });
 
-test("seven 20mm beads no longer 'exactly fill' a 14cm wrist", () => {
+test("a wrist size buys a bead circle bigger than the wrist itself", () => {
+  // 手圍只決定「內圈」；珠心圈還要外推半顆珠，粗珠外推得更多。
+  const cap8 = catalog.capacityForWrist(14, [8, 8, 8]);
+  const cap20 = catalog.capacityForWrist(14, [20, 20, 20]);
+  assert.ok(cap8 > 140 + catalog.sizing.easeMM, "centre circle sits outside the inner circle");
+  assert.ok(cap20 > cap8, "chunkier beads need a bigger centre circle for the same wrist");
+  // 反推回去，成品內圈要等於手圍＋鬆度。
+  assert.ok(Math.abs(catalog.innerCircumferenceMM(cap20, [20, 20, 20]) - (140 + catalog.sizing.easeMM)) < 1e-6);
+});
+
+test("seven 20mm beads leave room on a 13cm wrist under the honest model", () => {
   const widths = Array(7).fill(20);
-  assert.equal(widths.reduce((a, b) => a + b, 0), 140, "raw mm says it fits exactly");
-  assert.ok(catalog.strandArcMM(widths, 140) > 140, "arc math says it doesn't");
-  assert.equal(catalog.fitWristCm(widths, 13), 14.5, "the honest fit is the next half-size up");
+  const cap = catalog.capacityForWrist(13, widths);
+  assert.ok(catalog.strandArcMM(widths, cap) < cap, "7×20mm does not fill a real 13cm bracelet");
+  assert.equal(catalog.fitWristCm(widths, 13), 13, "so 13cm is already an honest fit");
 });
 
-test("closedLoopCapacityMM makes the widths subtend exactly 2π", () => {
-  const widths = [20, 20, 20, 20, 20, 20, 20];
+test("a 14cm wrist needs ~17 beads of 10mm, not 13", () => {
+  // 這是舊模型最大的謊：把手圍當成珠心圈，成品會小整整 π×珠徑。
+  let n = 0;
+  while (n < 40) {
+    const widths = Array(n + 1).fill(10);
+    const cap = catalog.capacityForWrist(14, widths);
+    if (catalog.strandArcMM(widths, cap) > cap) break;
+    n++;
+  }
+  assert.ok(n >= 16 && n <= 18, `expected ~17 beads, got ${n}`);
+});
+
+test("closedLoopCapacityMM makes the pair chords subtend exactly 2π", () => {
+  const widths = [20, 10, 20, 8, 20, 10, 20];   // 混尺寸才看得出弦長模型的差別
   const cap = catalog.closedLoopCapacityMM(widths);
-  assert.ok(cap > 140, "closed loop is bigger than the raw sum");
   const R = cap / (Math.PI * 2);
-  const total = widths.reduce((a, w) => a + 2 * Math.asin(w / (2 * R)), 0);
-  assert.ok(Math.abs(total - Math.PI * 2) < 1e-6);
+  const chords = catalog.chordsFor(widths, true);
+  const total = chords.reduce((a, c) => a + 2 * Math.asin(c / (2 * R)), 0);
+  assert.ok(Math.abs(total - Math.PI * 2) < 1e-5, `closed loop must land on 2π, got ${total}`);
 });
 
-test("anglesForWidths places equal beads tangent (angular gap = 2·asin(w/2R))", () => {
-  const widths = [20, 20, 20];
-  const angles = anglesForWidths(widths, 140);
-  const R = 140 / (Math.PI * 2);
-  const expectedGap = 2 * Math.asin(20 / (2 * R));
-  assert.ok(Math.abs((angles[1] - angles[0]) - expectedGap) < 1e-9);
-  assert.ok(Math.abs((angles[2] - angles[1]) - expectedGap) < 1e-9);
+test("solveRingRadiusMM refuses an impossible ring instead of guessing", () => {
+  assert.equal(catalog.solveRingRadiusMM([10, 10]), null, "two chords can't close a ring");
 });
 
-test("decodeDesign grows the wrist for a design that no longer fits its stated size", () => {
+test("adjacent beads sit exactly tangent, mixed sizes included", () => {
+  // 相鄰兩顆的圓心距必須剛好等於 (d₁+d₂)/2 + 繩距——這是「貼合」的定義。
+  const widths = [20, 8, 12, 10, 20];
+  const cap = catalog.capacityForWrist(15, widths);
+  const angles = anglesForWidths(widths, cap);
+  const R = cap / (Math.PI * 2);
+  for (let i = 0; i < widths.length - 1; i++) {
+    const chord = 2 * R * Math.sin((angles[i + 1] - angles[i]) / 2);
+    const needed = (widths[i] + widths[i + 1]) / 2 + catalog.sizing.cordGapMM;
+    assert.ok(Math.abs(chord - needed) < 1e-6,
+      `${widths[i]}mm+${widths[i + 1]}mm: centre distance ${chord.toFixed(4)} should be ${needed.toFixed(4)}`);
+  }
+});
+
+test("old share links still decode under the new sizing model", () => {
   const decoded = decodeDesign("13|rose.x,rose.x,rose.x,rose.x,rose.x,rose.x,rose.x");
   assert.ok(decoded, "still decodes — old links must not die");
-  assert.equal(decoded.wrist, 14.5, "bumped to the smallest size that holds 7×20mm");
   assert.equal(decoded.items.length, 7);
+  assert.equal(decoded.wrist, 13, "7×20mm now genuinely fits the 13cm it claimed");
 });
 
 test("layoutStrand agrees with anglesForWidths/centersForWidths on the same items", () => {

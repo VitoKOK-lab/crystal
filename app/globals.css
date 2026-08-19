@@ -917,3 +917,22 @@ button,input { font:inherit; } button { cursor:pointer; }
 /* 首頁（landing）上的 toast：沒有 .studio 的定位容器可掛，改用
    fixed 釘在視窗底部——付款導回的成功訊息靠它。 */
 .notice.notice-fixed { position:fixed; bottom:26px; }
+
+/* 零件的顯示框改由 JS 依「實際輪廓比例＋穿繩孔位置」算出（見
+   bracelet-stage.tsx 的 placementOf），內層視覺必須完全填滿這個框，
+   anchor 的位移才會落在對的地方。原本內層是固定 px，會跟外框打架，
+   非圓形的吊飾因此被壓成細條。 */
+.bracelet-stage .design-item > .crystal,
+.bracelet-stage .design-item > .hardware {
+  position: relative; display: block; overflow: hidden;
+  width: 100%; height: 100%; border-radius: 0; box-shadow: none;
+}
+/* 圖檔四周有留白，直接 contain 會把圖案縮成一小塊（細長的吊飾最明顯）。
+   依 piece-shapes 量到的圖案範圍把整張圖放大平移，讓圖案填滿顯示框。 */
+.bracelet-stage .design-item > .crystal > img,
+.bracelet-stage .design-item > .hardware > img {
+  position: absolute;
+  width: var(--art-w, 100%); height: var(--art-h, 100%);
+  left: var(--art-x, 0%); top: var(--art-y, 0%);
+  object-fit: fill;
+}

@@ -8,7 +8,12 @@ import { ACCESSORY_COLORS, STONE_COLORS } from "./bead-colors";
 import { SF_STONE_TEXTURES } from "./bead-textures";
 import { anglesForWidths, fanCharmAngles } from "./catalog";
 
-export type PreviewPiece = { mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean; id: string; kind: "stone" | "accessory"; uid?: number };
+export type PreviewPiece = {
+  mm: number; src: string | null; metal: "gold" | "silver"; isCharm: boolean;
+  id: string; kind: "stone" | "accessory"; uid?: number;
+  /** 圖案比例、穿繩孔、去留白裁切範圍（見 app/piece-shapes.ts）。 */
+  shape?: { aspect: number; anchor: [number, number]; box: [number, number, number, number] };
+};
 
 // Three.js GPU resources are not garbage-collected — every material or
 // cloned texture a bead builds must be disposed when it goes away, or each
@@ -217,22 +222,35 @@ function SpacerBead({ piece, angle, radiusUnits }: { piece: PreviewPiece; angle:
 // it hangs straight down wherever it sits on the ring.
 function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: PreviewPiece; angle: number; radiusUnits: number; cordRadius: number }) {
   const texture = useLoader(THREE.TextureLoader, piece.src as string);
+  const shape = piece.shape;
   const map = useMemo(() => {
     const t = texture.clone();
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;
+    // 裁掉圖檔四周的留白，只留圖案本身（跟 2D 舞台同一份量測資料）。
+    if (shape) {
+      const [x0, y0, x1, y1] = shape.box;
+      t.repeat.set(x1 - x0, y1 - y0);
+      t.offset.set(x0, 1 - y1);          // 貼圖的 V 軸是由下往上
+    }
     return t;
-  }, [texture]);
+  }, [texture, shape]);
   useDisposable(map);
-  const side = CHARM_DISPLAY_MM * UNITS_PER_MM;
+  // 平面照圖案的真實比例，不再硬塞成正方形。
+  const aspect = shape?.aspect && shape.aspect > 0 ? shape.aspect : 1;
+  const long = CHARM_DISPLAY_MM * UNITS_PER_MM;
+  const w = aspect >= 1 ? long : long * aspect;
+  const h = aspect >= 1 ? long / aspect : long;
   const x = Math.cos(angle) * radiusUnits;
   const z = Math.sin(angle) * radiusUnits;
   // A charm dangles from its jump ring: gravity decides where it points,
   // so it hangs straight down from its cord point wherever it sits on the
   // ring (matching the 2D stage). Its photo is shot bail-up, so hanging
-  // means no in-plane roll at all — just drop it half a body so the bail
-  // still meets the cord.
-  const y = -side / 2 + side * 0.13;
+  // means no in-plane roll at all — the piece is offset so the BAIL HOLE
+  // （不再是猜的 13%）落在繩子上。
+  const anchor = shape?.anchor ?? [0.5, 0.13];
+  const y = h * (anchor[1] - 0.5);
+  const xOff = -(anchor[0] - 0.5) * w;
   const groupRef = useRef<THREE.Group>(null);
   useFrame(({ camera }) => {
     groupRef.current?.quaternion.copy(camera.quaternion); // camera-facing and upright: it hangs
@@ -240,8 +258,8 @@ function AccessoryPiece({ piece, angle, radiusUnits, cordRadius }: { piece: Prev
   return <group ref={groupRef} position={[x, y, z]}>
     {/* Nudged toward the camera so the cord's front half doesn't slice
         through the opaque part of the photo. */}
-    <mesh position={[0, 0, cordRadius * 1.6 + 0.002]}>
-      <planeGeometry args={[side, side]} />
+    <mesh position={[xOff, 0, cordRadius * 1.6 + 0.002]}>
+      <planeGeometry args={[w, h]} />
       {/* Basic material: the photo's lighting is already baked in; letting
           scene lights re-light it would double-shade the metal. */}
       <meshBasicMaterial map={map} transparent alphaTest={0.08} side={THREE.DoubleSide} toneMapped={false} />
