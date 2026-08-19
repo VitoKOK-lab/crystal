@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo, useRef, useState } from "react";
-import { ItemVisual, PCT_PER_MM, arcWidthMM, fanCharmAngles, itemMM, type DesignItem, type StrandPlacement } from "./catalog";
+import { ItemVisual, PCT_PER_MM, anglesForWidths, fanCharmAngles, itemMM, placementOf, type DesignItem, type StrandPlacement } from "./catalog";
 import type { ENERGY_META } from "./catalog";
 import type { SeriesTone } from "./series";
 
@@ -52,11 +52,14 @@ function BraceletStage({
     if (from < 0 || current.length < 2) return current;
     const moving = current[from];
     const rest = current.filter((x) => x.uid !== uid);
+    // 落點直接跟「剩下這些珠子的實際角度」比對——排列已經是弦長模型，
+    // 再用一套線性累加去猜位置會跟畫面對不起來。
     const TAU = Math.PI * 2;
-    const frac = ((((angle + Math.PI / 2) % TAU) + TAU) % TAU) / TAU;
-    const p = frac * capacityMM;
-    let cum = 0, target = rest.length;
-    for (let i = 0; i < rest.length; i++) { const w = arcWidthMM(itemMM(rest[i]), capacityMM); if (p < cum + w / 2) { target = i; break; } cum += w; }
+    const norm = (t: number) => (((t + Math.PI / 2) % TAU) + TAU) % TAU;
+    const p = norm(angle);
+    const angles = anglesForWidths(rest.map(itemMM), capacityMM).map(norm);
+    let target = rest.length;
+    for (let i = 0; i < angles.length; i++) { if (p < angles[i]) { target = i; break; } }
     const next = [...rest];
     next.splice(target, 0, moving);
     return next.every((x, i) => x === current[i]) ? current : next;
@@ -78,18 +81,22 @@ function BraceletStage({
       const isDragging = dragView?.uid === uid;
       const a = isDragging ? (dragView as { angle: number }).angle : displayAngles[i];
       const isCharm = arcs[i].isCharm;
-      const sizePct = isCharm ? 10.5 : arcs[i].mm * PCT_PER_MM;
-      // A charm dangles from its jump ring, so gravity — not the ring's
-      // geometry — decides which way it points: always straight down, the
-      // same way it hangs on a wrist. (Rotating it radially made charms on
-      // the left half point left and ones up top point up, which no real
-      // charm does.) The photos are shot bail-up, so hanging down is simply
-      // no rotation at all; the piece is centred half a body-length below
-      // its cord point so the bail still sits on the cord.
-      const charmDrop = 5.2;
-      const orbit = isCharm ? r : r;
-      const charmRotation = 0;
-      const stoneRotation = (a * 180 / Math.PI) + 90;
+      // 每個零件的穿繩點（扣環孔／中心孔）是從照片自動偵測出來的，顯示
+      // 框也照實際輪廓比例走，而不是硬塞成正方形。
+      const place = placementOf(item);
+      // 顯示長邊：圓珠與隔珠照真實直徑，吊飾照它自己的視覺尺寸（吊飾只
+      // 佔 3mm 繩距，但畫出來當然比 3mm 大）。
+      const longPct = isCharm ? 10.5 : arcs[i].mm * PCT_PER_MM;
+      const wPct = place.aspect >= 1 ? longPct : longPct * place.aspect;
+      const hPct = place.aspect >= 1 ? longPct / place.aspect : longPct;
+      // 把 anchor 那一點對到繩子上：translate 的百分比是相對自己的框，
+      // 所以 -anchor×100% 剛好讓那個點落在定位座標上。圓珠／隔珠的
+      // anchor 是 (0.5,0.5)，行為與過去的置中完全相同。
+      const shiftX = -place.anchor[0] * 100;
+      const shiftY = -place.anchor[1] * 100;
+      // 吊飾靠重力決定方向：永遠垂直向下（照片本來就是扣環朝上拍的），
+      // 圓珠與隔珠則跟著繩子的切線轉。
+      const rotation = place.orientation === "dangle" ? 0 : (a * 180 / Math.PI) + 90;
       return <button
         key={uid}
         className={`design-item ${isCharm ? "is-charm" : ""} ${isDragging ? "dragging" : ""}`}
@@ -113,7 +120,14 @@ function BraceletStage({
         onPointerCancel={() => { dragRef.current = null; setDragView(null); }}
         aria-label={isCharm ? "輕點移除吊飾，按住拖曳調整位置" : "輕點移除素材，按住拖曳調整位置"}
         title="輕點移除 · 按住拖曳調整位置"
-        style={{ left: `${50 + Math.cos(a) * orbit}%`, top: `${50 + Math.sin(a) * orbit + (isCharm ? charmDrop : 0)}%`, width: `${sizePct}%`, height: `${sizePct}%`, transform: `translate(-50%,-50%) rotate(${isCharm ? charmRotation : stoneRotation}deg)` }}
+        style={{
+          left: `${50 + Math.cos(a) * r}%`, top: `${50 + Math.sin(a) * r}%`,
+          width: `${wPct}%`, height: `${hPct}%`,
+          transform: `translate(${shiftX}%,${shiftY}%) rotate(${rotation}deg)`,
+          // 讓圖案（而不是含留白的整張圖）填滿顯示框
+          ["--art-w" as string]: place.art.width, ["--art-h" as string]: place.art.height,
+          ["--art-x" as string]: place.art.left, ["--art-y" as string]: place.art.top,
+        } as React.CSSProperties}
       ><ItemVisual item={item} /><span className="remove-mark">−</span></button>;
     })}
     {beads > 0

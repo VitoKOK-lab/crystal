@@ -1,3 +1,4 @@
+import { PIECE_SHAPES } from "./piece-shapes";
 // Shared material catalogue for the whole site: the baked-in tables, the
 // photo maps, per-item sizing/pricing, and the live-hydration mutation
 // points (stoneSizes / accessoryStock / pricing are overwritten in place by
@@ -210,6 +211,54 @@ export const DEFAULT_SIZES: StoneSize[] = [
 ];
 export const stoneSizes: Record<string, StoneSize[]> = {};
 export const accessoryStock: Record<string, number> = {};
+
+// --- 零件怎麼掛在繩子上 ---------------------------------------------------
+// 方向由素材自己的類型決定（人工建檔的權威資料），孔的座標與輪廓比例
+// 則來自照片的自動偵測（scripts/derive-piece-shapes.py）。兩者分工：
+// 類型說「這是吊飾」，照片說「扣環在圖片的哪個點」。
+export type PiecePlacement = {
+  /** round 置中 · ring 繩穿中心並跟著切線轉 · dangle 從扣環垂下 */
+  orientation: "round" | "ring" | "dangle";
+  /** 圖案本身的寬/高，用來讓顯示框貼合實際外形而不是硬塞成正方形 */
+  aspect: number;
+  /** 繩子該穿過的點，相對於圖案框的 [0,1] 座標 */
+  anchor: [number, number];
+  /** 圖案在圖檔裡的範圍 [x0,y0,x1,y1]（3D 用它裁貼圖）。 */
+  box: [number, number, number, number];
+  /** 把圖檔放大平移、讓「圖案」剛好填滿顯示框的 CSS 值（去掉四周留白）。
+   *  不做這件事的話，object-fit:contain 會把整張含留白的圖縮進顯示框，
+   *  細長的吊飾就只剩中間一小條。 */
+  art: { width: string; height: string; left: string; top: string };
+};
+// 沒偵測到扣環的吊飾（例如整片實心的十字架）就從頂端稍下處垂掛。
+const DEFAULT_BAIL: [number, number] = [0.5, 0.12];
+
+const FULL_ART = { width: "100%", height: "100%", left: "0%", top: "0%" };
+const FULL_BOX: [number, number, number, number] = [0, 0, 1, 1];
+// 顯示框 = 圖案框。把整張圖依 1/圖案佔比放大，再往回位移 x0/y0，
+// 圖案就剛好對齊顯示框的四邊。
+function artFit(box?: [number, number, number, number]) {
+  if (!box) return FULL_ART;
+  const w = box[2] - box[0], h = box[3] - box[1];
+  if (!(w > 0.02) || !(h > 0.02)) return FULL_ART;
+  const pct = (n: number) => `${Math.round(n * 1e4) / 1e2}%`;
+  return { width: pct(1 / w), height: pct(1 / h), left: pct(-box[0] / w), top: pct(-box[1] / h) };
+}
+
+export function placementOf(item: DesignItem): PiecePlacement {
+  const isAccessory = item.kind === "accessory";
+  const photo = isAccessory ? accessoryPhotos[item.id] : stonePhotos[item.id];
+  const shape = photo ? PIECE_SHAPES[photo] : undefined;
+  const aspect = shape?.aspect && shape.aspect > 0 ? shape.aspect : 1;
+  const art = artFit(shape?.box);
+  const box = shape?.box ?? FULL_BOX;
+  if (!isAccessory) return { orientation: "round", aspect, anchor: [0.5, 0.5], art, box };
+  const type = byAccessory[item.id]?.type;
+  if (type === "charm") {
+    return { orientation: "dangle", aspect, anchor: shape?.holeTop ?? DEFAULT_BAIL, art, box };
+  }
+  return { orientation: "ring", aspect, anchor: shape?.holeCentral ?? [0.5, 0.5], art, box };
+}
 
 export function sizesFor(stoneId: string): StoneSize[] {
   const rows = stoneSizes[stoneId];

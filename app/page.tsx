@@ -24,7 +24,7 @@ import Shop from "./shop";
 import {
   ENERGY_META, ItemVisual, WRIST_CHOICES, accessories, accessoryPhotos,
   buildSpec, byAccessory, byStone, canPadMore, colorGroupOf, defaultStoneMM, dominantOf, encodeDesign, energyScores,
-  capacityForWrist, fitWristCm, itemMM, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
+  capacityForWrist, fitWristCm, itemMM, placementOf, itemPrice, label, layoutStrand, nextUid, parseSpec, pricing, sizeLabel, stonePhotos, stones,
   strandArcMM, PCT_PER_MM,
   type Accessory, type BeadSize, type ColorGroupKey, type DesignItem, type Stone,
 } from "./catalog";
@@ -43,6 +43,12 @@ export const DEFAULT_WRIST = 14;
 // 360° preview button so that weight only loads for visitors who actually
 // open it, instead of on every studio page view.
 const Preview3D = lazy(() => import("./preview-3d"));
+
+// 3D 只需要數值：比例、穿繩孔、裁切範圍。
+const shapeOf = (it: DesignItem) => {
+  const p = placementOf(it);
+  return { aspect: p.aspect, anchor: p.anchor, box: p.box };
+};
 
 export default function Home() {
   const [items, setItems] = useState<DesignItem[]>(initial);
@@ -180,8 +186,8 @@ export default function Home() {
   const totalEnergy = ENERGY_META.reduce((sum, m) => sum + scores[m.key], 0);
   const dominant = dominantOf(scores);
   const previewPieces = useMemo<PreviewPiece[]>(() => items.map((it) => it.kind === "stone"
-    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const, uid: it.uid }
-    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const, uid: it.uid }), [items]);
+    ? { mm: itemMM(it), src: stonePhotos[it.id] ?? null, metal: "gold" as const, isCharm: false, id: it.id, kind: "stone" as const, uid: it.uid, shape: shapeOf(it) }
+    : { mm: itemMM(it), src: accessoryPhotos[it.id] ?? null, metal: (byAccessory[it.id] as Accessory).metal, isCharm: (byAccessory[it.id] as Accessory).type === "charm", id: it.id, kind: "accessory" as const, uid: it.uid, shape: shapeOf(it) }), [items]);
   const orderLines = useMemo<OrderLine[]>(() => {
     const grouped = new Map<string, { item: DesignItem; qty: number }>();
     items.forEach((item) => { const key = `${item.kind}-${item.id}-${item.size ?? ""}`; const entry = grouped.get(key); if (entry) entry.qty += 1; else grouped.set(key, { item, qty: 1 }); });
