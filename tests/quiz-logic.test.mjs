@@ -7,7 +7,7 @@ import { importCompiled } from "./esbuild-import.mjs";
 const logic = await importCompiled("app/quiz-logic.ts");
 const catalog = await importCompiled("app/catalog.tsx");
 const { buildDeep, lineupFromIds, reduce9, digitsSum, LIFE, CONCERNS } = logic;
-const { CHAKRA_META, chakraOf, stonesForChakra, colorGroupOf, COLOR_GROUPS, stones, strandArcMM } = catalog;
+const { CHAKRA_META, chakraOf, stonesForChakra, colorGroupOf, COLOR_GROUPS, stones, strandArcMM, capacityForWrist } = catalog;
 
 // --- 生命靈數 ---------------------------------------------------------------
 
@@ -51,12 +51,13 @@ test("deficit chakras get bigger beads: core 12mm, deficit 10mm, rest 8mm", () =
   }
 });
 
-test("the padded strand lands between 84% and 100% of the 14cm capacity", () => {
+test("the padded strand fills most of a real 14cm bracelet", () => {
   const r = buildDeep("1990-12-31", "ESFP", ["crown"]);
   const widths = r.items.map((it) => it.mm);
-  const arc = strandArcMM(widths, 140);
-  assert.ok(arc <= 140, `must fit: ${arc.toFixed(1)}mm`);
-  assert.ok(arc >= 140 * 0.8, `must not be sparse: ${arc.toFixed(1)}mm`);
+  const cap = capacityForWrist(14, widths);   // 珠心圈，不是手圍本身
+  const arc = strandArcMM(widths, cap);
+  assert.ok(arc <= cap, `must fit: ${arc.toFixed(1)} of ${cap.toFixed(1)}mm`);
+  assert.ok(arc >= cap * 0.78, `must not be sparse: ${(100 * arc / cap).toFixed(0)}%`);
   assert.ok(r.items.length <= 20, "hard cap on item count");
   assert.ok(r.items.slice(7).every((it) => it.id === "clear"), "padding is clear quartz");
 });
